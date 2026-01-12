@@ -30,13 +30,16 @@ const router = express.Router();
 router.use(protect);
 
 // Nearby offices (must be before /:id to avoid conflict)
+// Only super_admin/admin can search nearby offices
 router.get(
   '/nearby',
+  authorize('super_admin', 'admin'),
   validate(nearbyOfficesSchema, 'query'),
   findNearbyOffices
 );
 
-// Public routes (all authenticated users with access control in service)
+// Read access: super_admin, admin (full), internal (own office only)
+// External users have no access - enforced in service layer
 router.get('/', getAllOffices);
 router.get(
   '/:id',

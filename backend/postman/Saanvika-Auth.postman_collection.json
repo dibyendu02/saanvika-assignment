@@ -1079,6 +1079,25 @@
           "response": []
         },
         {
+          "name": "Get All Offices - External [SHOULD FAIL]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices"]
+            },
+            "description": "External employees have no access to offices. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
           "name": "Get Office By ID - Super Admin",
           "request": {
             "method": "GET",
@@ -1132,6 +1151,25 @@
               "path": ["api", "v1", "offices", "{{office2_id}}"]
             },
             "description": "Internal employee cannot view different office. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Office By ID - External [SHOULD FAIL]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices/{{office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices", "{{office1_id}}"]
+            },
+            "description": "External employees have no access to offices, even their own. Expected: 403 Forbidden."
           },
           "response": []
         },

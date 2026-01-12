@@ -25,10 +25,15 @@ export const getAllOffices = async (requestingUser, filters = {}) => {
   const { page = 1, limit = 10, search } = filters;
   const skip = (page - 1) * limit;
 
+  // Access control: external users have no access to offices
+  if (requestingUser.role === 'external') {
+    throw new AppError('You are not authorized to view offices', 403);
+  }
+
   let query = {};
 
-  // Access control: internal/external can only see their own office
-  if (['internal', 'external'].includes(requestingUser.role)) {
+  // Access control: internal can only see their own office
+  if (requestingUser.role === 'internal') {
     query._id = requestingUser.primaryOfficeId;
   }
 
@@ -61,14 +66,19 @@ export const getAllOffices = async (requestingUser, filters = {}) => {
  * @returns {Promise<Object>} - Office object
  */
 export const getOfficeById = async (requestingUser, officeId) => {
+  // Access control: external users have no access to offices
+  if (requestingUser.role === 'external') {
+    throw new AppError('You are not authorized to view offices', 403);
+  }
+
   const office = await Office.findById(officeId).populate('adminIds', 'name email');
 
   if (!office) {
     throw new AppError('Office not found', 404);
   }
 
-  // Access control: internal/external can only see their own office
-  if (['internal', 'external'].includes(requestingUser.role)) {
+  // Access control: internal can only see their own office
+  if (requestingUser.role === 'internal') {
     if (officeId.toString() !== requestingUser.primaryOfficeId?.toString()) {
       throw new AppError('You are not authorized to view this office', 403);
     }
