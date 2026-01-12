@@ -1916,6 +1916,440 @@
       ]
     },
     {
+      "name": "Goodies Distribution",
+      "item": [
+        {
+          "name": "Create Distribution - Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.distribution) {",
+                  "        pm.collectionVariables.set('distribution_id', response.data.distribution._id);",
+                  "        console.log('Distribution ID saved:', response.data.distribution._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"officeId\": \"{{office1_id}}\",\n    \"goodiesType\": \"T-Shirt\",\n    \"distributionDate\": \"2024-01-15\",\n    \"totalQuantity\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Admin creates a goodies distribution. Expected: 201 with distribution record."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Distribution - Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"officeId\": \"{{office1_id}}\",\n    \"goodiesType\": \"Water Bottle\",\n    \"distributionDate\": \"2024-01-15\",\n    \"totalQuantity\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Super Admin creates a goodies distribution. Expected: 201."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Distribution - Duplicate [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"officeId\": \"{{office1_id}}\",\n    \"goodiesType\": \"T-Shirt\",\n    \"distributionDate\": \"2024-01-15\",\n    \"totalQuantity\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Duplicate distribution (same office, date, goodies type). Expected: 400."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Distribution - Internal [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"officeId\": \"{{office1_id}}\",\n    \"goodiesType\": \"Cap\",\n    \"distributionDate\": \"2024-01-16\",\n    \"totalQuantity\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Internal employees cannot create distributions. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Distribution - External [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"officeId\": \"{{office1_id}}\",\n    \"goodiesType\": \"Cap\",\n    \"distributionDate\": \"2024-01-16\",\n    \"totalQuantity\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "External employees cannot create distributions. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Distributions - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Admin can see all distributions. Expected: 200 with all distributions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Distributions - Internal (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Internal employee sees distributions from their office only. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Distributions - External (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "External employee sees distributions from their office only. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Distribution By ID - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions/{{distribution_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions", "{{distribution_id}}"]
+            },
+            "description": "Admin can view any distribution. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Receive Goodies - Internal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.receipt) {",
+                  "        pm.collectionVariables.set('receipt_id', response.data.receipt._id);",
+                  "        console.log('Receipt ID saved:', response.data.receipt._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"distributionId\": \"{{distribution_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/receive",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "receive"]
+            },
+            "description": "Internal employee receives goodies. Expected: 201 with receipt."
+          },
+          "response": []
+        },
+        {
+          "name": "Receive Goodies - Internal (Duplicate) [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"distributionId\": \"{{distribution_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/receive",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "receive"]
+            },
+            "description": "Cannot receive same goodies twice. Expected: 400 - Already received."
+          },
+          "response": []
+        },
+        {
+          "name": "Receive Goodies - External",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"distributionId\": \"{{distribution_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/receive",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "receive"]
+            },
+            "description": "External employee receives goodies. Expected: 201 with receipt."
+          },
+          "response": []
+        },
+        {
+          "name": "Receive Goodies - Admin [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"distributionId\": \"{{distribution_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/receive",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "receive"]
+            },
+            "description": "Admin cannot receive goodies - only employees can. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Received - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/received",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "received"]
+            },
+            "description": "Admin can see all received records. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Received - Internal (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/received",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "received"]
+            },
+            "description": "Internal sees received records from their office. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Received - External (Own Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/received",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "received"]
+            },
+            "description": "External sees only their own received records. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Received By ID - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/received/{{receipt_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "received", "{{receipt_id}}"]
+            },
+            "description": "Admin can view any receipt record. Expected: 200."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Error Cases",
       "item": [
         {

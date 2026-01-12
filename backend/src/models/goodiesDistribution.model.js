@@ -38,6 +38,12 @@ const goodiesDistributionSchema = new mongoose.Schema(
   }
 );
 
+// Compound unique index: One distribution per office per date per goodies type
+goodiesDistributionSchema.index(
+  { officeId: 1, distributionDate: 1, goodiesType: 1 },
+  { unique: true }
+);
+
 // Index for office-based queries
 goodiesDistributionSchema.index({ officeId: 1, distributionDate: -1 });
 
