@@ -7,7 +7,8 @@ import {
     UserCheck,
     Gift,
     LogOut,
-    Menu
+    Menu,
+    Users
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -21,10 +22,11 @@ const Layout = ({ children }) => {
     };
 
     const navigation = [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'internal'] },
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'internal', 'external'] },
         { name: 'Offices', href: '/offices', icon: Building2, roles: ['super_admin', 'admin'] },
-        { name: 'Attendance', href: '/attendance', icon: UserCheck, roles: ['super_admin', 'admin', 'internal'] },
-        { name: 'Goodies', href: '/goodies', icon: Gift, roles: ['super_admin', 'admin', 'internal'] },
+        { name: 'Employees', href: '/employees', icon: Users, roles: ['super_admin', 'admin', 'internal'] },
+        { name: 'Attendance', href: '/attendance', icon: UserCheck, roles: ['super_admin', 'admin', 'internal', 'external'] },
+        { name: 'Goodies', href: '/goodies', icon: Gift, roles: ['super_admin', 'admin', 'internal', 'external'] },
     ];
 
     const filteredNavigation = navigation.filter(item => item.roles.includes(user?.role));
@@ -46,8 +48,8 @@ const Layout = ({ children }) => {
                                 key={item.name}
                                 to={item.href}
                                 className={`flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors ${isActive
-                                        ? 'bg-primary text-primary-foreground'
-                                        : 'text-gray-600 hover:bg-gray-100'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'text-gray-600 hover:bg-gray-100'
                                     }`}
                             >
                                 <Icon className="mr-3 h-5 w-5" />

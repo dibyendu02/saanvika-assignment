@@ -88,11 +88,21 @@ const LoginPage = () => {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter className="flex flex-col gap-4">
                         <Button className="w-full" type="submit" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Login
                         </Button>
+                        <div className="text-sm text-center">
+                            Don't have an account?{' '}
+                            <button
+                                type="button"
+                                onClick={() => navigate('/register')}
+                                className="text-primary hover:underline font-semibold"
+                            >
+                                Register Now
+                            </button>
+                        </div>
                     </CardFooter>
                 </form>
             </Card>

@@ -4,6 +4,8 @@ import Dashboard from '../pages/Dashboard';
 import Offices from '../pages/Offices';
 import Attendance from '../pages/Attendance';
 import Goodies from '../pages/Goodies';
+import Employees from '../pages/Employees';
+import RegisterPage from '../pages/RegisterPage';
 import ProtectedRoute from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
 
@@ -11,13 +13,14 @@ const AppRoutes = () => {
     return (
         <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
             <Route
                 path="/dashboard"
                 element={
-                    <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal']}>
+                    <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal', 'external']}>
                         <Layout>
                             <Dashboard />
                         </Layout>
@@ -39,7 +42,7 @@ const AppRoutes = () => {
             <Route
                 path="/attendance"
                 element={
-                    <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal']}>
+                    <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal', 'external']}>
                         <Layout>
                             <Attendance />
                         </Layout>
@@ -50,9 +53,20 @@ const AppRoutes = () => {
             <Route
                 path="/goodies"
                 element={
-                    <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal']}>
+                    <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal', 'external']}>
                         <Layout>
                             <Goodies />
+                        </Layout>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/employees"
+                element={
+                    <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal']}>
+                        <Layout>
+                            <Employees />
                         </Layout>
                     </ProtectedRoute>
                 }
