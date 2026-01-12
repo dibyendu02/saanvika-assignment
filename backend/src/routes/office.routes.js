@@ -39,10 +39,11 @@ router.get(
 );
 
 // Read access: super_admin, admin (full), internal (own office only)
-// External users have no access - enforced in service layer
-router.get('/', getAllOffices);
+// External users have no access - blocked at route level, fine-grained in service
+router.get('/', authorize('super_admin', 'admin', 'internal'), getAllOffices);
 router.get(
   '/:id',
+  authorize('super_admin', 'admin', 'internal'),
   validate(officeIdSchema, 'params'),
   getOfficeById
 );
