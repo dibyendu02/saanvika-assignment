@@ -1,0 +1,1429 @@
+{
+  "info": {
+    "_postman_id": "saanvika-auth-collection",
+    "name": "Saanvika Employee Management",
+    "description": "Authentication and User Management API endpoints for the Employee Management System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5001",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "super_admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "internal_office1_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "internal_office2_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "external_office1_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "external_office2_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "office1_id",
+      "value": "",
+      "type": "string",
+      "description": "Replace with actual office 1 ID from your database"
+    },
+    {
+      "key": "office2_id",
+      "value": "",
+      "type": "string",
+      "description": "Replace with actual office 2 ID from your database"
+    },
+    {
+      "key": "external_employee_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "super_admin_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "internal_office1_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "external_office1_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "external_office2_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "health"]
+            },
+            "description": "Check if the server is running and connected to the database"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('super_admin_token', response.data.token);",
+                  "        pm.collectionVariables.set('token', response.data.token);",
+                  "        pm.collectionVariables.set('super_admin_id', response.data.user._id);",
+                  "        console.log('Super Admin token saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Super Admin\",\n    \"email\": \"superadmin@test.com\",\n    \"phone\": \"9876543210\",\n    \"password\": \"password123\",\n    \"role\": \"super_admin\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Register a new super admin user. Super admins don't require primaryOfficeId."
+          },
+          "response": []
+        },
+        {
+          "name": "Register Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('admin_token', response.data.token);",
+                  "        console.log('Admin token saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Admin User\",\n    \"email\": \"admin@test.com\",\n    \"phone\": \"9876543211\",\n    \"password\": \"password123\",\n    \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Register a new admin user. Admins don't require primaryOfficeId. Status will be set to 'active' automatically."
+          },
+          "response": []
+        },
+        {
+          "name": "Register Internal Employee - Office 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('internal_office1_token', response.data.token);",
+                  "        pm.collectionVariables.set('internal_office1_id', response.data.user._id);",
+                  "        console.log('Internal Office 1 token saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Internal Employee Office1\",\n    \"email\": \"internal1@test.com\",\n    \"phone\": \"9876543212\",\n    \"password\": \"password123\",\n    \"role\": \"internal\",\n    \"primaryOfficeId\": \"{{office1_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Register internal employee for Office 1"
+          },
+          "response": []
+        },
+        {
+          "name": "Register Internal Employee - Office 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('internal_office2_token', response.data.token);",
+                  "        console.log('Internal Office 2 token saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Internal Employee Office2\",\n    \"email\": \"internal2@test.com\",\n    \"phone\": \"9876543222\",\n    \"password\": \"password123\",\n    \"role\": \"internal\",\n    \"primaryOfficeId\": \"{{office2_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Register internal employee for Office 2"
+          },
+          "response": []
+        },
+        {
+          "name": "Register External Employee - Office 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.user) {",
+                  "        pm.collectionVariables.set('external_employee_id', response.data.user._id);",
+                  "        pm.collectionVariables.set('external_office1_id', response.data.user._id);",
+                  "        console.log('External Office 1 employee ID saved:', response.data.user._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"External Employee Office1\",\n    \"email\": \"external1@test.com\",\n    \"phone\": \"9876543213\",\n    \"password\": \"password123\",\n    \"role\": \"external\",\n    \"primaryOfficeId\": \"{{office1_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Register external employee for Office 1 (status: pending)"
+          },
+          "response": []
+        },
+        {
+          "name": "Register External Employee - Office 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.user) {",
+                  "        pm.collectionVariables.set('external_office2_id', response.data.user._id);",
+                  "        console.log('External Office 2 employee ID saved:', response.data.user._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"External Employee Office2\",\n    \"email\": \"external2@test.com\",\n    \"phone\": \"9876543223\",\n    \"password\": \"password123\",\n    \"role\": \"external\",\n    \"primaryOfficeId\": \"{{office2_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Register external employee for Office 2 (status: pending)"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('super_admin_token', response.data.token);",
+                  "        pm.collectionVariables.set('token', response.data.token);",
+                  "        console.log('Super Admin token saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"superadmin@test.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login as super admin"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Internal Office 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('internal_office1_token', response.data.token);",
+                  "        console.log('Internal Office 1 token saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"internal1@test.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login as internal employee from Office 1"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify External Employee - Office 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/verify/{{external_office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "verify", "{{external_office1_id}}"]
+            },
+            "description": "Verify external employee from Office 1"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify External Employee - Office 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/verify/{{external_office2_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "verify", "{{external_office2_id}}"]
+            },
+            "description": "Verify external employee from Office 2"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - External Office 1 (After Verification)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('external_office1_token', response.data.token);",
+                  "        console.log('External Office 1 token saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"external1@test.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login as external employee from Office 1 (after verification)"
+          },
+          "response": []
+        },
+        {
+          "name": "Login - External Office 2 (After Verification)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('external_office2_token', response.data.token);",
+                  "        console.log('External Office 2 token saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"external2@test.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login as external employee from Office 2 (after verification)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "Get My Profile (All Roles)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "profile"]
+            },
+            "description": "Any authenticated user can get their own profile. Test with different tokens."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users - Super Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Super Admin can see ALL users. Expected: 200 with all users."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "Admin can see ALL users. Expected: 200 with all users."
+          },
+          "response": []
+        },
+        {
+          "name": "Get External Employees - Internal (Same Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?role=external",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "external"
+                }
+              ]
+            },
+            "description": "Internal employee can see external employees from their own office only. Expected: 200 with Office 1 external employees only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Internal Employees - Internal (Same Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?role=internal",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "internal"
+                }
+              ]
+            },
+            "description": "Internal employee can see internal employees from their own office only. Expected: 200 with Office 1 internal employees only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Admin Users - Internal [SHOULD FAIL]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?role=admin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "admin"
+                }
+              ]
+            },
+            "description": "Internal employees cannot view admin users. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users - External [SHOULD FAIL]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"]
+            },
+            "description": "External employees cannot list users. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID - Super Admin (Any User)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{external_office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{external_office1_id}}"]
+            },
+            "description": "Super Admin can view any user. Expected: 200 with user data."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID - Internal (Same Office User)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{external_office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{external_office1_id}}"]
+            },
+            "description": "Internal employee can view users from same office. Expected: 200 with user data."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID - Internal (Different Office) [SHOULD FAIL]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{external_office2_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{external_office2_id}}"]
+            },
+            "description": "Internal employee cannot view users from different office. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID - External (Own Data)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{external_office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{external_office1_id}}"]
+            },
+            "description": "External employee can view their own data. Expected: 200 with own user data."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User By ID - External (Other User) [SHOULD FAIL]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/{{external_office2_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "{{external_office2_id}}"]
+            },
+            "description": "External employee cannot view other users. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employees By Office - Super Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/office/{{office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "office", "{{office1_id}}"]
+            },
+            "description": "Super Admin can view employees from any office. Expected: 200 with Office 1 employees."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employees By Office - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/office/{{office2_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "office", "{{office2_id}}"]
+            },
+            "description": "Admin can view employees from any office. Expected: 200 with Office 2 employees."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employees By Office - Internal (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/office/{{office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "office", "{{office1_id}}"]
+            },
+            "description": "Internal employee can view employees from their own office. Expected: 200 with Office 1 employees."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employees By Office - Internal (Different Office) [SHOULD FAIL]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/office/{{office2_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "office", "{{office2_id}}"]
+            },
+            "description": "Internal employee cannot view employees from different office. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Employees By Office - External [SHOULD FAIL]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/office/{{office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "office", "{{office1_id}}"]
+            },
+            "description": "External employees cannot view office employees list. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Users with Pagination",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?page=1&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Test pagination. Expected: 200 with paginated results."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Office Management",
+      "item": [
+        {
+          "name": "Create Office 1 - Super Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.office) {",
+                  "        pm.collectionVariables.set('office1_id', response.data.office._id);",
+                  "        console.log('Office 1 ID saved:', response.data.office._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Main Office\",\n    \"address\": \"123 Main Street, City Center, State 12345\",\n    \"location\": {\n        \"type\": \"Point\",\n        \"coordinates\": [77.5946, 12.9716]\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices"]
+            },
+            "description": "Create Office 1 (Main Office). Only admin/super_admin can create offices."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Office 2 - Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.office) {",
+                  "        pm.collectionVariables.set('office2_id', response.data.office._id);",
+                  "        console.log('Office 2 ID saved:', response.data.office._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Branch Office\",\n    \"address\": \"456 Branch Road, Suburb Area, State 54321\",\n    \"location\": {\n        \"type\": \"Point\",\n        \"coordinates\": [77.6088, 12.9352]\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices"]
+            },
+            "description": "Create Office 2 (Branch Office). Admin can also create offices."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Office - Internal [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Unauthorized Office\",\n    \"address\": \"789 Fake Street\",\n    \"location\": {\n        \"type\": \"Point\",\n        \"coordinates\": [77.5, 12.9]\n    }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices"]
+            },
+            "description": "Internal employees cannot create offices. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Offices - Super Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices"]
+            },
+            "description": "Super Admin can see all offices. Expected: 200 with all offices."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Offices - Internal (Own Office Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices"]
+            },
+            "description": "Internal employee can only see their own office. Expected: 200 with Office 1 only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Office By ID - Super Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices/{{office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices", "{{office1_id}}"]
+            },
+            "description": "Super Admin can view any office. Expected: 200 with office details."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Office By ID - Internal (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices/{{office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices", "{{office1_id}}"]
+            },
+            "description": "Internal employee can view their own office. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Office By ID - Internal (Different Office) [SHOULD FAIL]",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices/{{office2_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices", "{{office2_id}}"]
+            },
+            "description": "Internal employee cannot view different office. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Office - Admin",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Main Office - Updated\",\n    \"address\": \"123 Main Street, City Center, State 12345 (Updated)\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices/{{office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices", "{{office1_id}}"]
+            },
+            "description": "Admin can update offices. Expected: 200 with updated office."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Office - Internal [SHOULD FAIL]",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Hacked Office Name\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices/{{office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices", "{{office1_id}}"]
+            },
+            "description": "Internal employees cannot update offices. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Target to Office - Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"monthly\",\n    \"count\": 100,\n    \"period\": \"2024-01\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices/{{office1_id}}/targets",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices", "{{office1_id}}", "targets"]
+            },
+            "description": "Add distribution target to office. Expected: 201 with updated office."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Target - Admin",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"type\": \"monthly\",\n    \"period\": \"2024-01\",\n    \"count\": 150\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices/{{office1_id}}/targets",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices", "{{office1_id}}", "targets"]
+            },
+            "description": "Update existing target. Expected: 200 with updated office."
+          },
+          "response": []
+        },
+        {
+          "name": "Find Nearby Offices",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices/nearby?longitude=77.5946&latitude=12.9716&maxDistance=10000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices", "nearby"],
+              "query": [
+                {
+                  "key": "longitude",
+                  "value": "77.5946"
+                },
+                {
+                  "key": "latitude",
+                  "value": "12.9716"
+                },
+                {
+                  "key": "maxDistance",
+                  "value": "10000"
+                }
+              ]
+            },
+            "description": "Find offices within 10km of given coordinates. Expected: 200 with nearby offices."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Offices by Name",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices?search=Main",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "Main"
+                }
+              ]
+            },
+            "description": "Search offices by name. Expected: 200 with matching offices."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Office - Admin [SHOULD FAIL]",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices/{{office2_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices", "{{office2_id}}"]
+            },
+            "description": "Only super_admin can delete offices. Admin should get 403."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Office - Super Admin",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices/{{office2_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices", "{{office2_id}}"]
+            },
+            "description": "Super Admin can delete offices. Expected: 200. WARNING: This will delete Office 2!"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "Register - Validation Error",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"\",\n    \"email\": \"invalid-email\",\n    \"phone\": \"123\",\n    \"password\": \"12345\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            },
+            "description": "Test validation errors. Expected: 400 with validation messages."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Invalid Credentials",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"superadmin@test.com\",\n    \"password\": \"wrongpassword\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Test invalid credentials. Expected: 401."
+          },
+          "response": []
+        },
+        {
+          "name": "Protected Route - No Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "profile"]
+            },
+            "description": "Test accessing protected route without token. Expected: 401."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User - Not Found",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/000000000000000000000000",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "000000000000000000000000"]
+            },
+            "description": "Test user not found. Expected: 404."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
