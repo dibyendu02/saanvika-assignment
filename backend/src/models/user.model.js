@@ -108,11 +108,17 @@ userSchema.pre('save', async function (next) {
 
 // Pre-save hook: Auto-activate certain roles
 userSchema.pre('save', function (next) {
-  if (
-    this.isNew &&
-    ['super_admin', 'admin', 'internal'].includes(this.role)
-  ) {
-    this.status = 'active';
+  if (this.isNew) {
+    // Auto-activate super_admin, admin, internal
+    if (['super_admin', 'admin', 'internal'].includes(this.role)) {
+      this.status = 'active';
+    }
+    // Auto-activate external employees created by authorized users
+    if (this.role === 'external' && this.createdBy) {
+      this.status = 'active';
+      this.verifiedBy = this.createdBy;
+      this.verifiedAt = new Date();
+    }
   }
   next();
 });

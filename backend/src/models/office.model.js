@@ -80,12 +80,6 @@ const officeSchema = new mongoose.Schema(
       type: [targetSchema],
       default: [],
     },
-    adminIds: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-      },
-    ],
   },
   {
     timestamps: true,

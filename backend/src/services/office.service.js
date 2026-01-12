@@ -44,7 +44,6 @@ export const getAllOffices = async (requestingUser, filters = {}) => {
 
   const [offices, total] = await Promise.all([
     Office.find(query)
-      .populate('adminIds', 'name email')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 }),
@@ -71,7 +70,7 @@ export const getOfficeById = async (requestingUser, officeId) => {
     throw new AppError('You are not authorized to view offices', 403);
   }
 
-  const office = await Office.findById(officeId).populate('adminIds', 'name email');
+  const office = await Office.findById(officeId);
 
   if (!office) {
     throw new AppError('Office not found', 404);
@@ -101,7 +100,7 @@ export const updateOffice = async (officeId, updateData) => {
   }
 
   // Update allowed fields
-  const allowedFields = ['name', 'address', 'location', 'targets', 'adminIds'];
+  const allowedFields = ['name', 'address', 'location', 'targets'];
   for (const field of allowedFields) {
     if (updateData[field] !== undefined) {
       office[field] = updateData[field];

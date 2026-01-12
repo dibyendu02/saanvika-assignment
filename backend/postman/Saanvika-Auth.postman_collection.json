@@ -82,6 +82,11 @@
       "key": "external_office2_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "attendance_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -542,6 +547,131 @@
               "path": ["api", "v1", "auth", "login"]
             },
             "description": "Login as external employee from Office 2 (after verification)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create External Employee - By Admin (Auto-Active)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.user) {",
+                  "        pm.collectionVariables.set('admin_created_external_id', response.data.user._id);",
+                  "        console.log('Admin-created external employee ID saved');",
+                  "        // Verify status is active",
+                  "        pm.test('Status should be active', function() {",
+                  "            pm.expect(response.data.user.status).to.eql('active');",
+                  "        });",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Admin Created External\",\n    \"email\": \"admin.created.external@test.com\",\n    \"phone\": \"9876543299\",\n    \"password\": \"password123\",\n    \"role\": \"external\",\n    \"primaryOfficeId\": \"{{office1_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "employees"]
+            },
+            "description": "Admin creates external employee - should be auto-activated (status: active, no verification needed). Expected: 201 with active status."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Admin Created External (No Verification)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin.created.external@test.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login as admin-created external employee - should work immediately without verification. Expected: 200 with token."
+          },
+          "response": []
+        },
+        {
+          "name": "Create External Employee - By Internal (Auto-Active)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Internal Created External\",\n    \"email\": \"internal.created.external@test.com\",\n    \"phone\": \"9876543298\",\n    \"password\": \"password123\",\n    \"role\": \"external\",\n    \"primaryOfficeId\": \"{{office1_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "employees"]
+            },
+            "description": "Internal employee creates external employee - should be auto-activated. Expected: 201 with active status."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Employee - External [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Unauthorized Employee\",\n    \"email\": \"unauthorized@test.com\",\n    \"phone\": \"9876543297\",\n    \"password\": \"password123\",\n    \"role\": \"external\",\n    \"primaryOfficeId\": \"{{office1_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "employees"]
+            },
+            "description": "External employees cannot create other employees. Expected: 403 Forbidden."
           },
           "response": []
         }
@@ -1374,6 +1504,412 @@
               "path": ["api", "v1", "offices", "{{office2_id}}"]
             },
             "description": "Super Admin can delete offices. Expected: 200. WARNING: This will delete Office 2!"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Attendance Management",
+      "item": [
+        {
+          "name": "Mark Attendance - Internal (At Office)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.attendance) {",
+                  "        pm.collectionVariables.set('attendance_id', response.data.attendance._id);",
+                  "        console.log('Attendance ID saved:', response.data.attendance._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "Internal employee marks attendance at office location (within 200m). Expected: 201 with attendance record."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Attendance - Internal (Duplicate) [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "Attempting to mark attendance twice on the same day. Expected: 400 - Attendance already marked for today."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Attendance - External (At Office)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "External employee marks attendance at office location. Expected: 201 with attendance record."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Attendance - Too Far From Office [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office2_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.0000,\n    \"latitude\": 12.0000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "Employee trying to mark attendance from location far from office. Expected: 400 - Must be within 200 meters."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Attendance - Super Admin [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "Super Admin cannot mark attendance - only employees can. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Attendance - Admin [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "Admin cannot mark attendance - only employees can. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Attendance - Super Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"]
+            },
+            "description": "Super Admin can see all attendance records. Expected: 200 with all records."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Attendance - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"]
+            },
+            "description": "Admin can see all attendance records. Expected: 200 with all records."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance - Admin (Filter by Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance?officeId={{office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"],
+              "query": [
+                {
+                  "key": "officeId",
+                  "value": "{{office1_id}}"
+                }
+              ]
+            },
+            "description": "Admin filters attendance by office. Expected: 200 with Office 1 attendance only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance - Admin (Filter by User)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance?userId={{internal_office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{internal_office1_id}}"
+                }
+              ]
+            },
+            "description": "Admin filters attendance by user. Expected: 200 with specific user's attendance."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance - Admin (Filter by Date Range)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance?startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31"
+                }
+              ]
+            },
+            "description": "Admin filters attendance by date range. Expected: 200 with records in date range."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance - Internal (Own Office Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"]
+            },
+            "description": "Internal employee can see attendance from their own office only. Expected: 200 with Office 1 attendance."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance - External (Own Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"]
+            },
+            "description": "External employee can only see their own attendance. Expected: 200 with own attendance only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance By ID - Super Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/{{attendance_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "{{attendance_id}}"]
+            },
+            "description": "Super Admin can view any attendance record. Expected: 200 with attendance details."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance By ID - Internal (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/{{attendance_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "{{attendance_id}}"]
+            },
+            "description": "Internal employee can view attendance from own office. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance with Pagination",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance?page=1&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Test pagination. Expected: 200 with paginated results."
           },
           "response": []
         }

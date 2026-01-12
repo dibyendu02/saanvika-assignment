@@ -81,9 +81,27 @@ export const getMe = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Create employee (by internal, admin, super_admin)
+ * @route   POST /api/v1/auth/employees
+ * @access  Private (internal, admin, super_admin)
+ */
+export const createEmployee = asyncHandler(async (req, res) => {
+  const user = await authService.createEmployee(req.user, req.body);
+
+  res.status(201).json({
+    success: true,
+    data: {
+      user,
+    },
+    message: 'Employee created successfully',
+  });
+});
+
 export default {
   register,
   login,
   verifyEmployee,
   getMe,
+  createEmployee,
 };

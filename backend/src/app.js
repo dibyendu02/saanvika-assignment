@@ -7,6 +7,7 @@ import healthRoutes from './routes/health.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import officeRoutes from './routes/office.routes.js';
+import attendanceRoutes from './routes/attendance.routes.js';
 
 // Import middlewares
 import errorHandler from './middlewares/errorHandler.js';
@@ -33,6 +34,7 @@ app.use('/api/v1/health', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/offices', officeRoutes);
+app.use('/api/v1/attendance', attendanceRoutes);
 
 // 404 handler for unknown routes
 app.use((req, res) => {

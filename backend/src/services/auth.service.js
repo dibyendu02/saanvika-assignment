@@ -123,8 +123,47 @@ export const verifyExternalEmployee = async (
   return externalEmployee;
 };
 
+/**
+ * Create employee by authorized user (internal, admin, super_admin)
+ * External employees created this way are auto-activated
+ * @param {Object} creatorUser - The user creating the employee
+ * @param {Object} employeeData - Employee data
+ * @returns {Promise<Object>} - Created user object
+ */
+export const createEmployee = async (creatorUser, employeeData) => {
+  const { email, phone } = employeeData;
+
+  // Check for existing user with same email
+  const existingEmail = await User.findOne({ email });
+  if (existingEmail) {
+    throw new AppError('Email already registered', 409);
+  }
+
+  // Check for existing user with same phone
+  const existingPhone = await User.findOne({ phone });
+  if (existingPhone) {
+    throw new AppError('Phone number already registered', 409);
+  }
+
+  // Set createdBy to auto-activate external employees
+  const userData = {
+    ...employeeData,
+    createdBy: creatorUser._id,
+  };
+
+  // Create user (status is set by pre-save hook)
+  const user = await User.create(userData);
+
+  // Remove password from response
+  const userResponse = user.toObject();
+  delete userResponse.password;
+
+  return userResponse;
+};
+
 export default {
   registerUser,
   loginUser,
   verifyExternalEmployee,
+  createEmployee,
 };
