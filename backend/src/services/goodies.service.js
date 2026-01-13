@@ -90,8 +90,25 @@ export const getDistributions = async (requestingUser, filters = {}) => {
     GoodiesDistribution.countDocuments(query),
   ]);
 
+  // Check if requesting user has already received these goodies
+  const distributionIds = distributions.map((d) => d._id);
+  const receivedRecords = await GoodiesReceived.find({
+    userId: requestingUser._id,
+    goodiesDistributionId: { $in: distributionIds },
+  });
+
+  const receivedSet = new Set(
+    receivedRecords.map((r) => r.goodiesDistributionId.toString())
+  );
+
+  const distributionsWithStatus = distributions.map((d) => {
+    const dObj = d.toObject();
+    dObj.isReceived = receivedSet.has(d._id.toString());
+    return dObj;
+  });
+
   return {
-    distributions,
+    distributions: distributionsWithStatus,
     total,
     page: parseInt(page),
     pages: Math.ceil(total / limit),
@@ -167,10 +184,15 @@ export const receiveGoodies = async (requestingUser, distributionId) => {
  * @returns {Promise<{records: Array, total: number, page: number, pages: number}>}
  */
 export const getReceivedGoodies = async (requestingUser, filters = {}) => {
-  const { page = 1, limit = 10, officeId, userId, startDate, endDate } = filters;
+  const { page = 1, limit = 10, officeId, userId, distributionId, startDate, endDate } = filters;
   const skip = (page - 1) * limit;
 
   let query = {};
+
+  // Filter by distribution ID if provided
+  if (distributionId) {
+    query.goodiesDistributionId = distributionId;
+  }
 
   // Role-based access control
   if (['super_admin', 'admin'].includes(requestingUser.role)) {

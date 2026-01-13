@@ -13,6 +13,7 @@ import {
   addTarget,
   updateTarget,
   findNearbyOffices,
+  getPublicOffices,
 } from '../controllers/office.controller.js';
 import {
   createOfficeSchema,
@@ -26,7 +27,10 @@ import {
 
 const router = express.Router();
 
-// All routes require authentication
+// Public route for registration dropdown
+router.get('/public', getPublicOffices);
+
+// All other routes require authentication
 router.use(protect);
 
 // Nearby offices (must be before /:id to avoid conflict)

@@ -59,6 +59,14 @@ export const getAllOffices = async (requestingUser, filters = {}) => {
 };
 
 /**
+ * Get simple list of all offices (public)
+ * @returns {Promise<Array>} - List of office names and IDs
+ */
+export const getPublicOffices = async () => {
+  return await Office.find({}, 'name address').sort({ name: 1 });
+};
+
+/**
  * Get office by ID with access control
  * @param {Object} requestingUser - The user making the request
  * @param {string} officeId - Office ID
