@@ -184,10 +184,15 @@ export const receiveGoodies = async (requestingUser, distributionId) => {
  * @returns {Promise<{records: Array, total: number, page: number, pages: number}>}
  */
 export const getReceivedGoodies = async (requestingUser, filters = {}) => {
-  const { page = 1, limit = 10, officeId, userId, startDate, endDate } = filters;
+  const { page = 1, limit = 10, officeId, userId, distributionId, startDate, endDate } = filters;
   const skip = (page - 1) * limit;
 
   let query = {};
+
+  // Filter by distribution ID if provided
+  if (distributionId) {
+    query.goodiesDistributionId = distributionId;
+  }
 
   // Role-based access control
   if (['super_admin', 'admin'].includes(requestingUser.role)) {

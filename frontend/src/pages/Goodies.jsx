@@ -13,8 +13,16 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, Gift, CheckCircle2, AlertTriangle } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+    DialogTrigger
+} from '@/components/ui/dialog';
+import { Loader2, Gift, CheckCircle2, AlertTriangle, Users, History, Mail, Calendar, Building } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -28,7 +36,10 @@ const Goodies = () => {
     const [claiming, setClaiming] = useState(false);
     const [open, setOpen] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
+    const [claimsOpen, setClaimsOpen] = useState(false);
     const [selectedDistribution, setSelectedDistribution] = useState(null);
+    const [distributionClaims, setDistributionClaims] = useState([]);
+    const [fetchingClaims, setFetchingClaims] = useState(false);
 
     // Form state
     const [newItem, setNewItem] = useState({
@@ -38,14 +49,15 @@ const Goodies = () => {
         distributionDate: new Date().toISOString().split('T')[0]
     });
 
-    const isAdmin = ['super_admin', 'admin'].includes(user?.role);
+    const isManagement = ['super_admin', 'admin'].includes(user?.role);
+    const canClaim = ['internal', 'external'].includes(user?.role);
 
     useEffect(() => {
         fetchDistributions();
-        if (isAdmin) {
+        if (isManagement) {
             fetchOffices();
         }
-    }, [isAdmin]);
+    }, [isManagement]);
 
     const fetchDistributions = async () => {
         try {
@@ -68,6 +80,23 @@ const Goodies = () => {
             setOffices(docs);
         } catch (error) {
             console.error('Error fetching offices:', error);
+        }
+    };
+
+    const fetchClaimsForDistribution = async (dist) => {
+        setSelectedDistribution(dist);
+        setClaimsOpen(true);
+        setFetchingClaims(true);
+        try {
+            const response = await api.get(`/goodies/received?distributionId=${dist._id}`);
+            const data = response.data.data;
+            const records = data.records || (Array.isArray(data) ? data : []);
+            setDistributionClaims(records);
+        } catch (error) {
+            console.error('Error fetching claims:', error);
+            toast({ title: 'Error', description: 'Failed to fetch claim history', variant: 'destructive' });
+        } finally {
+            setFetchingClaims(false);
         }
     };
 
@@ -135,11 +164,16 @@ const Goodies = () => {
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-bold tracking-tight">Goodies Distribution</h2>
-                {isAdmin && (
+                <div className="space-y-1">
+                    <h2 className="text-3xl font-bold tracking-tight">Goodies Distribution</h2>
+                    <p className="text-sm text-muted-foreground">
+                        Manage and track goodies distribution across offices
+                    </p>
+                </div>
+                {isManagement && (
                     <Dialog open={open} onOpenChange={setOpen}>
                         <DialogTrigger asChild>
-                            <Button><Gift className="mr-2 h-4 w-4" /> New Distribution</Button>
+                            <Button className="shadow-sm"><Gift className="mr-2 h-4 w-4" /> New Distribution</Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
@@ -179,7 +213,7 @@ const Goodies = () => {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="office">Office</Label>
+                                    <Label htmlFor="office">Assign to Office</Label>
                                     <select
                                         id="office"
                                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -205,7 +239,7 @@ const Goodies = () => {
                 )}
             </div>
 
-            {/* Confirmation Modal */}
+            {/* Confirmation Modal for Claimants */}
             <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
@@ -215,7 +249,7 @@ const Goodies = () => {
                         </DialogTitle>
                         <DialogDescription className="py-2">
                             Are you sure you want to claim <strong>{selectedDistribution?.goodiesType}</strong>?
-                            This action cannot be undone.
+                            This action cannot be undone and will be recorded.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="mt-4 gap-2 sm:gap-0">
@@ -234,59 +268,138 @@ const Goodies = () => {
                 </DialogContent>
             </Dialog>
 
+            {/* View Claims Modal for Management */}
+            <Dialog open={claimsOpen} onOpenChange={setClaimsOpen}>
+                <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <History className="h-5 w-5 text-primary" />
+                            Claim History: {selectedDistribution?.goodiesType}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Showing employees who have claimed this item.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-y-auto py-4 border-t border-b my-4 min-h-[300px]">
+                        {fetchingClaims ? (
+                            <div className="h-full flex flex-col items-center justify-center space-y-2 opacity-50">
+                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                <p className="text-sm font-medium">Fetching claim records...</p>
+                            </div>
+                        ) : distributionClaims.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center space-y-3 py-10">
+                                <Users className="h-10 w-10 text-muted-foreground opacity-30" />
+                                <p className="text-muted-foreground font-medium text-center">No claims recorded yet for this distribution.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {distributionClaims.map((claim) => (
+                                    <div key={claim._id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                                {claim.userId?.name?.charAt(0) || 'U'}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-semibold">{claim.userId?.name}</p>
+                                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                                    <Mail className="h-3 w-3" /> {claim.userId?.email}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-xs font-medium text-green-600 flex items-center justify-end gap-1">
+                                                <CheckCircle2 className="h-3 w-3" /> Claimed
+                                            </p>
+                                            <p className="text-[10px] text-muted-foreground flex items-center justify-end gap-1 mt-1">
+                                                <Calendar className="h-3 w-3" /> {format(new Date(claim.receivedAt), 'MMM dd, HH:mm')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" className="w-full" onClick={() => setClaimsOpen(false)}>Close History</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             <Card>
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
-                            <TableRow>
-                                <TableHead>Goodies Type</TableHead>
-                                <TableHead>Office</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Quantity</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                            <TableRow className="bg-muted/50">
+                                <TableHead className="font-bold">Goodies Type</TableHead>
+                                <TableHead className="font-bold">Office</TableHead>
+                                <TableHead className="font-bold">Date</TableHead>
+                                <TableHead className="font-bold">Quantity</TableHead>
+                                <TableHead className="text-right font-bold pr-6">Status / Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10">
-                                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                                        Loading distributions...
                                     </TableCell>
                                 </TableRow>
                             ) : !Array.isArray(distributions) || distributions.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
-                                        No distributions found.
+                                    <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
+                                        <div className="flex flex-col items-center space-y-2">
+                                            <Gift className="h-10 w-10 opacity-20" />
+                                            <p className="text-lg font-medium">No distributions found</p>
+                                            <p className="text-sm">Start by creating a new goodies distribution.</p>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 distributions.map((item, index) => (
-                                    <TableRow key={item._id || index}>
-                                        <TableCell className="font-medium">
+                                    <TableRow key={item._id || index} className="hover:bg-muted/20 transition-colors">
+                                        <TableCell className="font-semibold py-4">
                                             {item.goodiesType}
                                         </TableCell>
-                                        <TableCell>{item.officeId?.name || 'Unknown Office'}</TableCell>
+                                        <TableCell>
+                                            <span className="flex items-center gap-1.5">
+                                                <Building className="h-3.5 w-3.5 text-muted-foreground" />
+                                                {item.officeId?.name || 'Unknown Office'}
+                                            </span>
+                                        </TableCell>
                                         <TableCell>
                                             {item.distributionDate ? format(new Date(item.distributionDate), 'MMM dd, yyyy') : '-'}
                                         </TableCell>
-                                        <TableCell>{item.totalQuantity}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Button
-                                                size="sm"
-                                                variant={item.isReceived ? "secondary" : "outline"}
-                                                onClick={() => !item.isReceived && initiateClaim(item)}
-                                                disabled={item.isReceived}
-                                                className={item.isReceived
-                                                    ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100 opacity-100"
-                                                    : "hover:bg-green-50 hover:text-green-600 hover:border-green-200"
-                                                }
-                                            >
-                                                {item.isReceived ? (
-                                                    <><CheckCircle2 className="mr-2 h-4 w-4" /> Claimed</>
-                                                ) : (
-                                                    <><CheckCircle2 className="mr-2 h-4 w-4" /> Claim</>
-                                                )}
-                                            </Button>
+                                        <TableCell className="font-mono text-sm">{item.totalQuantity}</TableCell>
+                                        <TableCell className="text-right pr-6 space-x-2">
+                                            {canClaim && (
+                                                <Button
+                                                    size="sm"
+                                                    variant={item.isReceived ? "secondary" : "outline"}
+                                                    onClick={() => !item.isReceived && initiateClaim(item)}
+                                                    disabled={item.isReceived}
+                                                    className={item.isReceived
+                                                        ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100 opacity-100"
+                                                        : "hover:bg-green-50 hover:text-green-600 hover:border-green-200"
+                                                    }
+                                                >
+                                                    {item.isReceived ? (
+                                                        <><CheckCircle2 className="mr-2 h-4 w-4" /> Claimed</>
+                                                    ) : (
+                                                        <><CheckCircle2 className="mr-2 h-4 w-4" /> Claim Item</>
+                                                    )}
+                                                </Button>
+                                            )}
+                                            {isManagement && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="border-primary/20 hover:bg-primary/5 hover:text-primary"
+                                                    onClick={() => fetchClaimsForDistribution(item)}
+                                                >
+                                                    <Users className="mr-2 h-4 w-4" /> View Claims
+                                                </Button>
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))

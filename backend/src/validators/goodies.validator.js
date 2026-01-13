@@ -120,6 +120,10 @@ export const getReceivedQuerySchema = Joi.object({
     'string.pattern.base': 'Invalid user ID format',
   }),
 
+  distributionId: Joi.string().pattern(objectIdPattern).optional().messages({
+    'string.pattern.base': 'Invalid distribution ID format',
+  }),
+
   startDate: Joi.date().iso().optional().messages({
     'date.format': 'Start date must be a valid ISO date',
   }),
