@@ -9,6 +9,7 @@ import userRoutes from './routes/user.routes.js';
 import officeRoutes from './routes/office.routes.js';
 import attendanceRoutes from './routes/attendance.routes.js';
 import goodiesRoutes from './routes/goodies.routes.js';
+import locationRoutes from './routes/location.routes.js';
 
 // Import middlewares
 import errorHandler from './middlewares/errorHandler.js';
@@ -37,6 +38,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/offices', officeRoutes);
 app.use('/api/v1/attendance', attendanceRoutes);
 app.use('/api/v1/goodies', goodiesRoutes);
+app.use('/api/v1/location', locationRoutes);
 
 // 404 handler for unknown routes
 app.use((req, res) => {

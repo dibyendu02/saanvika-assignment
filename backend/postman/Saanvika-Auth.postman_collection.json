@@ -87,6 +87,16 @@
       "key": "attendance_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "distribution_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "location_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -2344,6 +2354,270 @@
               "path": ["api", "v1", "goodies", "received", "{{receipt_id}}"]
             },
             "description": "Admin can view any receipt record. Expected: 200."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Location Sharing",
+      "item": [
+        {
+          "name": "Share Location - Internal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.location) {",
+                  "        pm.collectionVariables.set('location_id', response.data.location._id);",
+                  "        console.log('Location ID saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716,\n    \"reason\": \"Client site visit\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/location/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location", "share"]
+            },
+            "description": "Share location as internal employee (no office radius check)"
+          },
+          "response": []
+        },
+        {
+          "name": "Share Location - External (Any Location)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 78.4867,\n    \"latitude\": 17.3850,\n    \"reason\": \"Field work - remote location\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/location/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location", "share"]
+            },
+            "description": "Share location as external employee from any location (no office radius enforcement)"
+          },
+          "response": []
+        },
+        {
+          "name": "Share Location - Admin [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/location/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location", "share"]
+            },
+            "description": "Admin cannot share location. Expected: 403"
+          },
+          "response": []
+        },
+        {
+          "name": "Share Location - Without Reason",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/location/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location", "share"]
+            },
+            "description": "Share location without reason (optional field)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Locations - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location"]
+            },
+            "description": "Admin can view all location records"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Locations - Internal (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location"]
+            },
+            "description": "Internal can view locations from their office only"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Locations - External (Own Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location"]
+            },
+            "description": "External can view their own location history only"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Location By ID - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location/{{location_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location", "{{location_id}}"]
+            },
+            "description": "Admin can view any location record by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Locations with Date Filter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location?startDate=2024-01-01&endDate=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-12-31"
+                }
+              ]
+            },
+            "description": "Filter locations by date range"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Locations with Pagination",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location?page=1&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Get locations with pagination"
           },
           "response": []
         }

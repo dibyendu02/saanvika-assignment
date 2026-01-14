@@ -12,8 +12,8 @@ import Attendance from '../models/attendance.model.js';
 import Office from '../models/office.model.js';
 import AppError from '../utils/AppError.js';
 
-// Allowed radius in meters for marking attendance
-const ALLOWED_RADIUS_METERS = 200;
+// Allowed radius in meters for marking attendance (configurable via env)
+const ALLOWED_RADIUS_METERS = parseInt(process.env.OFFICE_ATTENDANCE_RADIUS_METERS, 10) || 200;
 
 /**
  * Calculate distance between two coordinates using Haversine formula
