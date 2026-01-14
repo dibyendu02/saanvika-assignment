@@ -2624,6 +2624,253 @@
       ]
     },
     {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Summary - Super Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "summary"]
+            },
+            "description": "Super Admin gets full system summary. Expected: 200 with totalUsers, totalOffices, todayAttendanceCount, totalGoodiesDistributed, pendingEmployeeVerifications."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Summary - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "summary"]
+            },
+            "description": "Admin gets full system summary. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Summary - Internal (Office Summary)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "summary"]
+            },
+            "description": "Internal employee gets office-specific summary. Expected: 200 with office-scoped data."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Summary - External (Own Summary)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "summary"]
+            },
+            "description": "External employee gets own summary only. Expected: 200 with personal data."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Search and Pagination",
+      "item": [
+        {
+          "name": "Search Users by Name",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?search=admin&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "admin"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search users by name or email. Returns paginated results with totalPages."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Offices by Name or Address",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices?search=main&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "main"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search offices by name or address. Returns paginated results with totalPages."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Goodies Distributions by Type",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions?search=shirt&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "shirt"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search goodies distributions by goodiesType. Returns paginated results."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Employees in Office",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/office/{{office1_id}}?search=internal&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "office", "{{office1_id}}"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "internal"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search employees within a specific office by name or email."
+          },
+          "response": []
+        },
+        {
+          "name": "Pagination with Custom Limit",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?page=1&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Paginate users with custom limit. Response includes: total, page, limit, totalPages."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Error Cases",
       "item": [
         {

@@ -11,6 +11,7 @@
 import Attendance from '../models/attendance.model.js';
 import Office from '../models/office.model.js';
 import AppError from '../utils/AppError.js';
+import { parsePagination, buildPaginationMeta } from '../utils/pagination.utils.js';
 
 // Allowed radius in meters for marking attendance (configurable via env)
 const ALLOWED_RADIUS_METERS = parseInt(process.env.OFFICE_ATTENDANCE_RADIUS_METERS, 10) || 200;
@@ -119,18 +120,11 @@ export const markAttendance = async (requestingUser, longitude, latitude) => {
  * Get attendance records with role-based access control
  * @param {Object} requestingUser - The user making the request
  * @param {Object} filters - Query filters
- * @returns {Promise<{records: Array, total: number, page: number, pages: number}>}
+ * @returns {Promise<{records: Array, total: number, page: number, limit: number, totalPages: number}>}
  */
 export const getAttendance = async (requestingUser, filters = {}) => {
-  const {
-    page = 1,
-    limit = 10,
-    startDate,
-    endDate,
-    officeId,
-    userId,
-  } = filters;
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(filters);
+  const { startDate, endDate, officeId, userId } = filters;
 
   let query = {};
 
@@ -175,11 +169,11 @@ export const getAttendance = async (requestingUser, filters = {}) => {
     Attendance.countDocuments(query),
   ]);
 
+  const pagination = buildPaginationMeta(total, page, limit);
+
   return {
     records,
-    total,
-    page: parseInt(page),
-    pages: Math.ceil(total / limit),
+    ...pagination,
   };
 };
 

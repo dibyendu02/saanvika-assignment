@@ -5,6 +5,7 @@
  */
 import Location from '../models/location.model.js';
 import AppError from '../utils/AppError.js';
+import { parsePagination, buildPaginationMeta } from '../utils/pagination.utils.js';
 
 /**
  * Share location (does not enforce office proximity)
@@ -38,11 +39,11 @@ export const shareLocation = async (requestingUser, longitude, latitude, reason)
  * Get location records with role-based access control
  * @param {Object} requestingUser - The user making the request
  * @param {Object} filters - Query filters
- * @returns {Promise<{records: Array, total: number, page: number, pages: number}>}
+ * @returns {Promise<{records: Array, total: number, page: number, limit: number, totalPages: number}>}
  */
 export const getLocations = async (requestingUser, filters = {}) => {
-  const { page = 1, limit = 10, userId, officeId, startDate, endDate } = filters;
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(filters);
+  const { userId, officeId, startDate, endDate } = filters;
 
   let query = {};
 
@@ -86,11 +87,11 @@ export const getLocations = async (requestingUser, filters = {}) => {
     Location.countDocuments(query),
   ]);
 
+  const pagination = buildPaginationMeta(total, page, limit);
+
   return {
     records,
-    total,
-    page: parseInt(page),
-    pages: Math.ceil(total / limit),
+    ...pagination,
   };
 };
 

@@ -4,6 +4,12 @@
  */
 import Office from '../models/office.model.js';
 import AppError from '../utils/AppError.js';
+import {
+  parsePagination,
+  buildPaginationMeta,
+  buildSearchQuery,
+  mergeSearchQuery,
+} from '../utils/pagination.utils.js';
 
 /**
  * Create a new office (admin/super_admin only)
@@ -19,11 +25,11 @@ export const createOffice = async (officeData) => {
  * Get all offices with access control
  * @param {Object} requestingUser - The user making the request
  * @param {Object} filters - Pagination and search filters
- * @returns {Promise<{offices: Array, total: number, page: number, pages: number}>}
+ * @returns {Promise<{offices: Array, total: number, page: number, limit: number, totalPages: number}>}
  */
 export const getAllOffices = async (requestingUser, filters = {}) => {
-  const { page = 1, limit = 10, search } = filters;
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(filters);
+  const { search } = filters;
 
   // Access control: external users have no access to offices
   if (requestingUser.role === 'external') {
@@ -37,10 +43,9 @@ export const getAllOffices = async (requestingUser, filters = {}) => {
     query._id = requestingUser.primaryOfficeId;
   }
 
-  // Search by name if provided
-  if (search) {
-    query.name = { $regex: search, $options: 'i' };
-  }
+  // Add search query if provided (search in name and address)
+  const searchQuery = buildSearchQuery(search, ['name', 'address']);
+  query = mergeSearchQuery(query, searchQuery);
 
   const [offices, total] = await Promise.all([
     Office.find(query)
@@ -50,11 +55,11 @@ export const getAllOffices = async (requestingUser, filters = {}) => {
     Office.countDocuments(query),
   ]);
 
+  const pagination = buildPaginationMeta(total, page, limit);
+
   return {
     offices,
-    total,
-    page: parseInt(page),
-    pages: Math.ceil(total / limit),
+    ...pagination,
   };
 };
 

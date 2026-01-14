@@ -6,6 +6,12 @@ import GoodiesDistribution from '../models/goodiesDistribution.model.js';
 import GoodiesReceived from '../models/goodiesReceived.model.js';
 import Office from '../models/office.model.js';
 import AppError from '../utils/AppError.js';
+import {
+  parsePagination,
+  buildPaginationMeta,
+  buildSearchQuery,
+  mergeSearchQuery,
+} from '../utils/pagination.utils.js';
 
 /**
  * Create a new goodies distribution
@@ -48,11 +54,11 @@ export const createDistribution = async (requestingUser, distributionData) => {
  * Get all distributions with role-based access control
  * @param {Object} requestingUser - The user making the request
  * @param {Object} filters - Query filters
- * @returns {Promise<{distributions: Array, total: number, page: number, pages: number}>}
+ * @returns {Promise<{distributions: Array, total: number, page: number, limit: number, totalPages: number}>}
  */
 export const getDistributions = async (requestingUser, filters = {}) => {
-  const { page = 1, limit = 10, officeId, startDate, endDate } = filters;
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(filters);
+  const { officeId, startDate, endDate, search } = filters;
 
   let query = {};
 
@@ -79,6 +85,10 @@ export const getDistributions = async (requestingUser, filters = {}) => {
       query.distributionDate.$lte = new Date(endDate);
     }
   }
+
+  // Add search query if provided (search in goodiesType)
+  const searchQuery = buildSearchQuery(search, ['goodiesType']);
+  query = mergeSearchQuery(query, searchQuery);
 
   const [distributions, total] = await Promise.all([
     GoodiesDistribution.find(query)
@@ -107,11 +117,11 @@ export const getDistributions = async (requestingUser, filters = {}) => {
     return dObj;
   });
 
+  const pagination = buildPaginationMeta(total, page, limit);
+
   return {
     distributions: distributionsWithStatus,
-    total,
-    page: parseInt(page),
-    pages: Math.ceil(total / limit),
+    ...pagination,
   };
 };
 
@@ -181,11 +191,11 @@ export const receiveGoodies = async (requestingUser, distributionId) => {
  * Get received goodies with role-based access control
  * @param {Object} requestingUser - The user making the request
  * @param {Object} filters - Query filters
- * @returns {Promise<{records: Array, total: number, page: number, pages: number}>}
+ * @returns {Promise<{records: Array, total: number, page: number, limit: number, totalPages: number}>}
  */
 export const getReceivedGoodies = async (requestingUser, filters = {}) => {
-  const { page = 1, limit = 10, officeId, userId, distributionId, startDate, endDate } = filters;
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(filters);
+  const { officeId, userId, distributionId, startDate, endDate } = filters;
 
   let query = {};
 
@@ -239,11 +249,11 @@ export const getReceivedGoodies = async (requestingUser, filters = {}) => {
     GoodiesReceived.countDocuments(query),
   ]);
 
+  const pagination = buildPaginationMeta(total, page, limit);
+
   return {
     records,
-    total,
-    page: parseInt(page),
-    pages: Math.ceil(total / limit),
+    ...pagination,
   };
 };
 
