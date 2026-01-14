@@ -106,15 +106,6 @@ const LoginPage = () => {
                     </CardFooter>
                 </form>
             </Card>
-            <div className="text-sm text-muted-foreground text-center max-w-md px-4">
-                <p>Demo accounts (if seeded):</p>
-                <div className="grid grid-cols-2 gap-x-4 mt-1">
-                    <p>superadmin@test.com</p>
-                    <p>password123</p>
-                    <p>admin@test.com</p>
-                    <p>password123</p>
-                </div>
-            </div>
         </div>
     );
 };

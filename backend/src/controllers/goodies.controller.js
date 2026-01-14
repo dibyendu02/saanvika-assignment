@@ -84,13 +84,14 @@ export const receiveGoodies = asyncHandler(async (req, res) => {
  * @access  Private (role-based)
  */
 export const getReceivedGoodies = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, officeId, userId, startDate, endDate } = req.query;
+  const { page = 1, limit = 10, officeId, userId, distributionId, startDate, endDate } = req.query;
 
   const result = await goodiesService.getReceivedGoodies(req.user, {
     page: parseInt(page),
     limit: parseInt(limit),
     officeId,
     userId,
+    distributionId,
     startDate,
     endDate,
   });

@@ -13,8 +13,16 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, UserPlus, ShieldCheck, UserCog, Mail, Phone, Building, Eye, EyeOff } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogDescription,
+    DialogFooter
+} from '@/components/ui/dialog';
+import { Loader2, UserPlus, ShieldCheck, UserCog, Mail, Phone, Building, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Employees = () => {
@@ -26,6 +34,11 @@ const Employees = () => {
     const [creating, setCreating] = useState(false);
     const [open, setOpen] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+
+    // Verification modal state
+    const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [verifying, setVerifying] = useState(false);
 
     // Hierarchy Definition for creation logic
     const roleHierarchy = {
@@ -130,17 +143,29 @@ const Employees = () => {
         }
     };
 
-    const handleVerify = async (employeeId) => {
+    const initiateVerify = (employee) => {
+        setSelectedEmployee(employee);
+        setVerifyDialogOpen(true);
+    };
+
+    const confirmVerify = async () => {
+        if (!selectedEmployee) return;
+
+        setVerifying(true);
         try {
-            await api.post(`/auth/verify/${employeeId}`);
+            await api.post(`/auth/verify/${selectedEmployee._id}`);
             toast({ title: 'Success', description: 'Employee verified successfully' });
             fetchEmployees();
+            setVerifyDialogOpen(false);
         } catch (error) {
             toast({
                 title: 'Error',
                 description: error.response?.data?.message || 'Verification failed',
                 variant: 'destructive'
             });
+        } finally {
+            setVerifying(false);
+            setSelectedEmployee(null);
         }
     };
 
@@ -314,8 +339,8 @@ const Employees = () => {
                                         </TableCell>
                                         <TableCell>
                                             <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tight ${emp.status === 'active' ? 'bg-green-100 text-green-700' :
-                                                    emp.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                                                        'bg-destructive/10 text-destructive'
+                                                emp.status === 'pending' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-destructive/10 text-destructive'
                                                 }`}>
                                                 {emp.status}
                                             </span>
@@ -324,7 +349,7 @@ const Employees = () => {
                                             {emp.status === 'pending' && roleHierarchy[emp.role] < currentRank && (
                                                 <Button
                                                     size="sm"
-                                                    onClick={() => handleVerify(emp._id)}
+                                                    onClick={() => initiateVerify(emp)}
                                                     className="bg-green-600 hover:bg-green-700 text-white font-bold h-8"
                                                 >
                                                     <ShieldCheck className="mr-2 h-4 w-4" /> Verify
@@ -338,6 +363,38 @@ const Employees = () => {
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* Verification Confirmation Modal */}
+            <Dialog open={verifyDialogOpen} onOpenChange={setVerifyDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                            Confirm Verification
+                        </DialogTitle>
+                        <DialogDescription className="py-2">
+                            Are you sure you want to verify <strong>{selectedEmployee?.name}</strong>?
+                            <br />
+                            <span className="text-xs text-muted-foreground mt-2 block">
+                                Verification will grant active status and access to the system.
+                            </span>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-4 gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={() => setVerifyDialogOpen(false)} disabled={verifying}>
+                            Cancel
+                        </Button>
+                        <Button
+                            className="bg-green-600 hover:bg-green-700"
+                            onClick={confirmVerify}
+                            disabled={verifying}
+                        >
+                            {verifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Confirm & Verify
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
