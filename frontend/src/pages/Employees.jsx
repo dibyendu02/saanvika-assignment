@@ -40,6 +40,11 @@ const Employees = () => {
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [verifying, setVerifying] = useState(false);
 
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const limit = 10;
+
     // Hierarchy Definition for creation logic
     const roleHierarchy = {
         'super_admin': 4,
@@ -64,7 +69,7 @@ const Employees = () => {
     useEffect(() => {
         fetchEmployees();
         fetchOffices();
-    }, []);
+    }, [page]); // Re-fetch on page change
 
     useEffect(() => {
         if (open) {
@@ -78,10 +83,14 @@ const Employees = () => {
 
     const fetchEmployees = async () => {
         try {
-            const response = await api.get('/users');
+            setLoading(true);
+            const response = await api.get('/users', {
+                params: { page, limit }
+            });
             const data = response.data.data;
             const docs = data.users || data.docs || (Array.isArray(data) ? data : []);
             setEmployees(docs);
+            setTotalPages(data.totalPages || 1);
         } catch (error) {
             console.error('Error fetching employees:', error);
             toast({ title: 'Error', description: 'Failed to LOAD employees', variant: 'destructive' });
@@ -361,6 +370,27 @@ const Employees = () => {
                             )}
                         </TableBody>
                     </Table>
+                    <div className="flex justify-between items-center p-4 border-t">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            disabled={page === 1 || loading}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-sm text-gray-500">
+                            Page {page} of {totalPages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={page >= totalPages || loading}
+                        >
+                            Next
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -395,7 +425,7 @@ const Employees = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 };
 

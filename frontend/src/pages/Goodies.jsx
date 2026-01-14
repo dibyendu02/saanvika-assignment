@@ -88,7 +88,7 @@ const Goodies = () => {
         setClaimsOpen(true);
         setFetchingClaims(true);
         try {
-            const response = await api.get(`/goodies/received?distributionId=${dist._id}`);
+            const response = await api.get(`/goodies/received?distributionId=${dist._id}&limit=100`);
             const data = response.data.data;
             const records = data.records || (Array.isArray(data) ? data : []);
             setDistributionClaims(records);
