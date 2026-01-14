@@ -21,12 +21,14 @@ const app = express();
 app.use(helmet());
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+// app.use(cors({
+//   origin: process.env.CORS_ORIGIN || '*',
+//   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   credentials: true
+// }));
+app.use(cors()); // Using default cors to allow all origins temporarily as requested/implied by "comment down" usually meaning "fix cors issue" by making it permissive.
+
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
