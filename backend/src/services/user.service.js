@@ -4,17 +4,23 @@
  */
 import User from '../models/user.model.js';
 import AppError from '../utils/AppError.js';
+import {
+  parsePagination,
+  buildPaginationMeta,
+  buildSearchQuery,
+  mergeSearchQuery,
+} from '../utils/pagination.utils.js';
 
 /**
  * Get users filtered by role with access control
  * @param {Object} requestingUser - The user making the request
  * @param {string} targetRole - Role to filter by (optional)
- * @param {Object} filters - Pagination filters { page, limit }
- * @returns {Promise<{users: Array, total: number, page: number, pages: number}>}
+ * @param {Object} filters - Pagination and search filters { page, limit, search }
+ * @returns {Promise<{users: Array, total: number, page: number, limit: number, totalPages: number}>}
  */
 export const getUsersByRole = async (requestingUser, targetRole, filters = {}) => {
-  const { page = 1, limit = 10 } = filters;
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(filters);
+  const { search } = filters;
 
   let query = {};
 
@@ -42,6 +48,10 @@ export const getUsersByRole = async (requestingUser, targetRole, filters = {}) =
     throw new AppError('You are not authorized to list users', 403);
   }
 
+  // Add search query if provided
+  const searchQuery = buildSearchQuery(search, ['name', 'email']);
+  query = mergeSearchQuery(query, searchQuery);
+
   const [users, total] = await Promise.all([
     User.find(query)
       .select('-password')
@@ -52,11 +62,11 @@ export const getUsersByRole = async (requestingUser, targetRole, filters = {}) =
     User.countDocuments(query),
   ]);
 
+  const pagination = buildPaginationMeta(total, page, limit);
+
   return {
     users,
-    total,
-    page: parseInt(page),
-    pages: Math.ceil(total / limit),
+    ...pagination,
   };
 };
 
@@ -110,12 +120,12 @@ export const getUserById = async (requestingUser, targetUserId) => {
  * Get employees by office with access control
  * @param {Object} requestingUser - The user making the request
  * @param {string} officeId - Office ID to filter by
- * @param {Object} filters - Pagination filters { page, limit }
- * @returns {Promise<{employees: Array, total: number, page: number, pages: number}>}
+ * @param {Object} filters - Pagination and search filters { page, limit, search }
+ * @returns {Promise<{employees: Array, total: number, page: number, limit: number, totalPages: number}>}
  */
 export const getEmployeesByOffice = async (requestingUser, officeId, filters = {}) => {
-  const { page = 1, limit = 10 } = filters;
-  const skip = (page - 1) * limit;
+  const { page, limit, skip } = parsePagination(filters);
+  const { search } = filters;
 
   // Access control based on requesting user's role
   if (requestingUser.role === 'external') {
@@ -130,7 +140,11 @@ export const getEmployeesByOffice = async (requestingUser, officeId, filters = {
   }
 
   // Super admin and admin can see employees from any office
-  const query = { primaryOfficeId: officeId };
+  let query = { primaryOfficeId: officeId };
+
+  // Add search query if provided
+  const searchQuery = buildSearchQuery(search, ['name', 'email']);
+  query = mergeSearchQuery(query, searchQuery);
 
   const [employees, total] = await Promise.all([
     User.find(query)
@@ -142,11 +156,11 @@ export const getEmployeesByOffice = async (requestingUser, officeId, filters = {
     User.countDocuments(query),
   ]);
 
+  const pagination = buildPaginationMeta(total, page, limit);
+
   return {
     employees,
-    total,
-    page: parseInt(page),
-    pages: Math.ceil(total / limit),
+    ...pagination,
   };
 };
 

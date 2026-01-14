@@ -82,6 +82,21 @@
       "key": "external_office2_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "attendance_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "distribution_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "location_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -542,6 +557,131 @@
               "path": ["api", "v1", "auth", "login"]
             },
             "description": "Login as external employee from Office 2 (after verification)"
+          },
+          "response": []
+        },
+        {
+          "name": "Create External Employee - By Admin (Auto-Active)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.user) {",
+                  "        pm.collectionVariables.set('admin_created_external_id', response.data.user._id);",
+                  "        console.log('Admin-created external employee ID saved');",
+                  "        // Verify status is active",
+                  "        pm.test('Status should be active', function() {",
+                  "            pm.expect(response.data.user.status).to.eql('active');",
+                  "        });",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Admin Created External\",\n    \"email\": \"admin.created.external@test.com\",\n    \"phone\": \"9876543299\",\n    \"password\": \"password123\",\n    \"role\": \"external\",\n    \"primaryOfficeId\": \"{{office1_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "employees"]
+            },
+            "description": "Admin creates external employee - should be auto-activated (status: active, no verification needed). Expected: 201 with active status."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Admin Created External (No Verification)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin.created.external@test.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login as admin-created external employee - should work immediately without verification. Expected: 200 with token."
+          },
+          "response": []
+        },
+        {
+          "name": "Create External Employee - By Internal (Auto-Active)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Internal Created External\",\n    \"email\": \"internal.created.external@test.com\",\n    \"phone\": \"9876543298\",\n    \"password\": \"password123\",\n    \"role\": \"external\",\n    \"primaryOfficeId\": \"{{office1_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "employees"]
+            },
+            "description": "Internal employee creates external employee - should be auto-activated. Expected: 201 with active status."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Employee - External [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Unauthorized Employee\",\n    \"email\": \"unauthorized@test.com\",\n    \"phone\": \"9876543297\",\n    \"password\": \"password123\",\n    \"role\": \"external\",\n    \"primaryOfficeId\": \"{{office1_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/employees",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "employees"]
+            },
+            "description": "External employees cannot create other employees. Expected: 403 Forbidden."
           },
           "response": []
         }
@@ -1374,6 +1514,1357 @@
               "path": ["api", "v1", "offices", "{{office2_id}}"]
             },
             "description": "Super Admin can delete offices. Expected: 200. WARNING: This will delete Office 2!"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Attendance Management",
+      "item": [
+        {
+          "name": "Mark Attendance - Internal (At Office)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.attendance) {",
+                  "        pm.collectionVariables.set('attendance_id', response.data.attendance._id);",
+                  "        console.log('Attendance ID saved:', response.data.attendance._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "Internal employee marks attendance at office location (within 200m). Expected: 201 with attendance record."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Attendance - Internal (Duplicate) [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "Attempting to mark attendance twice on the same day. Expected: 400 - Attendance already marked for today."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Attendance - External (At Office)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "External employee marks attendance at office location. Expected: 201 with attendance record."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Attendance - Too Far From Office [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office2_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.0000,\n    \"latitude\": 12.0000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "Employee trying to mark attendance from location far from office. Expected: 400 - Must be within 200 meters."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Attendance - Super Admin [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "Super Admin cannot mark attendance - only employees can. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Attendance - Admin [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/mark",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "mark"]
+            },
+            "description": "Admin cannot mark attendance - only employees can. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Attendance - Super Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"]
+            },
+            "description": "Super Admin can see all attendance records. Expected: 200 with all records."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Attendance - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"]
+            },
+            "description": "Admin can see all attendance records. Expected: 200 with all records."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance - Admin (Filter by Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance?officeId={{office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"],
+              "query": [
+                {
+                  "key": "officeId",
+                  "value": "{{office1_id}}"
+                }
+              ]
+            },
+            "description": "Admin filters attendance by office. Expected: 200 with Office 1 attendance only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance - Admin (Filter by User)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance?userId={{internal_office1_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{internal_office1_id}}"
+                }
+              ]
+            },
+            "description": "Admin filters attendance by user. Expected: 200 with specific user's attendance."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance - Admin (Filter by Date Range)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance?startDate=2024-01-01&endDate=2024-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-12-31"
+                }
+              ]
+            },
+            "description": "Admin filters attendance by date range. Expected: 200 with records in date range."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance - Internal (Own Office Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"]
+            },
+            "description": "Internal employee can see attendance from their own office only. Expected: 200 with Office 1 attendance."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance - External (Own Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"]
+            },
+            "description": "External employee can only see their own attendance. Expected: 200 with own attendance only."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance By ID - Super Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/{{attendance_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "{{attendance_id}}"]
+            },
+            "description": "Super Admin can view any attendance record. Expected: 200 with attendance details."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance By ID - Internal (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance/{{attendance_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance", "{{attendance_id}}"]
+            },
+            "description": "Internal employee can view attendance from own office. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Attendance with Pagination",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/attendance?page=1&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "attendance"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Test pagination. Expected: 200 with paginated results."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Goodies Distribution",
+      "item": [
+        {
+          "name": "Create Distribution - Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.distribution) {",
+                  "        pm.collectionVariables.set('distribution_id', response.data.distribution._id);",
+                  "        console.log('Distribution ID saved:', response.data.distribution._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"officeId\": \"{{office1_id}}\",\n    \"goodiesType\": \"T-Shirt\",\n    \"distributionDate\": \"2024-01-15\",\n    \"totalQuantity\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Admin creates a goodies distribution. Expected: 201 with distribution record."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Distribution - Super Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"officeId\": \"{{office1_id}}\",\n    \"goodiesType\": \"Water Bottle\",\n    \"distributionDate\": \"2024-01-15\",\n    \"totalQuantity\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Super Admin creates a goodies distribution. Expected: 201."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Distribution - Duplicate [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"officeId\": \"{{office1_id}}\",\n    \"goodiesType\": \"T-Shirt\",\n    \"distributionDate\": \"2024-01-15\",\n    \"totalQuantity\": 50\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Duplicate distribution (same office, date, goodies type). Expected: 400."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Distribution - Internal [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"officeId\": \"{{office1_id}}\",\n    \"goodiesType\": \"Cap\",\n    \"distributionDate\": \"2024-01-16\",\n    \"totalQuantity\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Internal employees cannot create distributions. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Distribution - External [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"officeId\": \"{{office1_id}}\",\n    \"goodiesType\": \"Cap\",\n    \"distributionDate\": \"2024-01-16\",\n    \"totalQuantity\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "External employees cannot create distributions. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Distributions - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Admin can see all distributions. Expected: 200 with all distributions."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Distributions - Internal (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "Internal employee sees distributions from their office only. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Distributions - External (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"]
+            },
+            "description": "External employee sees distributions from their office only. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Distribution By ID - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions/{{distribution_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions", "{{distribution_id}}"]
+            },
+            "description": "Admin can view any distribution. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Receive Goodies - Internal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.receipt) {",
+                  "        pm.collectionVariables.set('receipt_id', response.data.receipt._id);",
+                  "        console.log('Receipt ID saved:', response.data.receipt._id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"distributionId\": \"{{distribution_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/receive",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "receive"]
+            },
+            "description": "Internal employee receives goodies. Expected: 201 with receipt."
+          },
+          "response": []
+        },
+        {
+          "name": "Receive Goodies - Internal (Duplicate) [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"distributionId\": \"{{distribution_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/receive",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "receive"]
+            },
+            "description": "Cannot receive same goodies twice. Expected: 400 - Already received."
+          },
+          "response": []
+        },
+        {
+          "name": "Receive Goodies - External",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"distributionId\": \"{{distribution_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/receive",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "receive"]
+            },
+            "description": "External employee receives goodies. Expected: 201 with receipt."
+          },
+          "response": []
+        },
+        {
+          "name": "Receive Goodies - Admin [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"distributionId\": \"{{distribution_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/receive",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "receive"]
+            },
+            "description": "Admin cannot receive goodies - only employees can. Expected: 403 Forbidden."
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Received - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/received",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "received"]
+            },
+            "description": "Admin can see all received records. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Received - Internal (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/received",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "received"]
+            },
+            "description": "Internal sees received records from their office. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Received - External (Own Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/received",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "received"]
+            },
+            "description": "External sees only their own received records. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Received By ID - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/received/{{receipt_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "received", "{{receipt_id}}"]
+            },
+            "description": "Admin can view any receipt record. Expected: 200."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Location Sharing",
+      "item": [
+        {
+          "name": "Share Location - Internal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.location) {",
+                  "        pm.collectionVariables.set('location_id', response.data.location._id);",
+                  "        console.log('Location ID saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716,\n    \"reason\": \"Client site visit\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/location/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location", "share"]
+            },
+            "description": "Share location as internal employee (no office radius check)"
+          },
+          "response": []
+        },
+        {
+          "name": "Share Location - External (Any Location)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 78.4867,\n    \"latitude\": 17.3850,\n    \"reason\": \"Field work - remote location\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/location/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location", "share"]
+            },
+            "description": "Share location as external employee from any location (no office radius enforcement)"
+          },
+          "response": []
+        },
+        {
+          "name": "Share Location - Admin [SHOULD FAIL]",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/location/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location", "share"]
+            },
+            "description": "Admin cannot share location. Expected: 403"
+          },
+          "response": []
+        },
+        {
+          "name": "Share Location - Without Reason",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"longitude\": 77.5946,\n    \"latitude\": 12.9716\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/location/share",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location", "share"]
+            },
+            "description": "Share location without reason (optional field)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Locations - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location"]
+            },
+            "description": "Admin can view all location records"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Locations - Internal (Own Office)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location"]
+            },
+            "description": "Internal can view locations from their office only"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Locations - External (Own Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location"]
+            },
+            "description": "External can view their own location history only"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Location By ID - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location/{{location_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location", "{{location_id}}"]
+            },
+            "description": "Admin can view any location record by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Locations with Date Filter",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location?startDate=2024-01-01&endDate=2025-12-31",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location"],
+              "query": [
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2025-12-31"
+                }
+              ]
+            },
+            "description": "Filter locations by date range"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Locations with Pagination",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/location?page=1&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "location"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Get locations with pagination"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Summary - Super Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "summary"]
+            },
+            "description": "Super Admin gets full system summary. Expected: 200 with totalUsers, totalOffices, todayAttendanceCount, totalGoodiesDistributed, pendingEmployeeVerifications."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Summary - Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "summary"]
+            },
+            "description": "Admin gets full system summary. Expected: 200."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Summary - Internal (Office Summary)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{internal_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "summary"]
+            },
+            "description": "Internal employee gets office-specific summary. Expected: 200 with office-scoped data."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Dashboard Summary - External (Own Summary)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{external_office1_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/dashboard/summary",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "dashboard", "summary"]
+            },
+            "description": "External employee gets own summary only. Expected: 200 with personal data."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Search and Pagination",
+      "item": [
+        {
+          "name": "Search Users by Name",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?search=admin&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "admin"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search users by name or email. Returns paginated results with totalPages."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Offices by Name or Address",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/offices?search=main&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "offices"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "main"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search offices by name or address. Returns paginated results with totalPages."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Goodies Distributions by Type",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/goodies/distributions?search=shirt&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "goodies", "distributions"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "shirt"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search goodies distributions by goodiesType. Returns paginated results."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Employees in Office",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/office/{{office1_id}}?search=internal&page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "office", "{{office1_id}}"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "internal"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search employees within a specific office by name or email."
+          },
+          "response": []
+        },
+        {
+          "name": "Pagination with Custom Limit",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{super_admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/users?page=1&limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Paginate users with custom limit. Response includes: total, page, limit, totalPages."
           },
           "response": []
         }

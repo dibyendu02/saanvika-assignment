@@ -29,4 +29,13 @@ router.post(
   authController.verifyEmployee
 );
 
+// Create employee (auto-activates external employees)
+router.post(
+  '/employees',
+  protect,
+  authorize('internal', 'admin', 'super_admin'),
+  validate(registerSchema),
+  authController.createEmployee
+);
+
 export default router;

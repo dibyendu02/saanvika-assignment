@@ -42,6 +42,21 @@ export const getAllOffices = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Get public office list
+ * @route   GET /api/v1/offices/public
+ * @access  Public
+ */
+export const getPublicOffices = asyncHandler(async (req, res) => {
+  const offices = await officeService.getPublicOffices();
+
+  res.status(200).json({
+    success: true,
+    data: { offices },
+    message: 'Public office list fetched successfully',
+  });
+});
+
+/**
  * @desc    Get office by ID
  * @route   GET /api/v1/offices/:id
  * @access  Private (role-based access control)

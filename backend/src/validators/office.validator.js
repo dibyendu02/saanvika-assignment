@@ -81,14 +81,6 @@ export const createOfficeSchema = Joi.object({
   }),
 
   targets: Joi.array().items(targetSchema).optional().default([]),
-
-  adminIds: Joi.array()
-    .items(Joi.string().pattern(objectIdPattern))
-    .optional()
-    .default([])
-    .messages({
-      'string.pattern.base': 'Invalid admin ID format',
-    }),
 });
 
 /**
@@ -108,13 +100,6 @@ export const updateOfficeSchema = Joi.object({
   location: locationSchema.optional(),
 
   targets: Joi.array().items(targetSchema).optional(),
-
-  adminIds: Joi.array()
-    .items(Joi.string().pattern(objectIdPattern))
-    .optional()
-    .messages({
-      'string.pattern.base': 'Invalid admin ID format',
-    }),
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update',
 });
