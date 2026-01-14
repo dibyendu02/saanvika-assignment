@@ -4,6 +4,7 @@
  */
 import asyncHandler from '../utils/asyncHandler.js';
 import * as attendanceService from '../services/attendance.service.js';
+import AppError from '../utils/AppError.js';
 
 /**
  * @desc    Mark attendance
@@ -68,8 +69,30 @@ export const getAttendanceById = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Get monthly attendance summary
+ * @route   GET /api/v1/attendance/summary/monthly?month=YYYY-MM
+ * @access  Private (role-based)
+ */
+export const getMonthlySummary = asyncHandler(async (req, res) => {
+  const { month } = req.query;
+
+  if (!month) {
+    throw new AppError('Month parameter is required (format: YYYY-MM)', 400);
+  }
+
+  const result = await attendanceService.getMonthlySummary(req.user, month);
+
+  res.status(200).json({
+    success: true,
+    data: result,
+    message: 'Monthly attendance summary fetched successfully',
+  });
+});
+
 export default {
   markAttendance,
   getAttendance,
   getAttendanceById,
+  getMonthlySummary,
 };

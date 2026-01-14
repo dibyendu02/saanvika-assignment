@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getAttendance } from '../api/attendance';
+import { getAttendance, getMonthlySummary } from '../api/attendance';
 import { useToast } from '../hooks/use-toast';
 import {
     Table,
@@ -13,7 +13,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, Calendar, User, Building, Filter } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay } from 'date-fns';
 
 const Attendance = () => {
     const { user } = useAuth();
@@ -72,36 +72,10 @@ const Attendance = () => {
     const fetchMonthlySummary = async () => {
         try {
             setLoading(true);
-            const date = new Date(selectedMonth + '-01');
-            const startDate = startOfMonth(date).toISOString();
-            const endDate = endOfMonth(date).toISOString();
-
-            const response = await getAttendance({
-                startDate,
-                endDate,
-                limit: 1000, // Get all records for the month
-            });
+            const response = await getMonthlySummary(selectedMonth);
 
             if (response.success) {
-                const records = response.data.records || [];
-
-                // Group by user and count
-                const summary = records.reduce((acc, record) => {
-                    const userId = record.userId?._id;
-                    if (!userId) return acc;
-
-                    if (!acc[userId]) {
-                        acc[userId] = {
-                            user: record.userId,
-                            office: record.officeId,
-                            count: 0,
-                        };
-                    }
-                    acc[userId].count++;
-                    return acc;
-                }, {});
-
-                setMonthlySummary(Object.values(summary));
+                setMonthlySummary(response.data.summary || []);
             }
         } catch (error) {
             console.error('Error fetching monthly summary:', error);

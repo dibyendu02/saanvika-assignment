@@ -8,11 +8,13 @@ import {
   markAttendance,
   getAttendance,
   getAttendanceById,
+  getMonthlySummary,
 } from '../controllers/attendance.controller.js';
 import {
   markAttendanceSchema,
   getAttendanceQuerySchema,
   attendanceIdSchema,
+  monthlySummarySchema,
   validate,
 } from '../validators/attendance.validator.js';
 
@@ -27,6 +29,13 @@ router.post(
   authorize('internal', 'external'),
   validate(markAttendanceSchema),
   markAttendance
+);
+
+// Get monthly attendance summary - all authenticated users (fine-grained in service)
+router.get(
+  '/summary/monthly',
+  validate(monthlySummarySchema, 'query'),
+  getMonthlySummary
 );
 
 // Get attendance records - all authenticated users (fine-grained in service)
@@ -44,3 +53,4 @@ router.get(
 );
 
 export default router;
+

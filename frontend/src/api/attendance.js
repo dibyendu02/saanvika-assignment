@@ -53,3 +53,15 @@ export const checkTodayAttendance = async () => {
         return false;
     }
 };
+
+/**
+ * Get monthly attendance summary
+ * @param {string} month - Month in YYYY-MM format
+ * @returns {Promise} - Monthly summary with attendance counts
+ */
+export const getMonthlySummary = async (month) => {
+    const response = await api.get('/attendance/summary/monthly', {
+        params: { month },
+    });
+    return response.data;
+};

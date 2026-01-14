@@ -80,6 +80,19 @@ export const attendanceIdSchema = Joi.object({
 });
 
 /**
+ * Monthly summary query validation schema
+ */
+export const monthlySummarySchema = Joi.object({
+  month: Joi.string()
+    .pattern(/^\d{4}-\d{2}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'Month must be in YYYY-MM format (e.g., 2026-01)',
+      'any.required': 'Month parameter is required',
+    }),
+});
+
+/**
  * Validation middleware factory
  * @param {Joi.Schema} schema - Joi validation schema
  * @param {string} source - Request property to validate ('body', 'params', 'query')
@@ -108,5 +121,6 @@ export default {
   markAttendanceSchema,
   getAttendanceQuerySchema,
   attendanceIdSchema,
+  monthlySummarySchema,
   validate,
 };

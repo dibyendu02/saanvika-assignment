@@ -31,9 +31,9 @@ const calculateDistance = (lon1, lat1, lon2, lat2) => {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -217,8 +217,119 @@ export const getAttendanceById = async (requestingUser, attendanceId) => {
   throw new AppError('Access denied', 403);
 };
 
+/**
+ * Get monthly attendance summary with aggregated counts per employee
+ * @param {Object} requestingUser - The user making the request
+ * @param {string} month - Month in YYYY-MM format
+ * @returns {Promise<Array>} - Summary with attendance counts per employee
+ */
+export const getMonthlySummary = async (requestingUser, month) => {
+  // Parse month (format: YYYY-MM)
+  const [year, monthNum] = month.split('-').map(Number);
+  if (!year || !monthNum || monthNum < 1 || monthNum > 12) {
+    throw new AppError('Invalid month format. Use YYYY-MM', 400);
+  }
+
+  // Get start and end of month
+  const startDate = new Date(Date.UTC(year, monthNum - 1, 1, 0, 0, 0, 0));
+  const endDate = new Date(Date.UTC(year, monthNum, 0, 23, 59, 59, 999));
+
+  // Build match query based on role
+  let matchQuery = {
+    date: {
+      $gte: startDate,
+      $lte: endDate,
+    },
+  };
+
+  // Role-based access control
+  if (['super_admin', 'admin'].includes(requestingUser.role)) {
+    // Admin and super_admin can see all attendance
+    // No additional filters
+  } else if (requestingUser.role === 'internal') {
+    // Internal can only see attendance from their office
+    matchQuery.officeId = requestingUser.primaryOfficeId;
+  } else if (requestingUser.role === 'external') {
+    // External can only see their own attendance
+    matchQuery.userId = requestingUser._id;
+  } else {
+    throw new AppError('You are not authorized to view attendance summary', 403);
+  }
+
+  // MongoDB aggregation pipeline
+  const summary = await Attendance.aggregate([
+    // Match records for the specified month and role-based filters
+    { $match: matchQuery },
+
+    // Group by userId and count attendance days
+    {
+      $group: {
+        _id: '$userId',
+        count: { $sum: 1 },
+        officeId: { $first: '$officeId' },
+      },
+    },
+
+    // Lookup user details
+    {
+      $lookup: {
+        from: 'users',
+        localField: '_id',
+        foreignField: '_id',
+        as: 'user',
+      },
+    },
+
+    // Lookup office details
+    {
+      $lookup: {
+        from: 'offices',
+        localField: 'officeId',
+        foreignField: '_id',
+        as: 'office',
+      },
+    },
+
+    // Unwind arrays
+    { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: '$office', preserveNullAndEmptyArrays: true } },
+
+    // Project final structure
+    {
+      $project: {
+        _id: 0,
+        userId: '$_id',
+        count: 1,
+        user: {
+          _id: '$user._id',
+          name: '$user.name',
+          email: '$user.email',
+          role: '$user.role',
+        },
+        office: {
+          _id: '$office._id',
+          name: '$office.name',
+          address: '$office.address',
+        },
+      },
+    },
+
+    // Sort by count descending
+    { $sort: { count: -1 } },
+  ]);
+
+  return {
+    summary,
+    month,
+    startDate,
+    endDate,
+    totalEmployees: summary.length,
+  };
+};
+
 export default {
   markAttendance,
   getAttendance,
   getAttendanceById,
+  getMonthlySummary,
 };
