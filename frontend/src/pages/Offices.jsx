@@ -20,7 +20,7 @@ import {
     DialogTitle,
     DialogTrigger
 } from '@/components/ui/dialog';
-import { Loader2, MapPin, Plus } from 'lucide-react';
+import { Loader2, MapPin, Plus, Users } from 'lucide-react';
 
 const Offices = () => {
     const { user } = useAuth();
@@ -67,12 +67,13 @@ const Offices = () => {
                 location: {
                     type: 'Point',
                     coordinates: [parseFloat(newOffice.longitude), parseFloat(newOffice.latitude)]
-                }
+                },
+                targetHeadcount: parseInt(newOffice.targetHeadcount) || 0
             };
 
             await api.post('/offices', payload);
             setOpen(false);
-            setNewOffice({ name: '', address: '', latitude: '', longitude: '' });
+            setNewOffice({ name: '', address: '', latitude: '', longitude: '', targetHeadcount: 0 });
             fetchOffices(); // Refresh list
         } catch (error) {
             console.error('Error creating office:', error);
@@ -144,6 +145,18 @@ const Offices = () => {
                                         />
                                     </div>
                                 </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="targetHeadcount">Target External Employees</Label>
+                                    <Input
+                                        id="targetHeadcount"
+                                        type="number"
+                                        min="0"
+                                        value={newOffice.targetHeadcount}
+                                        onChange={e => setNewOffice({ ...newOffice, targetHeadcount: e.target.value })}
+                                        placeholder="e.g. 50"
+                                    />
+                                    <p className="text-xs text-muted-foreground">Target number of external employees for this office</p>
+                                </div>
                                 <Button type="submit" className="w-full mt-4" disabled={creating}>
                                     {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Create Office
@@ -162,19 +175,22 @@ const Offices = () => {
                                 <TableHead>Name</TableHead>
                                 <TableHead>Location</TableHead>
                                 <TableHead>Coordinates</TableHead>
+                                <TableHead>Employees</TableHead>
+                                <TableHead>Target</TableHead>
+                                <TableHead>Target Status</TableHead>
                                 <TableHead>Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center py-10">
+                                    <TableCell colSpan={7} className="text-center py-10">
                                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
                                     </TableCell>
                                 </TableRow>
                             ) : !Array.isArray(offices) || offices.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
                                         No offices found.
                                     </TableCell>
                                 </TableRow>
@@ -194,6 +210,43 @@ const Offices = () => {
                                                     `${office.location.coordinates[1].toFixed(4)}, ${office.location.coordinates[0].toFixed(4)}` :
                                                     '-'}
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1">
+                                                <Users className="h-3.5 w-3.5 text-blue-600" />
+                                                <span className="font-semibold">{office.employeesCount || 0}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="font-mono text-sm">{office.targetHeadcount || 0}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            {office.targetHeadcount > 0 ? (
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                                                        <div
+                                                            className={`h-2 rounded-full ${(office.employeesCount || 0) >= office.targetHeadcount
+                                                                ? 'bg-green-600'
+                                                                : 'bg-orange-500'
+                                                                }`}
+                                                            style={{
+                                                                width: `${Math.min(
+                                                                    ((office.employeesCount || 0) / office.targetHeadcount) * 100,
+                                                                    100
+                                                                )}%`,
+                                                            }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className={`text-xs font-semibold ${(office.employeesCount || 0) >= office.targetHeadcount
+                                                        ? 'text-green-600'
+                                                        : 'text-orange-600'
+                                                        }`}>
+                                                        {Math.round(((office.employeesCount || 0) / office.targetHeadcount) * 100)}%
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-xs text-muted-foreground">No target</span>
+                                            )}
                                         </TableCell>
                                         <TableCell>
                                             <span className={`px-2 py-1 rounded-full text-xs font-semibold ${office.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'

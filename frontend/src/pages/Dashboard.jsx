@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Building2, UserCheck, Gift, Loader2, MapPin } from 'lucide-react';
+import { Building2, UserCheck, Gift, Loader2, MapPin, Users, Target, TrendingUp, CheckCircle2, AlertCircle } from 'lucide-react';
 import ShareLocationDialog from '../components/ShareLocationDialog';
 import MarkAttendanceDialog from '../components/MarkAttendanceDialog';
 import { checkTodayAttendance } from '../api/attendance';
@@ -14,17 +14,21 @@ const Dashboard = () => {
         attendance: 0,
         goodies: 0,
     });
+    const [dashboardSummary, setDashboardSummary] = useState(null);
     const [loading, setLoading] = useState(true);
     const [hasMarkedAttendance, setHasMarkedAttendance] = useState(true);
     const [checkingAttendance, setCheckingAttendance] = useState(false);
 
+    const isAdmin = ['super_admin', 'admin'].includes(user?.role);
+
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const [officesRes, attendanceRes, goodiesRes] = await Promise.all([
+                const [officesRes, attendanceRes, goodiesRes, summaryRes] = await Promise.all([
                     api.get('/offices?limit=1').catch(() => ({ data: { data: { total: 0 } } })),
                     api.get('/attendance?limit=1').catch(() => ({ data: { data: { total: 0 } } })),
                     api.get('/goodies/distributions?limit=1').catch(() => ({ data: { data: { total: 0 } } })),
+                    isAdmin ? api.get('/dashboard/summary').catch(() => ({ data: { data: { summary: null } } })) : Promise.resolve({ data: { data: { summary: null } } }),
                 ]);
 
                 setStats({
@@ -32,6 +36,10 @@ const Dashboard = () => {
                     attendance: attendanceRes.data.data?.total || 0,
                     goodies: goodiesRes.data.data?.total || 0,
                 });
+
+                if (isAdmin && summaryRes.data.data?.summary) {
+                    setDashboardSummary(summaryRes.data.data.summary);
+                }
             } catch (error) {
                 console.error('Error fetching stats:', error);
             } finally {
@@ -40,7 +48,7 @@ const Dashboard = () => {
         };
 
         fetchStats();
-    }, []);
+    }, [isAdmin]);
 
     // Check if user has marked attendance today
     useEffect(() => {
@@ -109,6 +117,67 @@ const Dashboard = () => {
                     );
                 })}
             </div>
+
+            {/* Office Targets Section - Only for Admins */}
+            {isAdmin && dashboardSummary?.officeTargets && dashboardSummary.officeTargets.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Target className="h-5 w-5 text-orange-600" />
+                            Office External Employee Targets
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                            Track external employee headcount targets across all offices
+                        </p>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {dashboardSummary.officeTargets.map((office) => (
+                                <div key={office.officeId} className="border rounded-lg p-4 hover:shadow-sm transition-shadow">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-full bg-blue-50">
+                                                <Building2 className="h-4 w-4 text-blue-600" />
+                                            </div>
+                                            <div>
+                                                <h4 className="font-semibold">{office.officeName}</h4>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {office.currentHeadcount} / {office.targetHeadcount} External Employees
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {office.targetHeadcount > 0 ? (
+                                                <>
+                                                    <span className={`text-2xl font-bold ${office.targetReached ? 'text-green-600' : 'text-orange-600'}`}>
+                                                        {office.progress}%
+                                                    </span>
+                                                    {office.targetReached ? (
+                                                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                                    ) : (
+                                                        <TrendingUp className="h-5 w-5 text-orange-600" />
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <span className="text-sm text-muted-foreground">No target set</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {office.targetHeadcount > 0 && (
+                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                            <div
+                                                className={`h-2.5 rounded-full transition-all ${office.targetReached ? 'bg-green-600' : 'bg-orange-500'
+                                                    }`}
+                                                style={{ width: `${Math.min(office.progress, 100)}%` }}
+                                            ></div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             {canMarkAttendance && !hasMarkedAttendance && !checkingAttendance && (
                 <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">

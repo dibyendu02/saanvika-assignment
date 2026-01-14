@@ -3,6 +3,7 @@
  * Handles office-related business logic with role-based access control
  */
 import Office from '../models/office.model.js';
+import User from '../models/user.model.js';
 import AppError from '../utils/AppError.js';
 import {
   parsePagination,
@@ -47,13 +48,25 @@ export const getAllOffices = async (requestingUser, filters = {}) => {
   const searchQuery = buildSearchQuery(search, ['name', 'address']);
   query = mergeSearchQuery(query, searchQuery);
 
-  const [offices, total] = await Promise.all([
+  const [officesDocs, total] = await Promise.all([
     Office.find(query)
       .skip(skip)
       .limit(limit)
-      .sort({ createdAt: -1 }),
+      .sort({ createdAt: -1 })
+      .lean(), // Use lean() to allow adding properties
     Office.countDocuments(query),
   ]);
+
+  // Calculate employee count for each office
+  const offices = await Promise.all(
+    officesDocs.map(async (office) => {
+      const employeesCount = await User.countDocuments({
+        primaryOfficeId: office._id,
+        status: 'active', // Count only active employees
+      });
+      return { ...office, employeesCount };
+    })
+  );
 
   const pagination = buildPaginationMeta(total, page, limit);
 
@@ -113,7 +126,7 @@ export const updateOffice = async (officeId, updateData) => {
   }
 
   // Update allowed fields
-  const allowedFields = ['name', 'address', 'location', 'targets'];
+  const allowedFields = ['name', 'address', 'location', 'targetHeadcount'];
   for (const field of allowedFields) {
     if (updateData[field] !== undefined) {
       office[field] = updateData[field];

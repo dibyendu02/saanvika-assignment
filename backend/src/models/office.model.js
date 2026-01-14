@@ -76,9 +76,10 @@ const officeSchema = new mongoose.Schema(
       type: pointSchema,
       required: [true, 'Office location is required'],
     },
-    targets: {
-      type: [targetSchema],
-      default: [],
+    targetHeadcount: {
+      type: Number,
+      default: 0,
+      min: [0, 'Target headcount cannot be negative'],
     },
   },
   {

@@ -34,13 +34,35 @@ export const getDashboardSummary = async (requestingUser) => {
       todayAttendanceCount,
       totalGoodiesDistributed,
       pendingEmployeeVerifications,
+      offices,
     ] = await Promise.all([
       User.countDocuments({}),
       Office.countDocuments({}),
       Attendance.countDocuments({ date: today }),
       GoodiesReceived.countDocuments({}),
       User.countDocuments({ status: 'pending', role: 'external' }),
+      Office.find({}).select('name targetHeadcount').lean(),
     ]);
+
+    // Calculate current external employee count per office and target status
+    const officeTargets = await Promise.all(
+      offices.map(async (office) => {
+        const externalCount = await User.countDocuments({
+          primaryOfficeId: office._id,
+          role: 'external',
+          status: { $ne: 'deleted' },
+        });
+
+        return {
+          officeId: office._id,
+          officeName: office.name,
+          targetHeadcount: office.targetHeadcount || 0,
+          currentHeadcount: externalCount,
+          targetReached: office.targetHeadcount > 0 ? externalCount >= office.targetHeadcount : null,
+          progress: office.targetHeadcount > 0 ? Math.round((externalCount / office.targetHeadcount) * 100) : 0,
+        };
+      })
+    );
 
     return {
       totalUsers,
@@ -48,6 +70,7 @@ export const getDashboardSummary = async (requestingUser) => {
       todayAttendanceCount,
       totalGoodiesDistributed,
       pendingEmployeeVerifications,
+      officeTargets,
     };
   }
 
