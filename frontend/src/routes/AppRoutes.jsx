@@ -6,6 +6,8 @@ import Attendance from '../pages/Attendance';
 import Goodies from '../pages/Goodies';
 import Employees from '../pages/Employees';
 import RegisterPage from '../pages/RegisterPage';
+import Locations from '../pages/Locations';
+import LocationDetail from '../pages/LocationDetail';
 import ProtectedRoute from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
 
@@ -67,6 +69,28 @@ const AppRoutes = () => {
                     <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal']}>
                         <Layout>
                             <Employees />
+                        </Layout>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/locations"
+                element={
+                    <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal', 'external']}>
+                        <Layout>
+                            <Locations />
+                        </Layout>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/locations/:id"
+                element={
+                    <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal', 'external']}>
+                        <Layout>
+                            <LocationDetail />
                         </Layout>
                     </ProtectedRoute>
                 }

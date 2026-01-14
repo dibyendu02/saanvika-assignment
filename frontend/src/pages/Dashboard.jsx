@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Building2, UserCheck, Gift, Loader2 } from 'lucide-react';
+import { Building2, UserCheck, Gift, Loader2, MapPin } from 'lucide-react';
+import ShareLocationDialog from '../components/ShareLocationDialog';
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -43,6 +44,8 @@ const Dashboard = () => {
         { title: 'Goodies Managed', value: stats.goodies, icon: Gift, color: 'text-purple-600' },
     ];
 
+    const canShareLocation = user?.role === 'internal' || user?.role === 'external';
+
     return (
         <div className="space-y-8">
             <div>
@@ -81,6 +84,23 @@ const Dashboard = () => {
                     );
                 })}
             </div>
+
+            {canShareLocation && (
+                <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold mb-2 flex items-center gap-2">
+                                <MapPin className="h-5 w-5 text-blue-600" />
+                                Quick Location Share
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                                Share your current location with your organization
+                            </p>
+                        </div>
+                        <ShareLocationDialog />
+                    </div>
+                </Card>
+            )}
 
             <Card className="p-6">
                 <h3 className="font-semibold mb-2">Internal Notice</h3>

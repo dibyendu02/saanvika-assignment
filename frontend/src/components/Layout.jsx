@@ -8,7 +8,8 @@ import {
     Gift,
     LogOut,
     Menu,
-    Users
+    Users,
+    MapPin
 } from 'lucide-react';
 
 const Layout = ({ children }) => {
@@ -27,6 +28,7 @@ const Layout = ({ children }) => {
         { name: 'Employees', href: '/employees', icon: Users, roles: ['super_admin', 'admin', 'internal'] },
         { name: 'Attendance', href: '/attendance', icon: UserCheck, roles: ['super_admin', 'admin', 'internal', 'external'] },
         { name: 'Goodies', href: '/goodies', icon: Gift, roles: ['super_admin', 'admin', 'internal', 'external'] },
+        { name: 'Locations', href: '/locations', icon: MapPin, roles: ['super_admin', 'admin', 'internal', 'external'] },
     ];
 
     const filteredNavigation = navigation.filter(item => item.roles.includes(user?.role));
