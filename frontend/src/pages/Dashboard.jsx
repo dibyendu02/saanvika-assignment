@@ -4,6 +4,8 @@ import api from '../api/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Building2, UserCheck, Gift, Loader2, MapPin } from 'lucide-react';
 import ShareLocationDialog from '../components/ShareLocationDialog';
+import MarkAttendanceDialog from '../components/MarkAttendanceDialog';
+import { checkTodayAttendance } from '../api/attendance';
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -13,6 +15,8 @@ const Dashboard = () => {
         goodies: 0,
     });
     const [loading, setLoading] = useState(true);
+    const [hasMarkedAttendance, setHasMarkedAttendance] = useState(true);
+    const [checkingAttendance, setCheckingAttendance] = useState(false);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -38,6 +42,26 @@ const Dashboard = () => {
         fetchStats();
     }, []);
 
+    // Check if user has marked attendance today
+    useEffect(() => {
+        const checkAttendance = async () => {
+            if (user?.role === 'internal' || user?.role === 'external') {
+                setCheckingAttendance(true);
+                const marked = await checkTodayAttendance();
+                setHasMarkedAttendance(marked);
+                setCheckingAttendance(false);
+            }
+        };
+        checkAttendance();
+    }, [user]);
+
+    const handleAttendanceMarked = async () => {
+        setHasMarkedAttendance(true);
+        // Refresh stats
+        const attendanceRes = await api.get('/attendance?limit=1').catch(() => ({ data: { data: { total: 0 } } }));
+        setStats(prev => ({ ...prev, attendance: attendanceRes.data.data?.total || 0 }));
+    };
+
     const cards = [
         { title: 'Total Offices', value: stats.offices, icon: Building2, color: 'text-blue-600' },
         { title: 'Attendance Records', value: stats.attendance, icon: UserCheck, color: 'text-green-600' },
@@ -45,6 +69,7 @@ const Dashboard = () => {
     ];
 
     const canShareLocation = user?.role === 'internal' || user?.role === 'external';
+    const canMarkAttendance = user?.role === 'internal' || user?.role === 'external';
 
     return (
         <div className="space-y-8">
@@ -84,6 +109,23 @@ const Dashboard = () => {
                     );
                 })}
             </div>
+
+            {canMarkAttendance && !hasMarkedAttendance && !checkingAttendance && (
+                <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold mb-2 flex items-center gap-2">
+                                <UserCheck className="h-5 w-5 text-green-600" />
+                                Mark Today's Attendance
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                                You haven't marked your attendance for today yet
+                            </p>
+                        </div>
+                        <MarkAttendanceDialog onSuccess={handleAttendanceMarked} />
+                    </div>
+                </Card>
+            )}
 
             {canShareLocation && (
                 <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
