@@ -21,6 +21,7 @@ import {
     DialogTrigger
 } from '@/components/ui/dialog';
 import { Loader2, MapPin, Plus, Users } from 'lucide-react';
+import LocationMapPicker from '../components/LocationMapPicker';
 
 const Offices = () => {
     const { user } = useAuth();
@@ -32,7 +33,8 @@ const Offices = () => {
         name: '',
         address: '',
         latitude: '',
-        longitude: ''
+        longitude: '',
+        targetHeadcount: 0
     });
 
     // Check if user is admin or super_admin
@@ -68,9 +70,11 @@ const Offices = () => {
                     type: 'Point',
                     coordinates: [parseFloat(newOffice.longitude), parseFloat(newOffice.latitude)]
                 },
-                targetHeadcount: parseInt(newOffice.targetHeadcount) || 0
+                targetHeadcount: Number(newOffice.targetHeadcount) || 0
             };
 
+            console.log('Creating office with payload:', payload);
+            console.log('newOffice state:', newOffice);
             await api.post('/offices', payload);
             setOpen(false);
             setNewOffice({ name: '', address: '', latitude: '', longitude: '', targetHeadcount: 0 });
@@ -98,7 +102,7 @@ const Offices = () => {
                                 <Plus className="mr-2 h-4 w-4" /> Add Office
                             </Button>
                         </DialogTrigger>
-                        <DialogContent>
+                        <DialogContent className="max-w-2xl">
                             <DialogHeader>
                                 <DialogTitle>Add New Office</DialogTitle>
                             </DialogHeader>
@@ -123,32 +127,24 @@ const Offices = () => {
                                         placeholder="Full address"
                                     />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="lat">Latitude</Label>
-                                        <Input
-                                            id="lat"
-                                            type="number"
-                                            step="any"
-                                            value={newOffice.latitude}
-                                            onChange={e => setNewOffice({ ...newOffice, latitude: e.target.value })}
-                                            required
-                                            placeholder="e.g. 12.9716"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="lng">Longitude</Label>
-                                        <Input
-                                            id="lng"
-                                            type="number"
-                                            step="any"
-                                            value={newOffice.longitude}
-                                            onChange={e => setNewOffice({ ...newOffice, longitude: e.target.value })}
-                                            required
-                                            placeholder="e.g. 77.5946"
-                                        />
-                                    </div>
+
+                                {/* Map Picker */}
+                                <div className="space-y-2">
+                                    <Label>Location</Label>
+                                    <LocationMapPicker
+                                        latitude={parseFloat(newOffice.latitude) || null}
+                                        longitude={parseFloat(newOffice.longitude) || null}
+                                        address={newOffice.address}
+                                        onLocationChange={(lat, lng) => {
+                                            setNewOffice({
+                                                ...newOffice,
+                                                latitude: lat.toString(),
+                                                longitude: lng.toString()
+                                            });
+                                        }}
+                                    />
                                 </div>
+
                                 <div className="space-y-2">
                                     <Label htmlFor="targetHeadcount">Target External Employees</Label>
                                     <Input
@@ -156,7 +152,7 @@ const Offices = () => {
                                         type="number"
                                         min="0"
                                         value={newOffice.targetHeadcount}
-                                        onChange={e => setNewOffice({ ...newOffice, targetHeadcount: e.target.value })}
+                                        onChange={e => setNewOffice({ ...newOffice, targetHeadcount: parseInt(e.target.value) || 0 })}
                                         placeholder="e.g. 50"
                                     />
                                     <p className="text-xs text-gray-500">Target number of external employees for this office</p>

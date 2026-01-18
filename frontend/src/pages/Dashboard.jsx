@@ -120,71 +120,6 @@ const Dashboard = () => {
                 })}
             </div>
 
-            {/* Office Targets Section - Only for Admins */}
-            {isAdmin && dashboardSummary?.officeTargets && dashboardSummary.officeTargets.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-amber-50">
-                                <Target className="h-5 w-5 text-amber-600" />
-                            </div>
-                            <div>
-                                <CardTitle>Office External Employee Targets</CardTitle>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    Track external employee headcount targets across all offices
-                                </p>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {dashboardSummary.officeTargets.map((office) => (
-                                <div key={office.officeId} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-lg bg-blue-50">
-                                                <Building2 className="h-4 w-4 text-blue-600" />
-                                            </div>
-                                            <div>
-                                                <h4 className="font-semibold text-gray-900">{office.officeName}</h4>
-                                                <p className="text-sm text-gray-500">
-                                                    {office.currentHeadcount} / {office.targetHeadcount} External Employees
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            {office.targetHeadcount > 0 ? (
-                                                <>
-                                                    <span className={`text-2xl font-bold ${office.targetReached ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                                        {office.progress}%
-                                                    </span>
-                                                    {office.targetReached ? (
-                                                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                                                    ) : (
-                                                        <TrendingUp className="h-5 w-5 text-amber-600" />
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <span className="text-sm text-gray-400">No target set</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {office.targetHeadcount > 0 && (
-                                        <div className="w-full bg-gray-100 rounded-full h-2">
-                                            <div
-                                                className={`h-2 rounded-full transition-all duration-300 ${office.targetReached ? 'bg-emerald-500' : 'bg-amber-500'
-                                                    }`}
-                                                style={{ width: `${Math.min(office.progress, 100)}%` }}
-                                            ></div>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
             {/* Quick Actions */}
             <div className="grid gap-4 md:grid-cols-2">
                 {canMarkAttendance && !hasMarkedAttendance && !checkingAttendance && (
@@ -230,23 +165,74 @@ const Dashboard = () => {
                 )}
             </div>
 
-            {/* Notice Card */}
-            <Card>
-                <CardContent className="pt-6">
-                    <div className="flex items-start gap-3">
-                        <div className="p-2 rounded-lg bg-gray-100">
-                            <AlertCircle className="h-5 w-5 text-gray-600" />
+            {/* Notice Card and Office Targets - Side by Side Layout */}
+            <div className="grid gap-4 lg:grid-cols-5">
+                {/* Notice Card - 60% width (3/5) */}
+                <Card className="lg:col-span-3">
+                    <CardContent className="pt-6">
+                        <div className="flex items-start gap-3">
+                            <div className="p-2 rounded-lg bg-gray-100">
+                                <AlertCircle className="h-5 w-5 text-gray-600" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-gray-900">Internal Notice</h3>
+                                <p className="text-sm text-gray-600 mt-1">
+                                    This dashboard provides a high-level overview of the SAANVIKA operations.
+                                    Use the sidebar to navigate to specific sections for detailed management.
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="font-semibold text-gray-900">Internal Notice</h3>
-                            <p className="text-sm text-gray-600 mt-1">
-                                This dashboard provides a high-level overview of the SAANVIKA operations.
-                                Use the sidebar to navigate to specific sections for detailed management.
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+
+                {/* Office Targets Section - 40% width (2/5) - Only for Admins */}
+                {isAdmin && dashboardSummary?.officeTargets && dashboardSummary.officeTargets.length > 0 && (
+                    <Card className="lg:col-span-2">
+                        <CardHeader className="py-3 ">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-amber-50">
+                                    <Target className="h-4 w-4 text-amber-600" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-base">External Employee Targets</CardTitle>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="pt-3">
+                            <div className="space-y-3 max-h-64 overflow-y-auto">
+                                {dashboardSummary.officeTargets.map((office) => (
+                                    <div key={office.officeId} className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div>
+                                                <h4 className="font-medium text-sm text-gray-900">{office.officeName}</h4>
+                                                <p className="text-xs text-gray-500">
+                                                    {office.currentHeadcount} / {office.targetHeadcount}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                                <span className={`text-lg font-bold ${office.targetReached ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                                    {office.progress}%
+                                                </span>
+                                                {office.targetReached ? (
+                                                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                                ) : (
+                                                    <TrendingUp className="h-4 w-4 text-amber-600" />
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                            <div
+                                                className={`h-1.5 rounded-full transition-all duration-300 ${office.targetReached ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                                                style={{ width: `${Math.min(office.progress, 100)}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
         </div>
     );
 };
