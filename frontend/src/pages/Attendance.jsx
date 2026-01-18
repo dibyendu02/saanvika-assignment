@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getAttendance, getMonthlySummary } from '../api/attendance';
+import api from '../api/axios';
 import { useToast } from '../hooks/use-toast';
 import {
     Table,
@@ -12,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, User, Building, Filter } from 'lucide-react';
+import { Loader2, Calendar, User, Building, Filter, X } from 'lucide-react';
 import { format, startOfDay, endOfDay } from 'date-fns';
 
 const Attendance = () => {
@@ -31,19 +32,47 @@ const Attendance = () => {
     const [totalPages, setTotalPages] = useState(1);
     const limit = 10;
 
+    // Office filter for super admin
+    const [offices, setOffices] = useState([]);
+    const [filterOfficeId, setFilterOfficeId] = useState('all');
+    const isSuperAdmin = user?.role === 'super_admin';
+
     // Reset page on date change or view change
     useEffect(() => {
         setPage(1);
-    }, [selectedDate, view]);
+    }, [selectedDate, view, filterOfficeId]);
+
+    // Fetch offices for super admin
+    useEffect(() => {
+        if (isSuperAdmin) {
+            fetchOffices();
+        }
+    }, [isSuperAdmin]);
 
     // Fetch daily attendance
     useEffect(() => {
         if (view === 'daily') {
             fetchDailyAttendance();
         }
-    }, [selectedDate, view, page]);
+    }, [selectedDate, view, page, filterOfficeId]);
 
-    // Fetch monthly summary logic remains same...
+    // Fetch monthly summary
+    useEffect(() => {
+        if (view === 'monthly') {
+            fetchMonthlySummary();
+        }
+    }, [selectedMonth, view, filterOfficeId]);
+
+    const fetchOffices = async () => {
+        try {
+            const response = await api.get('/offices');
+            const data = response.data.data;
+            const docs = data.offices || data.docs || (Array.isArray(data) ? data : []);
+            setOffices(docs);
+        } catch (error) {
+            console.error('Error fetching offices:', error);
+        }
+    };
 
     const fetchDailyAttendance = async () => {
         try {
@@ -52,12 +81,19 @@ const Attendance = () => {
             const startDate = startOfDay(date).toISOString();
             const endDate = endOfDay(date).toISOString();
 
-            const response = await getAttendance({
+            const params = {
                 startDate,
                 endDate,
                 page,
                 limit,
-            });
+            };
+
+            // Add office filter for super admin
+            if (isSuperAdmin && filterOfficeId && filterOfficeId !== 'all') {
+                params.officeId = filterOfficeId;
+            }
+
+            const response = await getAttendance(params);
 
             if (response.success) {
                 setAttendance(response.data.records || []);
@@ -65,7 +101,11 @@ const Attendance = () => {
             }
         } catch (error) {
             console.error('Error fetching attendance:', error);
-            // ... error handling
+            toast({
+                title: 'Error',
+                description: 'Failed to fetch attendance records',
+                variant: 'destructive',
+            });
         } finally {
             setLoading(false);
         }
@@ -74,7 +114,14 @@ const Attendance = () => {
     const fetchMonthlySummary = async () => {
         try {
             setLoading(true);
-            const response = await getMonthlySummary(selectedMonth);
+            const params = { month: selectedMonth };
+
+            // Add office filter for super admin
+            if (isSuperAdmin && filterOfficeId && filterOfficeId !== 'all') {
+                params.officeId = filterOfficeId;
+            }
+
+            const response = await getMonthlySummary(params.month, params.officeId);
 
             if (response.success) {
                 setMonthlySummary(response.data.summary || []);
@@ -112,9 +159,87 @@ const Attendance = () => {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div>
-                <h2 className="text-2xl font-bold text-gray-900">Attendance</h2>
-                <p className="text-gray-500 mt-1">Track employee attendance records</p>
+            <div className="flex justify-between items-start">
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Attendance</h2>
+                    <p className="text-gray-500 mt-1">Track employee attendance records</p>
+                </div>
+
+                {/* View Toggle and Date/Month Selector */}
+                <div className="flex items-center gap-3">
+                    {/* View Toggle */}
+                    <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-lg">
+                        <Button
+                            variant={view === 'daily' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => setView('daily')}
+                            className={view === 'daily' ? '' : 'hover:bg-gray-200'}
+                        >
+                            <Calendar className="h-4 w-4 mr-2" />
+                            Daily
+                        </Button>
+                        <Button
+                            variant={view === 'monthly' ? 'default' : 'ghost'}
+                            size="sm"
+                            onClick={() => setView('monthly')}
+                            className={view === 'monthly' ? '' : 'hover:bg-gray-200'}
+                        >
+                            <Filter className="h-4 w-4 mr-2" />
+                            Monthly
+                        </Button>
+                    </div>
+
+                    {/* Office Filter - Only for Super Admin */}
+                    {isSuperAdmin && offices.length > 0 && (
+                        <div className="flex items-center gap-2">
+                            <div className="relative">
+                                <Building className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                <select
+                                    className="h-10 w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                    value={filterOfficeId}
+                                    onChange={e => setFilterOfficeId(e.target.value)}
+                                >
+                                    <option value="all">All Offices</option>
+                                    {offices.map((office) => (
+                                        <option key={office._id} value={office._id}>
+                                            {office.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            {filterOfficeId && filterOfficeId !== 'all' && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setFilterOfficeId('all')}
+                                    className="h-8 w-8 text-gray-500"
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Date Selector for Daily View */}
+                    {view === 'daily' && (
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => setSelectedDate(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    )}
+
+                    {/* Month Selector for Monthly View */}
+                    {view === 'monthly' && (
+                        <input
+                            type="month"
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    )}
+                </div>
             </div>
 
             {/* Daily Attendance Table */}
