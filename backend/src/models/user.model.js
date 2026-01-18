@@ -101,11 +101,8 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
-userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ phone: 1 }, { unique: true });
+// Indexes for query optimization
 userSchema.index({ primaryOfficeId: 1, role: 1 });
-userSchema.index({ assignedOfficeId: 1 });
 
 
 // Pre-save hook: Hash password if modified
