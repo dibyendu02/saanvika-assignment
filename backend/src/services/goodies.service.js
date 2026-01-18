@@ -83,14 +83,22 @@ export const getDistributions = async (requestingUser, filters = {}) => {
   let query = {};
 
   // Role-based access control
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
-    // Admin and super_admin can see all distributions
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can see all distributions
     if (officeId) {
       query.officeId = officeId;
     }
+  } else if (requestingUser.role === 'admin') {
+    // Admin can only see distributions from their own office
+    query.officeId = requestingUser.primaryOfficeId;
   } else if (['internal', 'external'].includes(requestingUser.role)) {
     // Internal and external can only see distributions from their office
+    // AND either for all employees OR they are in the targetEmployees list
     query.officeId = requestingUser.primaryOfficeId;
+    query.$or = [
+      { isForAllEmployees: true },
+      { targetEmployees: requestingUser._id }
+    ];
   } else {
     throw new AppError('You are not authorized to view distributions', 403);
   }
@@ -123,18 +131,30 @@ export const getDistributions = async (requestingUser, filters = {}) => {
 
   // Check if requesting user has already received these goodies
   const distributionIds = distributions.map((d) => d._id);
-  const receivedRecords = await GoodiesReceived.find({
-    userId: requestingUser._id,
-    goodiesDistributionId: { $in: distributionIds },
-  });
+  const [receivedRecords, claimCounts] = await Promise.all([
+    GoodiesReceived.find({
+      userId: requestingUser._id,
+      goodiesDistributionId: { $in: distributionIds },
+    }),
+    GoodiesReceived.aggregate([
+      { $match: { goodiesDistributionId: { $in: distributionIds } } },
+      { $group: { _id: '$goodiesDistributionId', count: { $sum: 1 } } },
+    ]),
+  ]);
 
   const receivedSet = new Set(
     receivedRecords.map((r) => r.goodiesDistributionId.toString())
   );
 
+  const claimCountMap = new Map(
+    claimCounts.map((c) => [c._id.toString(), c.count])
+  );
+
   const distributionsWithStatus = distributions.map((d) => {
     const dObj = d.toObject();
     dObj.isReceived = receivedSet.has(d._id.toString());
+    dObj.claimedCount = claimCountMap.get(d._id.toString()) || 0;
+    dObj.remainingCount = d.totalQuantity - dObj.claimedCount;
     return dObj;
   });
 
@@ -163,7 +183,15 @@ export const getDistributionById = async (requestingUser, distributionId) => {
   }
 
   // Role-based access control
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
+  if (requestingUser.role === 'super_admin') {
+    return distribution;
+  }
+
+  if (requestingUser.role === 'admin') {
+    // Admin can only see distributions from their office
+    if (distribution.officeId._id.toString() !== requestingUser.primaryOfficeId?.toString()) {
+      throw new AppError('You are not authorized to view this distribution', 403);
+    }
     return distribution;
   }
 
@@ -206,6 +234,15 @@ export const receiveGoodies = async (requestingUser, distributionId) => {
     throw new AppError('This distribution is not for your office', 403);
   }
 
+  // Check if there are remaining goodies available
+  const claimedCount = await GoodiesReceived.countDocuments({
+    goodiesDistributionId: distributionId,
+  });
+
+  if (claimedCount >= distribution.totalQuantity) {
+    throw new AppError('No goodies remaining in this distribution', 400);
+  }
+
   try {
     const receipt = await GoodiesReceived.create({
       goodiesDistributionId: distributionId,
@@ -243,11 +280,17 @@ export const getReceivedGoodies = async (requestingUser, filters = {}) => {
   }
 
   // Role-based access control
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
-    // Admin and super_admin can see all records
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can see all records
     if (officeId) {
       query.receivedAtOfficeId = officeId;
     }
+    if (userId) {
+      query.userId = userId;
+    }
+  } else if (requestingUser.role === 'admin') {
+    // Admin can only see records from their office
+    query.receivedAtOfficeId = requestingUser.primaryOfficeId;
     if (userId) {
       query.userId = userId;
     }
@@ -316,7 +359,15 @@ export const getReceivedById = async (requestingUser, recordId) => {
   }
 
   // Role-based access control
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
+  if (requestingUser.role === 'super_admin') {
+    return record;
+  }
+
+  if (requestingUser.role === 'admin') {
+    // Admin can only see records from their office
+    if (record.receivedAtOfficeId._id.toString() !== requestingUser.primaryOfficeId?.toString()) {
+      throw new AppError('You are not authorized to view this record', 403);
+    }
     return record;
   }
 

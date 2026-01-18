@@ -14,6 +14,8 @@ import {
   updateProfile,
   bulkUploadEmployees,
   downloadTemplate,
+  suspendUser,
+  deleteUser,
 } from '../controllers/user.controller.js';
 
 const router = express.Router();
@@ -33,5 +35,9 @@ router.get('/template', requireAdminOrSuperAdmin, downloadTemplate);
 router.get('/', getAllUsers);
 router.get('/office/:officeId', getEmployeesByOffice);
 router.get('/:id', getUserById);
+
+// User management routes (hierarchy-based access control)
+router.patch('/:id/suspend', suspendUser);
+router.delete('/:id', requireAdminOrSuperAdmin, deleteUser);
 
 export default router;

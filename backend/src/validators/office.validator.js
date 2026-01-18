@@ -80,6 +80,10 @@ export const createOfficeSchema = Joi.object({
     'any.required': 'Location is required',
   }),
 
+  targetHeadcount: Joi.number().min(0).optional().default(0).messages({
+    'number.min': 'Target headcount cannot be negative',
+  }),
+
   targets: Joi.array().items(targetSchema).optional().default([]),
 });
 
@@ -98,6 +102,10 @@ export const updateOfficeSchema = Joi.object({
   }),
 
   location: locationSchema.optional(),
+
+  targetHeadcount: Joi.number().min(0).optional().messages({
+    'number.min': 'Target headcount cannot be negative',
+  }),
 
   targets: Joi.array().items(targetSchema).optional(),
 }).min(1).messages({

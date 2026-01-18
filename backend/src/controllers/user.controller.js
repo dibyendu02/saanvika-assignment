@@ -106,12 +106,15 @@ export const bulkUploadEmployees = asyncHandler(async (req, res) => {
     throw new AppError('Please upload an Excel file', 400);
   }
 
+  // Extract targetOfficeId from request body (for super admins)
+  const { targetOfficeId } = req.body;
+
   try {
     // Parse Excel file
     const { employees, errors: parseErrors } = await excelService.parseEmployeeExcel(req.file.path);
 
-    // Create employees
-    const results = await userService.bulkCreateEmployees(req.user, employees);
+    // Create employees with targetOfficeId
+    const results = await userService.bulkCreateEmployees(req.user, employees, targetOfficeId);
 
     // Combine parse errors with creation errors
     const allErrors = [...parseErrors, ...results.failed];
@@ -154,6 +157,38 @@ export const downloadTemplate = asyncHandler(async (req, res) => {
   res.send(buffer);
 });
 
+/**
+ * @desc    Suspend a user (set status to inactive)
+ * @route   PATCH /api/v1/users/:id/suspend
+ * @access  Private (admin, super_admin - hierarchy based)
+ */
+export const suspendUser = asyncHandler(async (req, res) => {
+  const targetUserId = req.params.id;
+  const updatedUser = await userService.suspendUser(req.user, targetUserId);
+
+  res.status(200).json({
+    success: true,
+    data: { user: updatedUser },
+    message: 'User suspended successfully',
+  });
+});
+
+/**
+ * @desc    Delete a user
+ * @route   DELETE /api/v1/users/:id
+ * @access  Private (admin, super_admin - hierarchy based)
+ */
+export const deleteUser = asyncHandler(async (req, res) => {
+  const targetUserId = req.params.id;
+  await userService.deleteUser(req.user, targetUserId);
+
+  res.status(200).json({
+    success: true,
+    data: null,
+    message: 'User deleted successfully',
+  });
+});
+
 
 export default {
   getProfile,
@@ -163,5 +198,7 @@ export default {
   updateProfile,
   bulkUploadEmployees,
   downloadTemplate,
+  suspendUser,
+  deleteUser,
 };
 

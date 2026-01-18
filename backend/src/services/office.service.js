@@ -18,7 +18,9 @@ import {
  * @returns {Promise<Object>} - Created office
  */
 export const createOffice = async (officeData) => {
+  console.log('Creating office with data:', officeData);
   const office = await Office.create(officeData);
+  console.log('Office created:', office.toObject());
   return office;
 };
 
@@ -39,8 +41,8 @@ export const getAllOffices = async (requestingUser, filters = {}) => {
 
   let query = {};
 
-  // Access control: internal can only see their own office
-  if (requestingUser.role === 'internal') {
+  // Access control: admin and internal can only see their own office
+  if (requestingUser.role === 'admin' || requestingUser.role === 'internal') {
     query._id = requestingUser.primaryOfficeId;
   }
 
@@ -57,12 +59,13 @@ export const getAllOffices = async (requestingUser, filters = {}) => {
     Office.countDocuments(query),
   ]);
 
-  // Calculate employee count for each office
+  // Calculate external employee count for each office (for target tracking)
   const offices = await Promise.all(
     officesDocs.map(async (office) => {
       const employeesCount = await User.countDocuments({
         primaryOfficeId: office._id,
-        status: 'active', // Count only active employees
+        role: 'external', // Count only external employees for target tracking
+        status: 'active',
       });
       return { ...office, employeesCount };
     })
@@ -102,8 +105,8 @@ export const getOfficeById = async (requestingUser, officeId) => {
     throw new AppError('Office not found', 404);
   }
 
-  // Access control: internal can only see their own office
-  if (requestingUser.role === 'internal') {
+  // Access control: admin and internal can only see their own office
+  if (requestingUser.role === 'admin' || requestingUser.role === 'internal') {
     if (officeId.toString() !== requestingUser.primaryOfficeId?.toString()) {
       throw new AppError('You are not authorized to view this office', 403);
     }

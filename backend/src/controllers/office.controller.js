@@ -11,6 +11,7 @@ import * as officeService from '../services/office.service.js';
  * @access  Private (admin, super_admin)
  */
 export const createOffice = asyncHandler(async (req, res) => {
+  console.log('Controller received req.body:', req.body);
   const office = await officeService.createOffice(req.body);
 
   res.status(201).json({

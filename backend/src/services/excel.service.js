@@ -65,7 +65,7 @@ const validateAndTransformRow = async (row, rowNumber) => {
     const errors = [];
 
     // Validate required fields
-    const requiredFields = ['name', 'age', 'gender', 'employee_id'];
+    const requiredFields = ['name', 'age', 'gender', 'employee_id', 'employee_type'];
     for (const field of requiredFields) {
         if (!row[field] && row[field] !== 0) {
             errors.push(`Missing required field: ${field}`);
@@ -107,17 +107,20 @@ const validateAndTransformRow = async (row, rowNumber) => {
         errors.push(`Employee with ID ${employeeId} already exists`);
     }
 
-    // Validate branch_office if provided
-    let branchOfficeId = null;
-    if (row.branch_office) {
-        const branchOfficeName = String(row.branch_office).trim();
-        const office = await Office.findOne({ name: branchOfficeName });
-        if (!office) {
-            errors.push(`Branch office "${branchOfficeName}" not found`);
-        } else {
-            branchOfficeId = office._id;
-        }
+    // Validate employee_type
+    const employeeType = String(row.employee_type).toLowerCase().trim();
+    const validTypes = ['admin', 'internal', 'external'];
+    if (!validTypes.includes(employeeType)) {
+        errors.push('Employee type must be one of: admin, internal, external');
     }
+
+    // Map employee_type to role
+    const roleMapping = {
+        'admin': 'admin',
+        'internal': 'internal',
+        'external': 'external'
+    };
+    const role = roleMapping[employeeType];
 
     if (errors.length > 0) {
         throw new Error(errors.join(', '));
@@ -129,11 +132,10 @@ const validateAndTransformRow = async (row, rowNumber) => {
         age,
         gender,
         employeeId,
-        branchOfficeId,
         email: `${employeeId}@company.com`, // Generate email from employee_id
         phone: `9999${String(Math.floor(Math.random() * 1000000)).padStart(6, '0')}`, // Generate random phone
         password: `Pass@${employeeId}`, // Default password
-        role: 'external', // Default role for bulk imported employees
+        role, // Use role from employee_type
     };
 };
 
@@ -149,14 +151,14 @@ export const generateExcelTemplate = () => {
             age: 30,
             gender: 'male',
             employee_id: 'EMP001',
-            branch_office: 'Main Office',
+            employee_type: 'external',
         },
         {
             name: 'Jane Smith',
             age: 28,
             gender: 'female',
             employee_id: 'EMP002',
-            branch_office: 'Branch Office 1',
+            employee_type: 'internal',
         },
     ];
 
@@ -169,7 +171,7 @@ export const generateExcelTemplate = () => {
         { wch: 10 }, // age
         { wch: 10 }, // gender
         { wch: 15 }, // employee_id
-        { wch: 25 }, // branch_office
+        { wch: 15 }, // employee_type
     ];
 
     // Create workbook
@@ -182,7 +184,7 @@ export const generateExcelTemplate = () => {
         { Field: 'age', Description: 'Age of the employee (18-100)', Required: 'Yes', Example: '30' },
         { Field: 'gender', Description: 'Gender (male/female/other)', Required: 'Yes', Example: 'male' },
         { Field: 'employee_id', Description: 'Unique employee identifier', Required: 'Yes', Example: 'EMP001' },
-        { Field: 'branch_office', Description: 'Name of the branch office (leave empty for auto-assignment)', Required: 'No', Example: 'Main Office' },
+        { Field: 'employee_type', Description: 'Employee type (admin/internal/external)', Required: 'Yes', Example: 'external' },
     ];
 
     const instructionsSheet = XLSX.utils.json_to_sheet(instructions);

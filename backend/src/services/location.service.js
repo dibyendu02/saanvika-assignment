@@ -48,11 +48,17 @@ export const getLocations = async (requestingUser, filters = {}) => {
   let query = {};
 
   // Role-based access control
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
-    // Admin and super_admin can see all location records, with optional filters
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can see all location records, with optional filters
     if (officeId) {
       query.officeId = officeId;
     }
+    if (userId) {
+      query.userId = userId;
+    }
+  } else if (requestingUser.role === 'admin') {
+    // Admin can only see locations from their own office
+    query.officeId = requestingUser.primaryOfficeId;
     if (userId) {
       query.userId = userId;
     }
@@ -111,7 +117,15 @@ export const getLocationById = async (requestingUser, locationId) => {
   }
 
   // Role-based access control
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
+  if (requestingUser.role === 'super_admin') {
+    return location;
+  }
+
+  if (requestingUser.role === 'admin') {
+    // Admin can only see locations from their office
+    if (location.officeId?._id.toString() !== requestingUser.primaryOfficeId?.toString()) {
+      throw new AppError('You are not authorized to view this location record', 403);
+    }
     return location;
   }
 

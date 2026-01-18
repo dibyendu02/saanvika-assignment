@@ -113,6 +113,8 @@ officeSchema.index({ isMainOffice: 1 });
 
 // Pre-save validation: Ensure only one main office exists
 officeSchema.pre('save', async function (next) {
+  console.log('Pre-save hook - targetHeadcount before:', this.targetHeadcount);
+
   if (this.officeType === 'main' || this.isMainOffice === true) {
     // Set both fields consistently
     this.officeType = 'main';
@@ -133,6 +135,8 @@ officeSchema.pre('save', async function (next) {
     this.officeType = 'branch';
     this.isMainOffice = false;
   }
+
+  console.log('Pre-save hook - targetHeadcount after:', this.targetHeadcount);
   next();
 });
 
