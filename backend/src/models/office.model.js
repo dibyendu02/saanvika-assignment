@@ -81,17 +81,61 @@ const officeSchema = new mongoose.Schema(
       default: 0,
       min: [0, 'Target headcount cannot be negative'],
     },
+    officeType: {
+      type: String,
+      enum: {
+        values: ['main', 'branch'],
+        message: 'Office type must be either main or branch',
+      },
+      default: 'branch',
+      required: [true, 'Office type is required'],
+    },
+    isMainOffice: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   }
 );
 
+
 // 2dsphere index for geospatial queries
 officeSchema.index({ location: '2dsphere' });
 
 // Text index for name search
 officeSchema.index({ name: 'text' });
+
+// Index for office type queries
+officeSchema.index({ officeType: 1 });
+officeSchema.index({ isMainOffice: 1 });
+
+// Pre-save validation: Ensure only one main office exists
+officeSchema.pre('save', async function (next) {
+  if (this.officeType === 'main' || this.isMainOffice === true) {
+    // Set both fields consistently
+    this.officeType = 'main';
+    this.isMainOffice = true;
+
+    // Check if another main office already exists
+    const existingMainOffice = await this.constructor.findOne({
+      isMainOffice: true,
+      _id: { $ne: this._id }, // Exclude current document if updating
+    });
+
+    if (existingMainOffice) {
+      const error = new Error('A main office already exists. Only one main office is allowed.');
+      return next(error);
+    }
+  } else {
+    // Ensure branch offices have correct values
+    this.officeType = 'branch';
+    this.isMainOffice = false;
+  }
+  next();
+});
+
 
 const Office = mongoose.model('Office', officeSchema);
 

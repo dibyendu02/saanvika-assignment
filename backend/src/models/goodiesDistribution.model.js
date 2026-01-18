@@ -32,6 +32,29 @@ const goodiesDistributionSchema = new mongoose.Schema(
       required: [true, 'Total quantity is required'],
       min: [1, 'Total quantity must be at least 1'],
     },
+    isForAllEmployees: {
+      type: Boolean,
+      default: true,
+    },
+    targetEmployees: {
+      type: [mongoose.Schema.Types.ObjectId],
+      ref: 'User',
+      default: [],
+      validate: {
+        validator: function (value) {
+          // If not for all employees, targetEmployees must not be empty
+          if (this.isForAllEmployees === false && (!value || value.length === 0)) {
+            return false;
+          }
+          // If for all employees, targetEmployees should be empty
+          if (this.isForAllEmployees === true && value && value.length > 0) {
+            return false;
+          }
+          return true;
+        },
+        message: 'targetEmployees must be specified when isForAllEmployees is false, and must be empty when isForAllEmployees is true',
+      },
+    },
   },
   {
     timestamps: true,
@@ -49,6 +72,11 @@ goodiesDistributionSchema.index({ officeId: 1, distributionDate: -1 });
 
 // Index for user-based queries
 goodiesDistributionSchema.index({ distributedBy: 1 });
+
+// Index for targeted distribution queries
+goodiesDistributionSchema.index({ targetEmployees: 1 });
+goodiesDistributionSchema.index({ isForAllEmployees: 1 });
+
 
 const GoodiesDistribution = mongoose.model(
   'GoodiesDistribution',

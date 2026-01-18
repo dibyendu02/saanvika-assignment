@@ -4,6 +4,8 @@
  */
 import asyncHandler from '../utils/asyncHandler.js';
 import * as userService from '../services/user.service.js';
+import AppError from '../utils/AppError.js';
+
 
 /**
  * @desc    Get current user's profile
@@ -91,10 +93,75 @@ export const updateProfile = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Bulk upload employees from Excel file
+ * @route   POST /api/v1/users/bulk-upload
+ * @access  Private (admin, super_admin)
+ */
+export const bulkUploadEmployees = asyncHandler(async (req, res) => {
+  const fs = await import('fs');
+  const excelService = await import('../services/excel.service.js');
+
+  if (!req.file) {
+    throw new AppError('Please upload an Excel file', 400);
+  }
+
+  try {
+    // Parse Excel file
+    const { employees, errors: parseErrors } = await excelService.parseEmployeeExcel(req.file.path);
+
+    // Create employees
+    const results = await userService.bulkCreateEmployees(req.user, employees);
+
+    // Combine parse errors with creation errors
+    const allErrors = [...parseErrors, ...results.failed];
+
+    // Clean up uploaded file
+    fs.unlinkSync(req.file.path);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalProcessed: results.totalProcessed + parseErrors.length,
+        successCount: results.success.length,
+        failedCount: allErrors.length,
+        successRecords: results.success,
+        failedRecords: allErrors,
+      },
+      message: `Bulk upload completed. ${results.success.length} employees created successfully, ${allErrors.length} failed.`,
+    });
+  } catch (error) {
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    throw error;
+  }
+});
+
+/**
+ * @desc    Download employee Excel template
+ * @route   GET /api/v1/users/template
+ * @access  Private (admin, super_admin)
+ */
+export const downloadTemplate = asyncHandler(async (req, res) => {
+  const excelService = await import('../services/excel.service.js');
+
+  const buffer = excelService.generateExcelTemplate();
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename=employee-template.xlsx');
+  res.send(buffer);
+});
+
+
 export default {
   getProfile,
   getAllUsers,
   getUserById,
   getEmployeesByOffice,
   updateProfile,
+  bulkUploadEmployees,
+  downloadTemplate,
 };
+

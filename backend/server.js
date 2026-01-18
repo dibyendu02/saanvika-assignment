@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import app from './src/app.js';
 import connectDB from './src/config/database.js';
+import seedSuperAdmin from './src/utils/seedSuperAdmin.js';
 
 const PORT = process.env.PORT || 5001;
 
@@ -8,6 +9,9 @@ const startServer = async () => {
   try {
     // Connect to MongoDB
     await connectDB();
+
+    // Seed super admin if not exists
+    await seedSuperAdmin();
 
     // Start Express server
     app.listen(PORT, () => {

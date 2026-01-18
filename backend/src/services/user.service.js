@@ -98,7 +98,7 @@ export const getUserById = async (requestingUser, targetUserId) => {
     if (
       targetUser.primaryOfficeId &&
       targetUser.primaryOfficeId._id.toString() ===
-        requestingUser.primaryOfficeId.toString()
+      requestingUser.primaryOfficeId.toString()
     ) {
       return targetUser;
     }
@@ -213,10 +213,81 @@ export const updateMyProfile = async (userId, updateData) => {
   return user;
 };
 
+/**
+ * Bulk create employees from Excel data
+ * @param {Object} requestingUser - The user creating employees
+ * @param {Array} employeesData - Array of employee objects from Excel
+ * @returns {Promise<Object>} - Result with success and failure counts
+ */
+export const bulkCreateEmployees = async (requestingUser, employeesData) => {
+  // Only admins and super admins can bulk create employees
+  if (!['admin', 'super_admin'].includes(requestingUser.role)) {
+    throw new AppError('Only admins and super admins can bulk create employees', 403);
+  }
+
+  const results = {
+    success: [],
+    failed: [],
+    totalProcessed: employeesData.length,
+  };
+
+  for (const employeeData of employeesData) {
+    try {
+      // Determine office assignment based on requesting user's role
+      let primaryOfficeId;
+
+      if (requestingUser.role === 'admin') {
+        // Admins can only create employees for their assigned office
+        if (!requestingUser.assignedOfficeId) {
+          throw new Error('Admin must have an assigned office');
+        }
+        primaryOfficeId = requestingUser.assignedOfficeId;
+      } else if (requestingUser.role === 'super_admin') {
+        // Super admins can use the branch_office from Excel or require it
+        if (!employeeData.branchOfficeId) {
+          throw new Error('Branch office must be specified for super admin bulk import');
+        }
+        primaryOfficeId = employeeData.branchOfficeId;
+      }
+
+      // Create employee
+      const newEmployee = new User({
+        name: employeeData.name,
+        email: employeeData.email,
+        phone: employeeData.phone,
+        password: employeeData.password,
+        role: employeeData.role,
+        primaryOfficeId,
+        createdBy: requestingUser._id,
+        status: 'active', // Auto-activate bulk imported employees
+      });
+
+      await newEmployee.save();
+
+      results.success.push({
+        employeeId: employeeData.employeeId,
+        name: employeeData.name,
+        userId: newEmployee._id,
+      });
+    } catch (error) {
+      results.failed.push({
+        employeeId: employeeData.employeeId,
+        name: employeeData.name,
+        error: error.message,
+      });
+    }
+  }
+
+  return results;
+};
+
+
 export default {
   getUsersByRole,
   getUserById,
   getEmployeesByOffice,
   getMyProfile,
   updateMyProfile,
+  bulkCreateEmployees,
 };
+
