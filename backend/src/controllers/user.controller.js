@@ -4,6 +4,8 @@
  */
 import asyncHandler from '../utils/asyncHandler.js';
 import * as userService from '../services/user.service.js';
+import AppError from '../utils/AppError.js';
+
 
 /**
  * @desc    Get current user's profile
@@ -91,10 +93,112 @@ export const updateProfile = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Bulk upload employees from Excel file
+ * @route   POST /api/v1/users/bulk-upload
+ * @access  Private (admin, super_admin)
+ */
+export const bulkUploadEmployees = asyncHandler(async (req, res) => {
+  const fs = await import('fs');
+  const excelService = await import('../services/excel.service.js');
+
+  if (!req.file) {
+    throw new AppError('Please upload an Excel file', 400);
+  }
+
+  // Extract targetOfficeId from request body (for super admins)
+  const { targetOfficeId } = req.body;
+
+  try {
+    // Parse Excel file
+    const { employees, errors: parseErrors } = await excelService.parseEmployeeExcel(req.file.path);
+
+    // Create employees with targetOfficeId
+    const results = await userService.bulkCreateEmployees(req.user, employees, targetOfficeId);
+
+    // Combine parse errors with creation errors
+    const allErrors = [...parseErrors, ...results.failed];
+
+    // Clean up uploaded file
+    fs.unlinkSync(req.file.path);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalProcessed: results.totalProcessed + parseErrors.length,
+        successCount: results.success.length,
+        failedCount: allErrors.length,
+        successRecords: results.success,
+        failedRecords: allErrors,
+      },
+      message: `Bulk upload completed. ${results.success.length} employees created successfully, ${allErrors.length} failed.`,
+    });
+  } catch (error) {
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    throw error;
+  }
+});
+
+/**
+ * @desc    Download employee Excel template
+ * @route   GET /api/v1/users/template
+ * @access  Private (admin, super_admin)
+ */
+export const downloadTemplate = asyncHandler(async (req, res) => {
+  const excelService = await import('../services/excel.service.js');
+
+  const buffer = excelService.generateExcelTemplate();
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename=employee-template.xlsx');
+  res.send(buffer);
+});
+
+/**
+ * @desc    Suspend a user (set status to inactive)
+ * @route   PATCH /api/v1/users/:id/suspend
+ * @access  Private (admin, super_admin - hierarchy based)
+ */
+export const suspendUser = asyncHandler(async (req, res) => {
+  const targetUserId = req.params.id;
+  const updatedUser = await userService.suspendUser(req.user, targetUserId);
+
+  res.status(200).json({
+    success: true,
+    data: { user: updatedUser },
+    message: 'User suspended successfully',
+  });
+});
+
+/**
+ * @desc    Delete a user
+ * @route   DELETE /api/v1/users/:id
+ * @access  Private (admin, super_admin - hierarchy based)
+ */
+export const deleteUser = asyncHandler(async (req, res) => {
+  const targetUserId = req.params.id;
+  await userService.deleteUser(req.user, targetUserId);
+
+  res.status(200).json({
+    success: true,
+    data: null,
+    message: 'User deleted successfully',
+  });
+});
+
+
 export default {
   getProfile,
   getAllUsers,
   getUserById,
   getEmployeesByOffice,
   updateProfile,
+  bulkUploadEmployees,
+  downloadTemplate,
+  suspendUser,
+  deleteUser,
 };
+

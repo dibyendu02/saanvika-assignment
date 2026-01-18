@@ -118,6 +118,21 @@ export const getReceivedById = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Get eligible employees for a distribution
+ * @route   GET /api/v1/goodies/distributions/:id/eligible-employees
+ * @access  Private (admin, super_admin, internal)
+ */
+export const getEligibleEmployees = asyncHandler(async (req, res) => {
+  const employees = await goodiesService.getEligibleEmployees(req.user, req.params.id);
+
+  res.status(200).json({
+    success: true,
+    data: { employees, count: employees.length },
+    message: 'Eligible employees fetched successfully',
+  });
+});
+
 export default {
   createDistribution,
   getDistributions,
@@ -125,4 +140,5 @@ export default {
   receiveGoodies,
   getReceivedGoodies,
   getReceivedById,
+  getEligibleEmployees,
 };

@@ -42,7 +42,7 @@ router.get(
   findNearbyOffices
 );
 
-// Read access: super_admin, admin (full), internal (own office only)
+// Read access: super_admin (full), admin (own office), internal (own office only)
 // External users have no access - blocked at route level, fine-grained in service
 router.get('/', authorize('super_admin', 'admin', 'internal'), getAllOffices);
 router.get(
@@ -52,26 +52,26 @@ router.get(
   getOfficeById
 );
 
-// Admin/Super Admin only routes
+// Super Admin only routes
 router.post(
   '/',
-  authorize('admin', 'super_admin'),
+  authorize('super_admin'),
   validate(createOfficeSchema),
   createOffice
 );
 
 router.put(
   '/:id',
-  authorize('admin', 'super_admin'),
+  authorize('super_admin'),
   validate(officeIdSchema, 'params'),
   validate(updateOfficeSchema),
   updateOffice
 );
 
-// Target management (admin/super_admin)
+// Target management (super_admin only)
 router.post(
   '/:id/targets',
-  authorize('admin', 'super_admin'),
+  authorize('super_admin'),
   validate(officeIdSchema, 'params'),
   validate(addTargetSchema),
   addTarget
@@ -79,7 +79,7 @@ router.post(
 
 router.put(
   '/:id/targets',
-  authorize('admin', 'super_admin'),
+  authorize('super_admin'),
   validate(officeIdSchema, 'params'),
   validate(updateTargetSchema),
   updateTarget

@@ -129,11 +129,18 @@ export const getAttendance = async (requestingUser, filters = {}) => {
   let query = {};
 
   // Role-based access control
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
-    // Admin and super_admin can see all attendance, with optional filters
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can see all attendance, with optional filters
     if (officeId) {
       query.officeId = officeId;
     }
+    if (userId) {
+      query.userId = userId;
+    }
+  } else if (requestingUser.role === 'admin') {
+    // Admin can only see attendance from their own office
+    query.officeId = requestingUser.primaryOfficeId;
+    // Admin can optionally filter by userId within their office
     if (userId) {
       query.userId = userId;
     }
@@ -193,8 +200,16 @@ export const getAttendanceById = async (requestingUser, attendanceId) => {
   }
 
   // Role-based access control
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
-    // Admin and super_admin can see any attendance record
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can see any attendance record
+    return attendance;
+  }
+
+  if (requestingUser.role === 'admin') {
+    // Admin can only see attendance from their office
+    if (attendance.officeId._id.toString() !== requestingUser.primaryOfficeId.toString()) {
+      throw new AppError('You are not authorized to view this attendance record', 403);
+    }
     return attendance;
   }
 
@@ -243,9 +258,12 @@ export const getMonthlySummary = async (requestingUser, month) => {
   };
 
   // Role-based access control
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
-    // Admin and super_admin can see all attendance
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can see all attendance
     // No additional filters
+  } else if (requestingUser.role === 'admin') {
+    // Admin can only see attendance from their office
+    matchQuery.officeId = requestingUser.primaryOfficeId;
   } else if (requestingUser.role === 'internal') {
     // Internal can only see attendance from their office
     matchQuery.officeId = requestingUser.primaryOfficeId;

@@ -25,10 +25,24 @@ export const getUsersByRole = async (requestingUser, targetRole, filters = {}) =
   let query = {};
 
   // Access control based on requesting user's role
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
-    // Super admin and admin can see all users
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can see all users
     if (targetRole) {
       query.role = targetRole;
+    }
+  } else if (requestingUser.role === 'admin') {
+    // Admin can only see users from their office
+    query.primaryOfficeId = requestingUser.primaryOfficeId;
+
+    if (targetRole) {
+      // Admin cannot view super_admin users
+      if (targetRole === 'super_admin') {
+        throw new AppError('You are not authorized to view super admin users', 403);
+      }
+      query.role = targetRole;
+    } else {
+      // If no role specified, exclude super_admin from results
+      query.role = { $ne: 'super_admin' };
     }
   } else if (requestingUser.role === 'internal') {
     // Internal can only see users from their office
@@ -88,9 +102,21 @@ export const getUserById = async (requestingUser, targetUserId) => {
   }
 
   // Access control based on requesting user's role
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
-    // Super admin and admin can see any user
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can see any user
     return targetUser;
+  }
+
+  if (requestingUser.role === 'admin') {
+    // Admin can only see users from their office
+    if (
+      targetUser.primaryOfficeId &&
+      targetUser.primaryOfficeId._id.toString() ===
+      requestingUser.primaryOfficeId.toString()
+    ) {
+      return targetUser;
+    }
+    throw new AppError('You are not authorized to view this user', 403);
   }
 
   if (requestingUser.role === 'internal') {
@@ -98,7 +124,7 @@ export const getUserById = async (requestingUser, targetUserId) => {
     if (
       targetUser.primaryOfficeId &&
       targetUser.primaryOfficeId._id.toString() ===
-        requestingUser.primaryOfficeId.toString()
+      requestingUser.primaryOfficeId.toString()
     ) {
       return targetUser;
     }
@@ -130,6 +156,13 @@ export const getEmployeesByOffice = async (requestingUser, officeId, filters = {
   // Access control based on requesting user's role
   if (requestingUser.role === 'external') {
     throw new AppError('You are not authorized to view office employees', 403);
+  }
+
+  if (requestingUser.role === 'admin') {
+    // Admin can only see employees from their own office
+    if (officeId.toString() !== requestingUser.primaryOfficeId.toString()) {
+      throw new AppError('You are not authorized to view employees from this office', 403);
+    }
   }
 
   if (requestingUser.role === 'internal') {
@@ -213,10 +246,160 @@ export const updateMyProfile = async (userId, updateData) => {
   return user;
 };
 
+/**
+ * Bulk create employees from Excel data
+ * @param {Object} requestingUser - The user creating employees
+ * @param {Array} employeesData - Array of employee objects from Excel
+ * @param {string} targetOfficeId - Target office ID (required for super_admin, ignored for admin)
+ * @returns {Promise<Object>} - Result with success and failure counts
+ */
+export const bulkCreateEmployees = async (requestingUser, employeesData, targetOfficeId = null) => {
+  // Only admins and super admins can bulk create employees
+  if (!['admin', 'super_admin'].includes(requestingUser.role)) {
+    throw new AppError('Only admins and super admins can bulk create employees', 403);
+  }
+
+  const results = {
+    success: [],
+    failed: [],
+    totalProcessed: employeesData.length,
+  };
+
+  for (const employeeData of employeesData) {
+    try {
+      // Determine office assignment based on requesting user's role
+      let primaryOfficeId;
+
+      if (requestingUser.role === 'admin') {
+        // Admins can only create employees for their assigned office
+        if (!requestingUser.assignedOfficeId) {
+          throw new Error('Admin must have an assigned office');
+        }
+        primaryOfficeId = requestingUser.assignedOfficeId;
+      } else if (requestingUser.role === 'super_admin') {
+        // Super admins must specify target office via UI
+        if (!targetOfficeId) {
+          throw new Error('Target office must be specified for super admin bulk import');
+        }
+        primaryOfficeId = targetOfficeId;
+      }
+
+      // Create employee
+      const newEmployee = new User({
+        name: employeeData.name,
+        email: employeeData.email,
+        phone: employeeData.phone,
+        password: employeeData.password,
+        role: employeeData.role,
+        primaryOfficeId,
+        createdBy: requestingUser._id,
+        status: 'active', // Auto-activate bulk imported employees
+      });
+
+      await newEmployee.save();
+
+      results.success.push({
+        employeeId: employeeData.employeeId,
+        name: employeeData.name,
+        userId: newEmployee._id,
+      });
+    } catch (error) {
+      results.failed.push({
+        employeeId: employeeData.employeeId,
+        name: employeeData.name,
+        error: error.message,
+      });
+    }
+  }
+
+  return results;
+};
+
+/**
+ * Suspend a user (change status to inactive)
+ * @param {Object} requestingUser - The user performing the action
+ * @param {string} targetUserId - ID of user to suspend
+ * @returns {Promise<Object>} - Updated user
+ */
+export const suspendUser = async (requestingUser, targetUserId) => {
+  // Role hierarchy for access control
+  const roleHierarchy = {
+    'super_admin': 4,
+    'admin': 3,
+    'internal': 2,
+    'external': 1
+  };
+
+  const requestingRank = roleHierarchy[requestingUser.role] || 0;
+
+  // Get target user
+  const targetUser = await User.findById(targetUserId);
+  if (!targetUser) {
+    throw new AppError('User not found', 404);
+  }
+
+  const targetRank = roleHierarchy[targetUser.role] || 0;
+
+  // Check hierarchy: can only suspend users with lower rank
+  if (targetRank >= requestingRank) {
+    throw new AppError('You can only suspend users with a lower rank than yours', 403);
+  }
+
+  // Update status to inactive
+  targetUser.status = 'inactive';
+  await targetUser.save();
+
+  return targetUser;
+};
+
+/**
+ * Delete a user (only super_admin and admin)
+ * @param {Object} requestingUser - The user performing the action
+ * @param {string} targetUserId - ID of user to delete
+ * @returns {Promise<void>}
+ */
+export const deleteUser = async (requestingUser, targetUserId) => {
+  // Only super_admin and admin can delete users
+  if (!['super_admin', 'admin'].includes(requestingUser.role)) {
+    throw new AppError('Only super admins and admins can delete users', 403);
+  }
+
+  // Role hierarchy for access control
+  const roleHierarchy = {
+    'super_admin': 4,
+    'admin': 3,
+    'internal': 2,
+    'external': 1
+  };
+
+  const requestingRank = roleHierarchy[requestingUser.role] || 0;
+
+  // Get target user
+  const targetUser = await User.findById(targetUserId);
+  if (!targetUser) {
+    throw new AppError('User not found', 404);
+  }
+
+  const targetRank = roleHierarchy[targetUser.role] || 0;
+
+  // Check hierarchy: can only delete users with lower rank
+  if (targetRank >= requestingRank) {
+    throw new AppError('You can only delete users with a lower rank than yours', 403);
+  }
+
+  // Delete the user
+  await User.findByIdAndDelete(targetUserId);
+};
+
+
 export default {
   getUsersByRole,
   getUserById,
   getEmployeesByOffice,
   getMyProfile,
   updateMyProfile,
+  bulkCreateEmployees,
+  suspendUser,
+  deleteUser,
 };
+

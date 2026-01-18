@@ -26,8 +26,8 @@ const getStartOfTodayUTC = () => {
 export const getDashboardSummary = async (requestingUser) => {
   const today = getStartOfTodayUTC();
 
-  if (['super_admin', 'admin'].includes(requestingUser.role)) {
-    // Full summary for admin and super_admin
+  if (requestingUser.role === 'super_admin') {
+    // Full global summary for super_admin
     const [
       totalUsers,
       totalOffices,
@@ -45,8 +45,11 @@ export const getDashboardSummary = async (requestingUser) => {
     ]);
 
     // Calculate current external employee count per office and target status
+    // Only include offices that have a target set (targetHeadcount > 0)
+    const officesWithTargets = offices.filter((office) => office.targetHeadcount > 0);
+
     const officeTargets = await Promise.all(
-      offices.map(async (office) => {
+      officesWithTargets.map(async (office) => {
         const externalCount = await User.countDocuments({
           primaryOfficeId: office._id,
           role: 'external',
@@ -56,10 +59,10 @@ export const getDashboardSummary = async (requestingUser) => {
         return {
           officeId: office._id,
           officeName: office.name,
-          targetHeadcount: office.targetHeadcount || 0,
+          targetHeadcount: office.targetHeadcount,
           currentHeadcount: externalCount,
-          targetReached: office.targetHeadcount > 0 ? externalCount >= office.targetHeadcount : null,
-          progress: office.targetHeadcount > 0 ? Math.round((externalCount / office.targetHeadcount) * 100) : 0,
+          targetReached: externalCount >= office.targetHeadcount,
+          progress: Math.round((externalCount / office.targetHeadcount) * 100),
         };
       })
     );
@@ -67,6 +70,57 @@ export const getDashboardSummary = async (requestingUser) => {
     return {
       totalUsers,
       totalOffices,
+      todayAttendanceCount,
+      totalGoodiesDistributed,
+      pendingEmployeeVerifications,
+      officeTargets,
+    };
+  }
+
+  if (requestingUser.role === 'admin') {
+    // Office-specific summary for admin (same as internal)
+    const officeId = requestingUser.primaryOfficeId;
+
+    if (!officeId) {
+      throw new AppError('You must be assigned to an office', 400);
+    }
+
+    const [
+      totalUsers,
+      todayAttendanceCount,
+      totalGoodiesDistributed,
+      pendingEmployeeVerifications,
+      office,
+    ] = await Promise.all([
+      User.countDocuments({ primaryOfficeId: officeId }),
+      Attendance.countDocuments({ officeId, date: today }),
+      GoodiesReceived.countDocuments({ receivedAtOfficeId: officeId }),
+      User.countDocuments({ primaryOfficeId: officeId, status: 'pending', role: 'external' }),
+      Office.findById(officeId).select('name targetHeadcount').lean(),
+    ]);
+
+    // Calculate office target status if target is set
+    let officeTargets = [];
+    if (office && office.targetHeadcount > 0) {
+      const externalCount = await User.countDocuments({
+        primaryOfficeId: officeId,
+        role: 'external',
+        status: { $ne: 'deleted' },
+      });
+
+      officeTargets = [{
+        officeId: office._id,
+        officeName: office.name,
+        targetHeadcount: office.targetHeadcount,
+        currentHeadcount: externalCount,
+        targetReached: externalCount >= office.targetHeadcount,
+        progress: Math.round((externalCount / office.targetHeadcount) * 100),
+      }];
+    }
+
+    return {
+      totalUsers,
+      totalOffices: 1,
       todayAttendanceCount,
       totalGoodiesDistributed,
       pendingEmployeeVerifications,

@@ -145,8 +145,9 @@ export default function MarkAttendanceDialog({ trigger, onSuccess }) {
             <DialogTrigger asChild>
                 {trigger || (
                     <Button>
-                        <UserCheck className="h-4 w-4 mr-2" />
-                        Mark Attendance
+                        <UserCheck className="h-4 w-4 md:mr-2" />
+                        <span className="hidden md:inline">Mark Attendance</span>
+                        <span className="md:hidden">Mark</span>
                     </Button>
                 )}
             </DialogTrigger>

@@ -22,8 +22,16 @@ import {
     DialogDescription,
     DialogFooter
 } from '@/components/ui/dialog';
-import { Loader2, UserPlus, ShieldCheck, UserCog, Mail, Phone, Building, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
+import { Loader2, UserPlus, ShieldCheck, UserCog, Mail, Phone, Building, Eye, EyeOff, AlertTriangle, Upload, MoreVertical, UserX, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import BulkEmployeeUpload from '../components/BulkEmployeeUpload';
 
 const Employees = () => {
     const { user: currentUser } = useAuth();
@@ -39,6 +47,19 @@ const Employees = () => {
     const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
     const [verifying, setVerifying] = useState(false);
+
+    // Bulk upload modal state
+    const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+
+    // Suspend modal state
+    const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+    const [suspendingEmployee, setSuspendingEmployee] = useState(null);
+    const [suspending, setSuspending] = useState(false);
+
+    // Delete modal state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingEmployee, setDeletingEmployee] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     // Pagination state
     const [page, setPage] = useState(1);
@@ -178,6 +199,60 @@ const Employees = () => {
         }
     };
 
+    // Suspend handlers
+    const initiateSuspend = (employee) => {
+        setSuspendingEmployee(employee);
+        setSuspendDialogOpen(true);
+    };
+
+    const confirmSuspend = async () => {
+        if (!suspendingEmployee) return;
+
+        setSuspending(true);
+        try {
+            await api.patch(`/users/${suspendingEmployee._id}/suspend`);
+            toast({ title: 'Success', description: 'Employee suspended successfully' });
+            fetchEmployees();
+            setSuspendDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to suspend employee',
+                variant: 'destructive'
+            });
+        } finally {
+            setSuspending(false);
+            setSuspendingEmployee(null);
+        }
+    };
+
+    // Delete handlers
+    const initiateDelete = (employee) => {
+        setDeletingEmployee(employee);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingEmployee) return;
+
+        setDeleting(true);
+        try {
+            await api.delete(`/users/${deletingEmployee._id}`);
+            toast({ title: 'Success', description: 'Employee deleted successfully' });
+            fetchEmployees();
+            setDeleteDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to delete employee',
+                variant: 'destructive'
+            });
+        } finally {
+            setDeleting(false);
+            setDeletingEmployee(null);
+        }
+    };
+
     const getAvailableRoles = () => {
         return Object.keys(roleHierarchy).filter(role => roleHierarchy[role] < currentRank);
     };
@@ -191,113 +266,124 @@ const Employees = () => {
                     <p className="text-gray-500 mt-1">Manage and verify employee accounts</p>
                 </div>
                 {canCreateAny && (
-                    <Dialog open={open} onOpenChange={setOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <UserPlus className="mr-2 h-4 w-4" /> Add Employee
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Register New Employee</DialogTitle>
-                                <DialogDescription>Create a new employee account with assigned role and office</DialogDescription>
-                            </DialogHeader>
-                            <form onSubmit={handleCreate} className="space-y-4 px-6 py-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</Label>
-                                    <Input
-                                        id="name"
-                                        value={newEmployee.name}
-                                        onChange={e => setNewEmployee({ ...newEmployee, name: e.target.value })}
-                                        required
-                                        placeholder="Enter full name"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
-                                        <Input
-                                            id="email"
-                                            type="email"
-                                            value={newEmployee.email}
-                                            onChange={e => setNewEmployee({ ...newEmployee, email: e.target.value })}
-                                            required
-                                            placeholder="email@example.com"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Phone Number</Label>
-                                        <Input
-                                            id="phone"
-                                            value={newEmployee.phone}
-                                            onChange={e => setNewEmployee({ ...newEmployee, phone: e.target.value })}
-                                            required
-                                            placeholder="10-15 digits"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="role" className="text-sm font-medium text-gray-700">Role</Label>
-                                        <select
-                                            id="role"
-                                            className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
-                                            value={newEmployee.role}
-                                            onChange={e => setNewEmployee({ ...newEmployee, role: e.target.value })}
-                                            required
-                                        >
-                                            {getAvailableRoles().map(role => (
-                                                <option key={role} value={role}>{role.replace('_', ' ').toUpperCase()}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="office" className="text-sm font-medium text-gray-700">Assigned Office</Label>
-                                        <select
-                                            id="office"
-                                            className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
-                                            value={newEmployee.primaryOfficeId}
-                                            onChange={e => setNewEmployee({ ...newEmployee, primaryOfficeId: e.target.value })}
-                                            required={['internal', 'external'].includes(newEmployee.role)}
-                                        >
-                                            <option value="">Select an office</option>
-                                            {offices.map((off) => (
-                                                <option key={off._id} value={off._id}>{off.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="password" className="text-sm font-medium text-gray-700">Initial Password</Label>
-                                    <div className="relative">
-                                        <Input
-                                            id="password"
-                                            type={showPassword ? "text" : "password"}
-                                            value={newEmployee.password}
-                                            onChange={e => setNewEmployee({ ...newEmployee, password: e.target.value })}
-                                            required
-                                            placeholder="Min. 6 characters"
-                                            className="pr-10"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                                        >
-                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                                <Button onClick={handleCreate} disabled={creating}>
-                                    {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Create Employee
+                    <div className="flex gap-3">
+                        {/* Bulk Upload Button */}
+                        <Button
+                            variant="outline"
+                            onClick={() => setBulkUploadOpen(true)}
+                        >
+                            <Upload className="mr-2 h-4 w-4" /> Bulk Upload
+                        </Button>
+
+                        {/* Add Employee Button */}
+                        <Dialog open={open} onOpenChange={setOpen}>
+                            <DialogTrigger asChild>
+                                <Button>
+                                    <UserPlus className="mr-2 h-4 w-4" /> Add Employee
                                 </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Register New Employee</DialogTitle>
+                                    <DialogDescription>Create a new employee account with assigned role and office</DialogDescription>
+                                </DialogHeader>
+                                <form onSubmit={handleCreate} className="space-y-4 px-6 py-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</Label>
+                                        <Input
+                                            id="name"
+                                            value={newEmployee.name}
+                                            onChange={e => setNewEmployee({ ...newEmployee, name: e.target.value })}
+                                            required
+                                            placeholder="Enter full name"
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                value={newEmployee.email}
+                                                onChange={e => setNewEmployee({ ...newEmployee, email: e.target.value })}
+                                                required
+                                                placeholder="email@example.com"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Phone Number</Label>
+                                            <Input
+                                                id="phone"
+                                                value={newEmployee.phone}
+                                                onChange={e => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+                                                required
+                                                placeholder="10-15 digits"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="role" className="text-sm font-medium text-gray-700">Role</Label>
+                                            <select
+                                                id="role"
+                                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+                                                value={newEmployee.role}
+                                                onChange={e => setNewEmployee({ ...newEmployee, role: e.target.value })}
+                                                required
+                                            >
+                                                {getAvailableRoles().map(role => (
+                                                    <option key={role} value={role}>{role.replace('_', ' ').toUpperCase()}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="office" className="text-sm font-medium text-gray-700">Assigned Office</Label>
+                                            <select
+                                                id="office"
+                                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+                                                value={newEmployee.primaryOfficeId}
+                                                onChange={e => setNewEmployee({ ...newEmployee, primaryOfficeId: e.target.value })}
+                                                required={['internal', 'external'].includes(newEmployee.role)}
+                                            >
+                                                <option value="">Select an office</option>
+                                                {offices.map((off) => (
+                                                    <option key={off._id} value={off._id}>{off.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="password" className="text-sm font-medium text-gray-700">Initial Password</Label>
+                                        <div className="relative">
+                                            <Input
+                                                id="password"
+                                                type={showPassword ? "text" : "password"}
+                                                value={newEmployee.password}
+                                                onChange={e => setNewEmployee({ ...newEmployee, password: e.target.value })}
+                                                required
+                                                placeholder="Min. 6 characters"
+                                                className="pr-10"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowPassword(!showPassword)}
+                                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                                            >
+                                                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                                <DialogFooter>
+                                    <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                                    <Button onClick={handleCreate} disabled={creating}>
+                                        {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        Create Employee
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
                 )}
             </div>
 
@@ -369,14 +455,40 @@ const Employees = () => {
                                             </span>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            {emp.status === 'pending' && roleHierarchy[emp.role] < currentRank && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="success"
-                                                    onClick={() => initiateVerify(emp)}
-                                                >
-                                                    <ShieldCheck className="mr-2 h-4 w-4" /> Verify
-                                                </Button>
+                                            {roleHierarchy[emp.role] < currentRank && (
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" size="sm">
+                                                            <MoreVertical className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        {emp.status === 'pending' && (
+                                                            <>
+                                                                <DropdownMenuItem onClick={() => initiateVerify(emp)}>
+                                                                    <ShieldCheck className="mr-2 h-4 w-4" />
+                                                                    Verify
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                            </>
+                                                        )}
+                                                        {emp.status === 'active' && (
+                                                            <DropdownMenuItem onClick={() => initiateSuspend(emp)}>
+                                                                <UserX className="mr-2 h-4 w-4" />
+                                                                Suspend
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                        {['super_admin', 'admin'].includes(currentUser?.role) && (
+                                                            <DropdownMenuItem
+                                                                onClick={() => initiateDelete(emp)}
+                                                                className="text-red-600 focus:text-red-600"
+                                                            >
+                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                Delete
+                                                            </DropdownMenuItem>
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             )}
                                         </TableCell>
                                     </TableRow>
@@ -444,6 +556,94 @@ const Employees = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Suspend Confirmation Modal */}
+            <Dialog open={suspendDialogOpen} onOpenChange={setSuspendDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-orange-50">
+                                <UserX className="h-5 w-5 text-orange-600" />
+                            </div>
+                            Confirm Suspension
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to suspend <strong className="text-gray-900">{suspendingEmployee?.name}</strong>?
+                            This will set their status to inactive and revoke system access.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="px-6 py-4">
+                        <p className="text-sm text-gray-500">
+                            The employee will not be able to log in until their account is reactivated.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setSuspendDialogOpen(false)} disabled={suspending}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmSuspend}
+                            disabled={suspending}
+                        >
+                            {suspending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Suspend Employee
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Modal */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-red-50">
+                                <Trash2 className="h-5 w-5 text-red-600" />
+                            </div>
+                            Confirm Deletion
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to permanently delete <strong className="text-gray-900">{deletingEmployee?.name}</strong>?
+                            This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="px-6 py-4">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <p className="text-sm text-red-800 font-medium flex items-center gap-2">
+                                <AlertTriangle className="h-4 w-4" />
+                                Warning: This will permanently delete all employee data
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleting}
+                        >
+                            {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Delete Permanently
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bulk Employee Upload Modal */}
+            <BulkEmployeeUpload
+                isOpen={bulkUploadOpen}
+                onClose={() => setBulkUploadOpen(false)}
+                onSuccess={() => {
+                    fetchEmployees();
+                    toast({
+                        title: 'Success',
+                        description: 'Employees uploaded successfully',
+                    });
+                }}
+            />
         </div>
     );
 };

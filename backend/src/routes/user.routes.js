@@ -4,12 +4,18 @@
  */
 import express from 'express';
 import { protect } from '../middlewares/auth.middleware.js';
+import { requireAdminOrSuperAdmin } from '../middlewares/officeAccess.middleware.js';
+import { uploadSingleFile, handleUploadError } from '../middlewares/upload.middleware.js';
 import {
   getProfile,
   getAllUsers,
   getUserById,
   getEmployeesByOffice,
   updateProfile,
+  bulkUploadEmployees,
+  downloadTemplate,
+  suspendUser,
+  deleteUser,
 } from '../controllers/user.controller.js';
 
 const router = express.Router();
@@ -21,9 +27,17 @@ router.use(protect);
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
 
+// Bulk upload routes (admin and super_admin only)
+router.post('/bulk-upload', requireAdminOrSuperAdmin, uploadSingleFile, handleUploadError, bulkUploadEmployees);
+router.get('/template', requireAdminOrSuperAdmin, downloadTemplate);
+
 // User listing routes (access controlled in service layer)
 router.get('/', getAllUsers);
 router.get('/office/:officeId', getEmployeesByOffice);
 router.get('/:id', getUserById);
+
+// User management routes (hierarchy-based access control)
+router.patch('/:id/suspend', suspendUser);
+router.delete('/:id', requireAdminOrSuperAdmin, deleteUser);
 
 export default router;

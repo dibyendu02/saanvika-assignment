@@ -50,6 +50,21 @@ export const createDistributionSchema = Joi.object({
       'number.min': 'Total quantity must be at least 1',
       'any.required': 'Total quantity is required',
     }),
+
+  isForAllEmployees: Joi.boolean()
+    .default(true)
+    .messages({
+      'boolean.base': 'isForAllEmployees must be a boolean',
+    }),
+
+  targetEmployees: Joi.array()
+    .items(Joi.string().pattern(objectIdPattern).messages({
+      'string.pattern.base': 'Invalid employee ID format',
+    }))
+    .default([])
+    .messages({
+      'array.base': 'targetEmployees must be an array',
+    }),
 });
 
 /**

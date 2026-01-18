@@ -11,6 +11,7 @@ import {
   receiveGoodies,
   getReceivedGoodies,
   getReceivedById,
+  getEligibleEmployees,
 } from '../controllers/goodies.controller.js';
 import {
   createDistributionSchema,
@@ -44,6 +45,12 @@ router.get(
   '/distributions/:id',
   validate(idParamSchema, 'params'),
   getDistributionById
+);
+
+router.get(
+  '/distributions/:id/eligible-employees',
+  validate(idParamSchema, 'params'),
+  getEligibleEmployees
 );
 
 // Receive goodies route

@@ -28,7 +28,7 @@ const Layout = ({ children }) => {
 
     const navigation = [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'internal', 'external'] },
-        { name: 'Offices', href: '/offices', icon: Building2, roles: ['super_admin', 'admin'] },
+        { name: 'Offices', href: '/offices', icon: Building2, roles: ['super_admin'] },
         { name: 'Employees', href: '/employees', icon: Users, roles: ['super_admin', 'admin', 'internal'] },
         { name: 'Attendance', href: '/attendance', icon: UserCheck, roles: ['super_admin', 'admin', 'internal', 'external'] },
         { name: 'Goodies', href: '/goodies', icon: Gift, roles: ['super_admin', 'admin', 'internal', 'external'] },

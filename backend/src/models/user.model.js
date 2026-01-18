@@ -69,6 +69,21 @@ const userSchema = new mongoose.Schema(
         message: 'primaryOfficeId is required for internal and external employees',
       },
     },
+    assignedOfficeId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Office',
+      validate: {
+        validator: function (value) {
+          // Required for admin role
+          if (this.role === 'admin') {
+            return value != null;
+          }
+          // Optional for other roles
+          return true;
+        },
+        message: 'assignedOfficeId is required for admin users',
+      },
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -90,6 +105,8 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ phone: 1 }, { unique: true });
 userSchema.index({ primaryOfficeId: 1, role: 1 });
+userSchema.index({ assignedOfficeId: 1 });
+
 
 // Pre-save hook: Hash password if modified
 userSchema.pre('save', async function (next) {
