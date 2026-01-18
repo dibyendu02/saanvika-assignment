@@ -149,8 +149,9 @@ export default function ShareLocationDialog({ trigger, onSuccess }) {
             <DialogTrigger asChild>
                 {trigger || (
                     <Button>
-                        <MapPin className="h-4 w-4 mr-2" />
-                        Share Location
+                        <MapPin className="h-4 w-4 md:mr-2" />
+                        <span className="hidden md:inline">Share Location</span>
+                        <span className="md:hidden">Share</span>
                     </Button>
                 )}
             </DialogTrigger>
