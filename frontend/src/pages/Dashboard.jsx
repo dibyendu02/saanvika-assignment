@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Building2, UserCheck, Gift, Loader2, MapPin, Users, Target, TrendingUp, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Building2, UserCheck, Gift, Loader2, MapPin, Target, TrendingUp, CheckCircle2, AlertCircle } from 'lucide-react';
 import ShareLocationDialog from '../components/ShareLocationDialog';
 import MarkAttendanceDialog from '../components/MarkAttendanceDialog';
 import { checkTodayAttendance } from '../api/attendance';
@@ -80,38 +80,40 @@ const Dashboard = () => {
     const canMarkAttendance = user?.role === 'internal' || user?.role === 'external';
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
+            {/* Page Header */}
             <div>
-                <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-                <p className="text-muted-foreground">
-                    Welcome back, <span className="font-semibold text-foreground capitalize">{user?.name || user?.email?.split('@')[0] || 'User'}</span>
+                <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
+                <p className="text-gray-500 mt-1">
+                    Welcome back, <span className="font-medium text-gray-700 capitalize">{user?.name || user?.email?.split('@')[0] || 'User'}</span>
                 </p>
             </div>
 
+            {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {cards.map((card) => {
                     const Icon = card.icon;
                     return (
-                        <Card key={card.title} className="hover:shadow-md transition-shadow">
-                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground font-semibold">
-                                    {card.title}
-                                </CardTitle>
-                                <div className={`p-2 rounded-full bg-gray-50 ${card.color}`}>
-                                    <Icon className="h-5 w-5" />
+                        <Card key={card.title} className="hover:shadow-elevation-md transition-all duration-200">
+                            <CardContent className="pt-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-500">{card.title}</p>
+                                        <div className="text-3xl font-bold text-gray-900 mt-1">
+                                            {loading ? (
+                                                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                                            ) : (
+                                                card.value
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-gray-400 mt-2">
+                                            Across all registered locations
+                                        </p>
+                                    </div>
+                                    <div className={`p-3 rounded-lg bg-gray-50 ${card.color}`}>
+                                        <Icon className="h-6 w-6" />
+                                    </div>
                                 </div>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">
-                                    {loading ? (
-                                        <Loader2 className="h-6 w-6 animate-spin text-muted" />
-                                    ) : (
-                                        card.value
-                                    )}
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    Across all registered locations
-                                </p>
                             </CardContent>
                         </Card>
                     );
@@ -122,26 +124,30 @@ const Dashboard = () => {
             {isAdmin && dashboardSummary?.officeTargets && dashboardSummary.officeTargets.length > 0 && (
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Target className="h-5 w-5 text-orange-600" />
-                            Office External Employee Targets
-                        </CardTitle>
-                        <p className="text-sm text-muted-foreground">
-                            Track external employee headcount targets across all offices
-                        </p>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-amber-50">
+                                <Target className="h-5 w-5 text-amber-600" />
+                            </div>
+                            <div>
+                                <CardTitle>Office External Employee Targets</CardTitle>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Track external employee headcount targets across all offices
+                                </p>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
                             {dashboardSummary.officeTargets.map((office) => (
-                                <div key={office.officeId} className="border rounded-lg p-4 hover:shadow-sm transition-shadow">
+                                <div key={office.officeId} className="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-full bg-blue-50">
+                                            <div className="p-2 rounded-lg bg-blue-50">
                                                 <Building2 className="h-4 w-4 text-blue-600" />
                                             </div>
                                             <div>
-                                                <h4 className="font-semibold">{office.officeName}</h4>
-                                                <p className="text-sm text-muted-foreground">
+                                                <h4 className="font-semibold text-gray-900">{office.officeName}</h4>
+                                                <p className="text-sm text-gray-500">
                                                     {office.currentHeadcount} / {office.targetHeadcount} External Employees
                                                 </p>
                                             </div>
@@ -149,24 +155,24 @@ const Dashboard = () => {
                                         <div className="flex items-center gap-2">
                                             {office.targetHeadcount > 0 ? (
                                                 <>
-                                                    <span className={`text-2xl font-bold ${office.targetReached ? 'text-green-600' : 'text-orange-600'}`}>
+                                                    <span className={`text-2xl font-bold ${office.targetReached ? 'text-emerald-600' : 'text-amber-600'}`}>
                                                         {office.progress}%
                                                     </span>
                                                     {office.targetReached ? (
-                                                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                                                     ) : (
-                                                        <TrendingUp className="h-5 w-5 text-orange-600" />
+                                                        <TrendingUp className="h-5 w-5 text-amber-600" />
                                                     )}
                                                 </>
                                             ) : (
-                                                <span className="text-sm text-muted-foreground">No target set</span>
+                                                <span className="text-sm text-gray-400">No target set</span>
                                             )}
                                         </div>
                                     </div>
                                     {office.targetHeadcount > 0 && (
-                                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                        <div className="w-full bg-gray-100 rounded-full h-2">
                                             <div
-                                                className={`h-2.5 rounded-full transition-all ${office.targetReached ? 'bg-green-600' : 'bg-orange-500'
+                                                className={`h-2 rounded-full transition-all duration-300 ${office.targetReached ? 'bg-emerald-500' : 'bg-amber-500'
                                                     }`}
                                                 style={{ width: `${Math.min(office.progress, 100)}%` }}
                                             ></div>
@@ -179,46 +185,67 @@ const Dashboard = () => {
                 </Card>
             )}
 
-            {canMarkAttendance && !hasMarkedAttendance && !checkingAttendance && (
-                <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-                    <div className="flex items-center justify-between">
+            {/* Quick Actions */}
+            <div className="grid gap-4 md:grid-cols-2">
+                {canMarkAttendance && !hasMarkedAttendance && !checkingAttendance && (
+                    <Card className="border-emerald-200 bg-emerald-50/50">
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-emerald-100">
+                                        <UserCheck className="h-5 w-5 text-emerald-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-gray-900">Mark Today's Attendance</h3>
+                                        <p className="text-sm text-gray-600">
+                                            You haven't marked your attendance yet
+                                        </p>
+                                    </div>
+                                </div>
+                                <MarkAttendanceDialog onSuccess={handleAttendanceMarked} />
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {canShareLocation && (
+                    <Card className="border-blue-200 bg-blue-50/50">
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-blue-100">
+                                        <MapPin className="h-5 w-5 text-blue-600" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-gray-900">Quick Location Share</h3>
+                                        <p className="text-sm text-gray-600">
+                                            Share your current location
+                                        </p>
+                                    </div>
+                                </div>
+                                <ShareLocationDialog />
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+
+            {/* Notice Card */}
+            <Card>
+                <CardContent className="pt-6">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-gray-100">
+                            <AlertCircle className="h-5 w-5 text-gray-600" />
+                        </div>
                         <div>
-                            <h3 className="font-semibold mb-2 flex items-center gap-2">
-                                <UserCheck className="h-5 w-5 text-green-600" />
-                                Mark Today's Attendance
-                            </h3>
-                            <p className="text-sm text-gray-600">
-                                You haven't marked your attendance for today yet
+                            <h3 className="font-semibold text-gray-900">Internal Notice</h3>
+                            <p className="text-sm text-gray-600 mt-1">
+                                This dashboard provides a high-level overview of the SAANVIKA operations.
+                                Use the sidebar to navigate to specific sections for detailed management.
                             </p>
                         </div>
-                        <MarkAttendanceDialog onSuccess={handleAttendanceMarked} />
                     </div>
-                </Card>
-            )}
-
-            {canShareLocation && (
-                <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="font-semibold mb-2 flex items-center gap-2">
-                                <MapPin className="h-5 w-5 text-blue-600" />
-                                Quick Location Share
-                            </h3>
-                            <p className="text-sm text-gray-600">
-                                Share your current location with your organization
-                            </p>
-                        </div>
-                        <ShareLocationDialog />
-                    </div>
-                </Card>
-            )}
-
-            <Card className="p-6">
-                <h3 className="font-semibold mb-2">Internal Notice</h3>
-                <p className="text-sm text-gray-600">
-                    This dashboard provides a high-level overview of the SAANVIKA operations.
-                    Use the sidebar to navigate to specific sections for detailed management.
-                </p>
+                </CardContent>
             </Card>
         </div>
     );

@@ -184,24 +184,27 @@ const Employees = () => {
 
     return (
         <div className="space-y-6">
+            {/* Page Header */}
             <div className="flex justify-between items-center">
-                <div className="space-y-1">
-                    <h2 className="text-3xl font-bold tracking-tight">Employee Management</h2>
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Employee Management</h2>
+                    <p className="text-gray-500 mt-1">Manage and verify employee accounts</p>
                 </div>
                 {canCreateAny && (
                     <Dialog open={open} onOpenChange={setOpen}>
                         <DialogTrigger asChild>
-                            <Button className="bg-primary hover:bg-primary/90">
+                            <Button>
                                 <UserPlus className="mr-2 h-4 w-4" /> Add Employee
                             </Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>Register New Employee</DialogTitle>
+                                <DialogDescription>Create a new employee account with assigned role and office</DialogDescription>
                             </DialogHeader>
-                            <form onSubmit={handleCreate} className="space-y-4 pt-4 border-t mt-2">
+                            <form onSubmit={handleCreate} className="space-y-4 px-6 py-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">Full Name</Label>
+                                    <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</Label>
                                     <Input
                                         id="name"
                                         value={newEmployee.name}
@@ -212,7 +215,7 @@ const Employees = () => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="email">Email Address</Label>
+                                        <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
                                         <Input
                                             id="email"
                                             type="email"
@@ -223,7 +226,7 @@ const Employees = () => {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="phone">Phone Number</Label>
+                                        <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Phone Number</Label>
                                         <Input
                                             id="phone"
                                             value={newEmployee.phone}
@@ -235,10 +238,10 @@ const Employees = () => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
-                                        <Label htmlFor="role">Role (Provisioned)</Label>
+                                        <Label htmlFor="role" className="text-sm font-medium text-gray-700">Role</Label>
                                         <select
                                             id="role"
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                            className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
                                             value={newEmployee.role}
                                             onChange={e => setNewEmployee({ ...newEmployee, role: e.target.value })}
                                             required
@@ -249,10 +252,10 @@ const Employees = () => {
                                         </select>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="office">Assigned Office</Label>
+                                        <Label htmlFor="office" className="text-sm font-medium text-gray-700">Assigned Office</Label>
                                         <select
                                             id="office"
-                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                            className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
                                             value={newEmployee.primaryOfficeId}
                                             onChange={e => setNewEmployee({ ...newEmployee, primaryOfficeId: e.target.value })}
                                             required={['internal', 'external'].includes(newEmployee.role)}
@@ -265,7 +268,7 @@ const Employees = () => {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="password">Initial Password</Label>
+                                    <Label htmlFor="password" className="text-sm font-medium text-gray-700">Initial Password</Label>
                                     <div className="relative">
                                         <Input
                                             id="password"
@@ -279,23 +282,27 @@ const Employees = () => {
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                                         >
                                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
                                     </div>
                                 </div>
-                                <Button type="submit" className="w-full mt-4" disabled={creating}>
-                                    {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Create and Activate Employee
-                                </Button>
                             </form>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+                                <Button onClick={handleCreate} disabled={creating}>
+                                    {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Create Employee
+                                </Button>
+                            </DialogFooter>
                         </DialogContent>
                     </Dialog>
                 )}
             </div>
 
-            <Card>
+            {/* Employees Table */}
+            <Card className="overflow-hidden">
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
@@ -311,12 +318,12 @@ const Employees = () => {
                             {loading ? (
                                 <TableRow>
                                     <TableCell colSpan={5} className="text-center py-10">
-                                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
                                     </TableCell>
                                 </TableRow>
                             ) : filteredEmployees.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                                    <TableCell colSpan={5} className="text-center py-10 text-gray-500">
                                         No employees found.
                                     </TableCell>
                                 </TableRow>
@@ -324,32 +331,39 @@ const Employees = () => {
                                 filteredEmployees.map((emp) => (
                                     <TableRow key={emp._id}>
                                         <TableCell>
-                                            <div className="font-medium text-base">{emp.name}</div>
-                                            <div className="text-xs text-muted-foreground font-mono">{emp._id}</div>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                                                    {emp.name?.charAt(0)?.toUpperCase() || 'U'}
+                                                </div>
+                                                <div>
+                                                    <div className="font-medium text-gray-900">{emp.name}</div>
+                                                    <div className="text-xs text-gray-400 font-mono">{emp._id?.slice(-8)}</div>
+                                                </div>
+                                            </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex items-center text-sm font-medium">
-                                                <Mail className="h-3.5 w-3.5 mr-2 text-primary/70" /> {emp.email}
+                                            <div className="flex items-center text-sm text-gray-700">
+                                                <Mail className="h-3.5 w-3.5 mr-2 text-gray-400" /> {emp.email}
                                             </div>
-                                            <div className="flex items-center text-sm text-muted-foreground mt-1">
-                                                <Phone className="h-3.5 w-3.5 mr-2 text-primary/70" /> {emp.phone}
+                                            <div className="flex items-center text-sm text-gray-500 mt-1">
+                                                <Phone className="h-3.5 w-3.5 mr-2 text-gray-400" /> {emp.phone}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex items-center text-sm font-medium">
-                                                <Building className="h-3.5 w-3.5 mr-2 text-primary/70" />
+                                            <div className="flex items-center text-sm text-gray-700">
+                                                <Building className="h-3.5 w-3.5 mr-2 text-gray-400" />
                                                 {emp.primaryOfficeId?.name || (emp.role.includes('admin') ? 'Global' : 'Not Assigned')}
                                             </div>
-                                            <div className="flex items-center text-xs mt-2">
-                                                <span className={`px-2 py-0.5 rounded border border-primary/20 bg-primary/5 text-primary font-bold uppercase tracking-wider`}>
+                                            <div className="mt-2">
+                                                <span className="px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 uppercase tracking-wide">
                                                     {emp.role.replace('_', ' ')}
                                                 </span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tight ${emp.status === 'active' ? 'bg-green-100 text-green-700' :
-                                                emp.status === 'pending' ? 'bg-amber-100 text-amber-700' :
-                                                    'bg-destructive/10 text-destructive'
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${emp.status === 'active' ? 'bg-emerald-50 text-emerald-700' :
+                                                emp.status === 'pending' ? 'bg-amber-50 text-amber-700' :
+                                                    'bg-red-50 text-red-700'
                                                 }`}>
                                                 {emp.status}
                                             </span>
@@ -358,8 +372,8 @@ const Employees = () => {
                                             {emp.status === 'pending' && roleHierarchy[emp.role] < currentRank && (
                                                 <Button
                                                     size="sm"
+                                                    variant="success"
                                                     onClick={() => initiateVerify(emp)}
-                                                    className="bg-green-600 hover:bg-green-700 text-white font-bold h-8"
                                                 >
                                                     <ShieldCheck className="mr-2 h-4 w-4" /> Verify
                                                 </Button>
@@ -370,7 +384,8 @@ const Employees = () => {
                             )}
                         </TableBody>
                     </Table>
-                    <div className="flex justify-between items-center p-4 border-t">
+                    {/* Pagination */}
+                    <div className="flex justify-between items-center px-4 py-3 bg-gray-50 border-t border-gray-200">
                         <Button
                             variant="outline"
                             size="sm"
@@ -379,7 +394,7 @@ const Employees = () => {
                         >
                             Previous
                         </Button>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-600">
                             Page {page} of {totalPages}
                         </span>
                         <Button
@@ -399,23 +414,27 @@ const Employees = () => {
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                            <div className="p-2 rounded-lg bg-amber-50">
+                                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                            </div>
                             Confirm Verification
                         </DialogTitle>
-                        <DialogDescription className="py-2">
-                            Are you sure you want to verify <strong>{selectedEmployee?.name}</strong>?
-                            <br />
-                            <span className="text-xs text-muted-foreground mt-2 block">
-                                Verification will grant active status and access to the system.
-                            </span>
+                        <DialogDescription>
+                            Are you sure you want to verify <strong className="text-gray-900">{selectedEmployee?.name}</strong>?
+                            This will grant active status and access to the system.
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter className="mt-4 gap-2 sm:gap-0">
+                    <div className="px-6 py-4">
+                        <p className="text-sm text-gray-500">
+                            Once verified, the employee will have full access based on their assigned role.
+                        </p>
+                    </div>
+                    <DialogFooter>
                         <Button variant="outline" onClick={() => setVerifyDialogOpen(false)} disabled={verifying}>
                             Cancel
                         </Button>
                         <Button
-                            className="bg-green-600 hover:bg-green-700"
+                            variant="success"
                             onClick={confirmVerify}
                             disabled={verifying}
                         >
@@ -425,7 +444,7 @@ const Employees = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div >
+        </div>
     );
 };
 

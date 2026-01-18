@@ -111,17 +111,28 @@ const Attendance = () => {
 
     return (
         <div className="space-y-6">
-            {/* Header ... */}
+            {/* Page Header */}
+            <div>
+                <h2 className="text-2xl font-bold text-gray-900">Attendance</h2>
+                <p className="text-gray-500 mt-1">Track employee attendance records</p>
+            </div>
 
-            {/* Table ... */}
+            {/* Daily Attendance Table */}
             {view === 'daily' && (
-                <Card>
+                <Card className="overflow-hidden">
                     <CardHeader>
-                        <CardTitle>Attendance Records for {format(new Date(selectedDate), 'MMM dd, yyyy')}</CardTitle>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-blue-50">
+                                <Calendar className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                                <CardTitle>Attendance Records</CardTitle>
+                                <p className="text-sm text-gray-500 mt-1">{format(new Date(selectedDate), 'MMMM dd, yyyy')}</p>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent className="p-0">
                         <Table>
-                            {/* ... Table Header ... */}
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Employee</TableHead>
@@ -131,16 +142,15 @@ const Attendance = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {/* ... Table Body ... */}
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={4} className="text-center py-10">
-                                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
                                         </TableCell>
                                     </TableRow>
                                 ) : !Array.isArray(attendance) || attendance.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                                        <TableCell colSpan={4} className="text-center py-10 text-gray-500">
                                             No attendance records found for this date.
                                         </TableCell>
                                     </TableRow>
@@ -148,10 +158,12 @@ const Attendance = () => {
                                     attendance.map((record, index) => (
                                         <TableRow key={record._id || index}>
                                             <TableCell>
-                                                <div className="flex items-center">
-                                                    <User className="h-4 w-4 mr-2 text-gray-400" />
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                                                        {record.userId?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                                    </div>
                                                     <div>
-                                                        <div className="font-medium">
+                                                        <div className="font-medium text-gray-900">
                                                             {record.userId?.name || 'Unknown'}
                                                         </div>
                                                         <div className="text-xs text-gray-500">
@@ -161,19 +173,24 @@ const Attendance = () => {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex items-center text-sm">
-                                                    <Building className="h-3 w-3 mr-1 text-gray-400" />
+                                                <div className="flex items-center text-sm text-gray-600">
+                                                    <Building className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
                                                     {record.officeId?.name || 'Remote/Unknown'}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-sm">{formatDateTime(record.markedAt)}</TableCell>
-                                            <TableCell className="text-sm font-mono">{formatTime(record.markedAt)}</TableCell>
+                                            <TableCell className="text-sm text-gray-700">{formatDateTime(record.markedAt)}</TableCell>
+                                            <TableCell>
+                                                <span className="text-sm font-mono bg-gray-50 px-2 py-1 rounded text-gray-700">
+                                                    {formatTime(record.markedAt)}
+                                                </span>
+                                            </TableCell>
                                         </TableRow>
                                     ))
                                 )}
                             </TableBody>
                         </Table>
-                        <div className="flex justify-between items-center p-4 border-t">
+                        {/* Pagination */}
+                        <div className="flex justify-between items-center px-4 py-3 bg-gray-50 border-t border-gray-200">
                             <Button
                                 variant="outline"
                                 size="sm"
@@ -182,7 +199,7 @@ const Attendance = () => {
                             >
                                 Previous
                             </Button>
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-gray-600">
                                 Page {page} of {totalPages}
                             </span>
                             <Button
@@ -200,9 +217,17 @@ const Attendance = () => {
 
             {/* Monthly Summary Table */}
             {view === 'monthly' && (
-                <Card>
+                <Card className="overflow-hidden">
                     <CardHeader>
-                        <CardTitle>Monthly Attendance Summary for {format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}</CardTitle>
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-emerald-50">
+                                <Calendar className="h-5 w-5 text-emerald-600" />
+                            </div>
+                            <div>
+                                <CardTitle>Monthly Summary</CardTitle>
+                                <p className="text-sm text-gray-500 mt-1">{format(new Date(selectedMonth + '-01'), 'MMMM yyyy')}</p>
+                            </div>
+                        </div>
                     </CardHeader>
                     <CardContent className="p-0">
                         <Table>
@@ -218,12 +243,12 @@ const Attendance = () => {
                                 {loading ? (
                                     <TableRow>
                                         <TableCell colSpan={4} className="text-center py-10">
-                                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                                            <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
                                         </TableCell>
                                     </TableRow>
                                 ) : !Array.isArray(monthlySummary) || monthlySummary.length === 0 ? (
                                     <TableRow>
-                                        <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                                        <TableCell colSpan={4} className="text-center py-10 text-gray-500">
                                             No attendance records found for this month.
                                         </TableCell>
                                     </TableRow>
@@ -231,10 +256,12 @@ const Attendance = () => {
                                     monthlySummary.map((summary, index) => (
                                         <TableRow key={summary.user?._id || index}>
                                             <TableCell>
-                                                <div className="flex items-center">
-                                                    <User className="h-4 w-4 mr-2 text-gray-400" />
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                                                        {summary.user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                                    </div>
                                                     <div>
-                                                        <div className="font-medium">
+                                                        <div className="font-medium text-gray-900">
                                                             {summary.user?.name || 'Unknown'}
                                                         </div>
                                                         <div className="text-xs text-gray-500">
@@ -244,19 +271,19 @@ const Attendance = () => {
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                <span className="px-2 py-1 text-xs font-medium rounded-md bg-blue-50 text-blue-700 uppercase">
                                                     {summary.user?.role || 'N/A'}
                                                 </span>
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex items-center text-sm">
-                                                    <Building className="h-3 w-3 mr-1 text-gray-400" />
+                                                <div className="flex items-center text-sm text-gray-600">
+                                                    <Building className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
                                                     {summary.office?.name || 'Remote/Unknown'}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-2xl font-bold text-green-600">{summary.count}</span>
+                                                    <span className="text-xl font-bold text-emerald-600">{summary.count}</span>
                                                     <span className="text-sm text-gray-500">days</span>
                                                 </div>
                                             </TableCell>

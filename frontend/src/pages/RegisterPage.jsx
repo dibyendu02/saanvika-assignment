@@ -65,15 +65,17 @@ const RegisterPage = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <Card className="w-full max-w-md shadow-xl border-t-4 border-t-primary">
-                <CardHeader className="space-y-1">
+            <Card className="w-full max-w-md">
+                <CardHeader>
                     <div className="flex items-center justify-between mb-2">
-                        <Link to="/login" className="text-sm text-primary flex items-center hover:underline">
+                        <Link to="/login" className="text-sm text-gray-600 flex items-center hover:text-gray-900 transition-colors">
                             <ArrowLeft className="mr-1 h-3 w-3" /> Back to Login
                         </Link>
                     </div>
                     <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                        <UserPlus className="h-6 w-6 text-primary" />
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <UserPlus className="h-5 w-5 text-gray-700" />
+                        </div>
                         Employee Registration
                     </CardTitle>
                     <CardDescription>
@@ -89,30 +91,30 @@ const RegisterPage = () => {
                         )}
 
                         <div className="space-y-2">
-                            <Label htmlFor="name">Full Name</Label>
+                            <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</Label>
                             <Input id="name" placeholder="John Doe" required value={formData.name} onChange={handleChange} />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
                             <Input id="email" type="email" placeholder="john@example.com" required value={formData.email} onChange={handleChange} />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="phone">Phone Number</Label>
+                            <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Phone Number</Label>
                             <Input id="phone" type="tel" placeholder="9876543210" required value={formData.phone} onChange={handleChange} />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
                             <Input id="password" type="password" required value={formData.password} onChange={handleChange} />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="primaryOfficeId">Primary Office</Label>
+                            <Label htmlFor="primaryOfficeId" className="text-sm font-medium text-gray-700">Primary Office</Label>
                             <select
                                 id="primaryOfficeId"
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-50"
                                 value={formData.primaryOfficeId}
                                 onChange={handleChange}
                                 required
@@ -125,7 +127,7 @@ const RegisterPage = () => {
                                     </option>
                                 ))}
                             </select>
-                            {fetchingOffices && <p className="text-xs text-muted-foreground">Loading offices...</p>}
+                            {fetchingOffices && <p className="text-xs text-gray-500">Loading offices...</p>}
                         </div>
                     </CardContent>
                     <CardFooter>

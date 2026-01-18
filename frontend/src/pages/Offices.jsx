@@ -85,12 +85,16 @@ const Offices = () => {
 
     return (
         <div className="space-y-6">
+            {/* Page Header */}
             <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-bold tracking-tight">Offices</h2>
+                <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Offices</h2>
+                    <p className="text-gray-500 mt-1">Manage office locations and employee targets</p>
+                </div>
                 {canCreateOffice && (
                     <Dialog open={open} onOpenChange={setOpen}>
                         <DialogTrigger asChild>
-                            <Button className="shadow-sm">
+                            <Button>
                                 <Plus className="mr-2 h-4 w-4" /> Add Office
                             </Button>
                         </DialogTrigger>
@@ -98,7 +102,7 @@ const Offices = () => {
                             <DialogHeader>
                                 <DialogTitle>Add New Office</DialogTitle>
                             </DialogHeader>
-                            <form onSubmit={handleCreate} className="space-y-4 pt-4">
+                            <form onSubmit={handleCreate} className="space-y-4 px-6 py-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="name">Office Name</Label>
                                     <Input
@@ -155,7 +159,7 @@ const Offices = () => {
                                         onChange={e => setNewOffice({ ...newOffice, targetHeadcount: e.target.value })}
                                         placeholder="e.g. 50"
                                     />
-                                    <p className="text-xs text-muted-foreground">Target number of external employees for this office</p>
+                                    <p className="text-xs text-gray-500">Target number of external employees for this office</p>
                                 </div>
                                 <Button type="submit" className="w-full mt-4" disabled={creating}>
                                     {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -167,7 +171,8 @@ const Offices = () => {
                 )}
             </div>
 
-            <Card>
+            {/* Offices Table */}
+            <Card className="overflow-hidden">
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
@@ -177,7 +182,7 @@ const Offices = () => {
                                 <TableHead>Coordinates</TableHead>
                                 <TableHead>Employees</TableHead>
                                 <TableHead>Target</TableHead>
-                                <TableHead>Target Status</TableHead>
+                                <TableHead>Progress</TableHead>
                                 <TableHead>Status</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -185,49 +190,51 @@ const Offices = () => {
                             {loading ? (
                                 <TableRow>
                                     <TableCell colSpan={7} className="text-center py-10">
-                                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
                                     </TableCell>
                                 </TableRow>
                             ) : !Array.isArray(offices) || offices.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                                    <TableCell colSpan={7} className="text-center py-10 text-gray-500">
                                         No offices found.
                                     </TableCell>
                                 </TableRow>
                             ) : (
                                 offices.map((office, index) => (
                                     <TableRow key={office._id || index}>
-                                        <TableCell className="font-medium">{office.name}</TableCell>
                                         <TableCell>
-                                            <div className="flex items-center text-sm text-gray-500">
-                                                <MapPin className="h-3 w-3 mr-1" />
+                                            <span className="font-medium text-gray-900">{office.name}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center text-sm text-gray-600">
+                                                <MapPin className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
                                                 {office.address || office.location?.address || 'N/A'}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="text-xs text-gray-500 font-mono">
+                                            <div className="text-xs text-gray-500 font-mono bg-gray-50 px-2 py-1 rounded inline-block">
                                                 {office.location?.coordinates ?
                                                     `${office.location.coordinates[1].toFixed(4)}, ${office.location.coordinates[0].toFixed(4)}` :
                                                     '-'}
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex items-center gap-1">
-                                                <Users className="h-3.5 w-3.5 text-blue-600" />
-                                                <span className="font-semibold">{office.employeesCount || 0}</span>
+                                            <div className="flex items-center gap-1.5">
+                                                <Users className="h-4 w-4 text-blue-500" />
+                                                <span className="font-semibold text-gray-900">{office.employeesCount || 0}</span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span className="font-mono text-sm">{office.targetHeadcount || 0}</span>
+                                            <span className="font-mono text-sm text-gray-700">{office.targetHeadcount || 0}</span>
                                         </TableCell>
                                         <TableCell>
                                             {office.targetHeadcount > 0 ? (
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                                                    <div className="w-20 bg-gray-100 rounded-full h-1.5">
                                                         <div
-                                                            className={`h-2 rounded-full ${(office.employeesCount || 0) >= office.targetHeadcount
-                                                                ? 'bg-green-600'
-                                                                : 'bg-orange-500'
+                                                            className={`h-1.5 rounded-full transition-all duration-300 ${(office.employeesCount || 0) >= office.targetHeadcount
+                                                                ? 'bg-emerald-500'
+                                                                : 'bg-amber-500'
                                                                 }`}
                                                             style={{
                                                                 width: `${Math.min(
@@ -237,19 +244,19 @@ const Offices = () => {
                                                             }}
                                                         ></div>
                                                     </div>
-                                                    <span className={`text-xs font-semibold ${(office.employeesCount || 0) >= office.targetHeadcount
-                                                        ? 'text-green-600'
-                                                        : 'text-orange-600'
+                                                    <span className={`text-xs font-medium ${(office.employeesCount || 0) >= office.targetHeadcount
+                                                        ? 'text-emerald-600'
+                                                        : 'text-amber-600'
                                                         }`}>
                                                         {Math.round(((office.employeesCount || 0) / office.targetHeadcount) * 100)}%
                                                     </span>
                                                 </div>
                                             ) : (
-                                                <span className="text-xs text-muted-foreground">No target</span>
+                                                <span className="text-xs text-gray-400">No target</span>
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <span className={`px-2 py-1 rounded-full text-xs font-semibold ${office.isActive !== false ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${office.isActive !== false ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
                                                 }`}>
                                                 {office.isActive !== false ? 'Active' : 'Inactive'}
                                             </span>

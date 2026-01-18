@@ -37,12 +37,15 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 flex-col gap-4">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 flex-col gap-4 p-4">
             <Card className="w-full max-w-md">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="text-2xl font-bold text-center">SAANVIKA Login</CardTitle>
-                    <CardDescription className="text-center">
-                        Enter your credentials to access the internal portal
+                <CardHeader className="text-center">
+                    <div className="mx-auto w-12 h-12 bg-gray-900 rounded-lg flex items-center justify-center mb-4">
+                        <span className="text-white font-bold text-lg">S</span>
+                    </div>
+                    <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+                    <CardDescription>
+                        Enter your credentials to access the portal
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
@@ -53,7 +56,7 @@ const LoginPage = () => {
                             </Alert>
                         )}
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -64,7 +67,7 @@ const LoginPage = () => {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
                             <div className="relative">
                                 <Input
                                     id="password"
@@ -77,7 +80,7 @@ const LoginPage = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
                                 >
                                     {showPassword ? (
                                         <EyeOff className="h-4 w-4" />
@@ -91,14 +94,14 @@ const LoginPage = () => {
                     <CardFooter className="flex flex-col gap-4">
                         <Button className="w-full" type="submit" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Login
+                            Sign In
                         </Button>
-                        <div className="text-sm text-center">
+                        <div className="text-sm text-center text-gray-600">
                             Don't have an account?{' '}
                             <button
                                 type="button"
                                 onClick={() => navigate('/register')}
-                                className="text-primary hover:underline font-semibold"
+                                className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors"
                             >
                                 Register Now
                             </button>
