@@ -175,7 +175,7 @@ const LocationMapPicker = ({ latitude, longitude, onLocationChange, address }) =
 
             {/* Instructions */}
             <p className="text-xs text-gray-500 flex items-start gap-1">
-                <span className="text-blue-600 font-medium">💡 Tip:</span>
+                <span className="text-blue-600 font-medium">Tip:</span>
                 <span>Click anywhere on the map to set the location, or drag the marker to adjust.</span>
             </p>
         </div>

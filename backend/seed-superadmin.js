@@ -9,7 +9,7 @@ import seedSuperAdmin from './src/utils/seedSuperAdmin.js';
 
 const runSeeder = async () => {
     try {
-        console.log('🌱 Starting super admin seeder...\n');
+        console.log('Starting super admin seeder...\n');
 
         // Connect to database
         await connectDB();
@@ -17,10 +17,10 @@ const runSeeder = async () => {
         // Seed super admin
         await seedSuperAdmin();
 
-        console.log('\n✅ Seeding completed successfully!');
+        console.log('\nSeeding completed successfully!');
         process.exit(0);
     } catch (error) {
-        console.error('\n❌ Seeding failed:', error.message);
+        console.error('\nSeeding failed:', error.message);
         process.exit(1);
     }
 };

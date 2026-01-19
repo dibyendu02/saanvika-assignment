@@ -245,7 +245,7 @@ const BulkEmployeeUpload = ({ isOpen, onClose, onSuccess }) => {
                                     <div className="max-h-40 overflow-y-auto space-y-1">
                                         {uploadResult.successRecords.map((record, index) => (
                                             <div key={index} className="text-sm text-green-800">
-                                                ✓ {record.name} ({record.employeeId})
+                                                • {record.name} ({record.employeeId})
                                             </div>
                                         ))}
                                     </div>

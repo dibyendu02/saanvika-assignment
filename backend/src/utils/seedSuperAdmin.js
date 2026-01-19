@@ -16,7 +16,7 @@ export const seedSuperAdmin = async () => {
         });
 
         if (existingSuperAdmin) {
-            console.log('✓ Super admin already exists');
+            console.log('Super admin already exists');
             return;
         }
 
@@ -30,14 +30,14 @@ export const seedSuperAdmin = async () => {
             status: 'active',
         });
 
-        console.log('✓ Super admin created successfully');
+        console.log('Super admin created successfully');
         console.log('  Email: superadmin@test.com');
         console.log('  Password: password123');
-        console.log('  ⚠️  Please change the password after first login!');
+        console.log('  WARNING: Please change the password after first login!');
 
         return superAdmin;
     } catch (error) {
-        console.error('✗ Error seeding super admin:', error.message);
+        console.error('Error seeding super admin:', error.message);
         throw error;
     }
 };
