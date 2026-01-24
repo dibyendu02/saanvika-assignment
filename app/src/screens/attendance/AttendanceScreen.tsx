@@ -74,7 +74,7 @@ export const AttendanceScreen: React.FC = () => {
             setFilteredAttendance(data);
         } else {
             const filtered = data.filter(record => {
-                const recordOfficeId = typeof record.office === 'object' ? record.office?._id : record.office;
+                const recordOfficeId = typeof record.officeId === 'object' ? record.officeId?._id : record.officeId;
                 return recordOfficeId === officeId;
             });
             setFilteredAttendance(filtered);
@@ -172,10 +172,10 @@ export const AttendanceScreen: React.FC = () => {
                 {Array.isArray(filteredAttendance) && filteredAttendance.map((record) => (
                     <Card key={record._id} style={styles.attendanceCard}>
                         <View style={styles.attendanceHeader}>
-                            <Avatar name={record.user?.name || 'Unknown'} size={40} />
+                            <Avatar name={record.userId?.name || 'Unknown'} size={40} />
                             <View style={styles.attendanceInfo}>
-                                <Text style={styles.employeeName}>{record.user?.name || 'Unknown'}</Text>
-                                <Text style={styles.officeName}>{record.office?.name || 'N/A'}</Text>
+                                <Text style={styles.employeeName}>{record.userId?.name || 'Unknown'}</Text>
+                                <Text style={styles.officeName}>{record.officeId?.name || 'N/A'}</Text>
                             </View>
                             <View style={styles.dateContainer}>
                                 <Text style={styles.dateText}>{formatDate(record.date)}</Text>
@@ -186,7 +186,9 @@ export const AttendanceScreen: React.FC = () => {
                         <View style={styles.locationContainer}>
                             <Icon name="map-marker" size={ICON_SIZES.sm} color={COLORS.textLight} />
                             <Text style={styles.locationText}>
-                                {record.location.latitude.toFixed(6)}, {record.location.longitude.toFixed(6)}
+                                {record.location?.coordinates ?
+                                    `${record.location.coordinates[1].toFixed(6)}, ${record.location.coordinates[0].toFixed(6)}` :
+                                    'No location data'}
                             </Text>
                         </View>
                     </Card>

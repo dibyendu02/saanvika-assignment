@@ -147,9 +147,12 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
             {/* Header */}
             <View style={styles.header}>
                 <View>
-                    <Text style={styles.logo}>SAANVIKA</Text>
+                    <View style={styles.logoContainer}>
+                        <Text style={styles.logoPart1}>SAANVIK</Text>
+                        <Text style={styles.logoPart2}>A</Text>
+                    </View>
                     <Text style={styles.subtitle}>
-                        Welcome back, {getRoleDisplay(user?.role || '')}
+                        {getRoleDisplay(user?.role || '')} Console
                     </Text>
                 </View>
                 <TouchableOpacity
@@ -175,8 +178,8 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
                 >
                     <TouchableOpacity onPress={() => navigation.navigate('Offices')} activeOpacity={0.9}>
                         <Card style={styles.statCard}>
-                            <View style={[styles.statIconContainer, { backgroundColor: COLORS.primaryLight + '20' }]}>
-                                <Icon name="office-building" size={ICON_SIZES.md} color={COLORS.primary} />
+                            <View style={[styles.statIconContainer, { backgroundColor: COLORS.secondary + '20' }]}>
+                                <Icon name="office-building" size={ICON_SIZES.md} color={COLORS.secondary} />
                             </View>
                             <Text style={styles.statValue}>{stats?.totalOffices || 0}</Text>
                             <Text style={styles.statLabel}>Total Offices</Text>
@@ -262,7 +265,7 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
                 {/* Internal Notice */}
                 <Card style={styles.noticeCard}>
                     <View style={styles.noticeHeader}>
-                        <Icon name="information-outline" size={ICON_SIZES.sm} color={COLORS.primary} />
+                        <Icon name="information-outline" size={ICON_SIZES.sm} color={COLORS.secondary} />
                         <Text style={styles.noticeTitle}>Internal Notice</Text>
                     </View>
                     <Text style={styles.noticeText}>
@@ -312,16 +315,29 @@ const styles = StyleSheet.create({
         paddingBottom: SPACING.base,
         backgroundColor: COLORS.backgroundLight,
     },
-    logo: {
-        fontSize: TYPOGRAPHY.fontSize.lg,
-        fontWeight: TYPOGRAPHY.fontWeight.bold,
+    logoContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    logoPart1: {
+        fontSize: 24,
+        fontWeight: '900',
         color: COLORS.primary,
-        letterSpacing: 1,
+        letterSpacing: -0.5,
+    },
+    logoPart2: {
+        fontSize: 24,
+        fontWeight: '900',
+        color: COLORS.secondary,
+        letterSpacing: -0.5,
     },
     subtitle: {
-        fontSize: TYPOGRAPHY.fontSize.sm,
+        fontSize: 10,
         color: COLORS.textSecondary,
         marginTop: 2,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     notificationButton: {
         padding: SPACING.sm,
@@ -386,7 +402,7 @@ const styles = StyleSheet.create({
     noticeTitle: {
         fontSize: TYPOGRAPHY.fontSize.base,
         fontWeight: TYPOGRAPHY.fontWeight.semibold,
-        color: COLORS.primary,
+        color: COLORS.secondary,
     },
     noticeText: {
         fontSize: TYPOGRAPHY.fontSize.sm,

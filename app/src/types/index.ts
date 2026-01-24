@@ -40,14 +40,12 @@ export interface Office {
 
 export interface Attendance {
     _id: string;
-    userId: string;
-    user?: User;
-    officeId: string;
-    office?: Office;
+    userId: User;        // Populated from backend
+    officeId: Office;    // Populated from backend
     date: string;
     location: {
-        latitude: number;
-        longitude: number;
+        type: 'Point';
+        coordinates: [number, number]; // [longitude, latitude]
     };
     createdAt: string;
     updatedAt: string;

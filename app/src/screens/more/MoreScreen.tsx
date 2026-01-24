@@ -114,7 +114,7 @@ export const MoreScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                             onPress={item.onPress}
                         >
                             <View style={styles.menuItemLeft}>
-                                <Icon name={item.icon} size={ICON_SIZES.md} color={COLORS.textSecondary} />
+                                <Icon name={item.icon} size={ICON_SIZES.md} color={COLORS.secondary} />
                                 <Text style={styles.menuItemText}>{item.label}</Text>
                             </View>
                             <Icon name="chevron-right" size={ICON_SIZES.md} color={COLORS.textLight} />
@@ -132,9 +132,8 @@ export const MoreScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     <Text style={[styles.logoutText, { color: COLORS.textWhite }]}>Logout</Text>
                 </Button>
 
-                {/* App Info */}
                 <View style={styles.appInfo}>
-                    <Text style={styles.appInfoText}>SAANVIKA Admin Dashboard</Text>
+                    <Text style={styles.appInfoText}>SAANVIKA Console</Text>
                     <Text style={styles.appInfoText}>Version 1.0.0</Text>
                 </View>
             </ScrollView>
@@ -180,8 +179,9 @@ const styles = StyleSheet.create({
     },
     profileRole: {
         fontSize: TYPOGRAPHY.fontSize.sm,
-        color: COLORS.primary,
+        color: COLORS.secondary,
         marginTop: SPACING.xs,
+        fontWeight: '700',
     },
     profileEmail: {
         fontSize: TYPOGRAPHY.fontSize.sm,

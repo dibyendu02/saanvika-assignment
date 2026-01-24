@@ -11,6 +11,7 @@ import {
     ScrollView,
     TouchableOpacity,
     Modal,
+    ActivityIndicator,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Input } from '../ui/Input';
@@ -19,6 +20,7 @@ import { showToast } from '../../utils/toast';
 import { officesApi } from '../../api/offices';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import LocationService from '../../services/LocationService';
 
 const leafletHtml = `
 <!DOCTYPE html>
@@ -79,25 +81,20 @@ const leafletHtml = `
         function updatePosition() {
             var center = map.getCenter();
             window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'positionUpdate',
                 lat: center.lat,
                 lng: center.lng
             }));
         }
 
         function locateUser() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    var lat = position.coords.latitude;
-                    var lng = position.coords.longitude;
-                    map.setView([lat, lng], 18);
-                }, function(error) {
-                    // console.error(error);
-                }, {
-                    enableHighAccuracy: true,
-                    timeout: 5000,
-                    maximumAge: 0
-                });
-            }
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+                type: 'locateMe'
+            }));
+        }
+
+        function centerMap(lat, lng) {
+            map.setView([lat, lng], 18);
         }
 
         map.on('moveend', updatePosition);
@@ -131,15 +128,56 @@ const AddOfficeForm: React.FC<AddOfficeFormProps> = ({
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [selectedMapLocation, setSelectedMapLocation] = useState<{ lat: number, lng: number } | null>(null);
+    const [locating, setLocating] = useState(false);
+    const webViewRef = React.useRef<WebView>(null);
+
+    const handleLocateMe = async () => {
+        try {
+            setLocating(true);
+            const hasPermission = await LocationService.requestPermission();
+            if (!hasPermission) {
+                showToast.error('Permission Denied', 'Please enable location access to find your current position.');
+                return;
+            }
+
+            const coords = await LocationService.getCurrentPosition(false);
+            if (webViewRef.current) {
+                const js = `centerMap(${coords.latitude}, ${coords.longitude})`;
+                webViewRef.current.injectJavaScript(js);
+            }
+        } catch (error) {
+            console.error('Error locating user:', error);
+            showToast.error('Error', 'Failed to get your current location.');
+        } finally {
+            setLocating(false);
+        }
+    };
 
     const onMessage = (event: any) => {
         try {
             const data = JSON.parse(event.nativeEvent.data);
-            setSelectedMapLocation({ lat: data.lat, lng: data.lng });
+            if (data.type === 'locateMe') {
+                handleLocateMe();
+            } else if (data.type === 'positionUpdate') {
+                setSelectedMapLocation({ lat: data.lat, lng: data.lng });
+            } else {
+                // Fallback for old message format if any
+                setSelectedMapLocation({ lat: data.lat, lng: data.lng });
+            }
         } catch (e) {
             console.error('Error parsing map message', e);
         }
     };
+
+    React.useEffect(() => {
+        if (showMapPicker) {
+            // Small delay to ensure WebView is ready
+            const timer = setTimeout(() => {
+                handleLocateMe();
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [showMapPicker]);
 
     const validate = (): boolean => {
         const newErrors: Record<string, string> = {};
@@ -234,7 +272,7 @@ const AddOfficeForm: React.FC<AddOfficeFormProps> = ({
                     <View style={styles.modalContent}>
                         <View style={styles.header}>
                             <View style={styles.headerLeft}>
-                                <Icon name="office-building-plus" size={24} color={COLORS.primary} />
+                                <Icon name="office-building" size={24} color={COLORS.primary} />
                                 <Text style={styles.title}>Add New Office</Text>
                             </View>
                             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -363,12 +401,19 @@ const AddOfficeForm: React.FC<AddOfficeFormProps> = ({
 
                     <View style={{ flex: 1 }}>
                         <WebView
+                            ref={webViewRef}
                             originWhitelist={['*']}
                             source={{ html: leafletHtml }}
                             onMessage={onMessage}
                             style={{ flex: 1 }}
                             geolocationEnabled={true}
                         />
+                        {locating && (
+                            <View style={styles.locatingOverlay}>
+                                <ActivityIndicator size="large" color={COLORS.primary} />
+                                <Text style={styles.locatingText}>Locating...</Text>
+                            </View>
+                        )}
                     </View>
 
                     <View style={styles.mapFooter}>
@@ -499,6 +544,19 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.backgroundLight,
         borderTopWidth: 1,
         borderTopColor: COLORS.border,
+    },
+    locatingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(255, 255, 255, 0.7)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+    },
+    locatingText: {
+        marginTop: SPACING.sm,
+        fontSize: TYPOGRAPHY.fontSize.md,
+        color: COLORS.primary,
+        fontWeight: TYPOGRAPHY.fontWeight.medium,
     },
 });
 

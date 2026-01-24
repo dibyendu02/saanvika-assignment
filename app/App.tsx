@@ -18,7 +18,7 @@ function App() {
   const toastConfig = {
     success: ({ text1, text2 }: any) => (
       <View style={{
-        backgroundColor: '#10b981',
+        backgroundColor: '#10B981',
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderRadius: 8,
@@ -43,7 +43,7 @@ function App() {
     ),
     error: ({ text1, text2 }: any) => (
       <View style={{
-        backgroundColor: '#ef4444',
+        backgroundColor: '#EF4444',
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderRadius: 8,
@@ -68,7 +68,7 @@ function App() {
     ),
     info: ({ text1, text2 }: any) => (
       <View style={{
-        backgroundColor: '#3b82f6',
+        backgroundColor: '#002B45',
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderRadius: 8,

@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.primary,
     },
     secondary: {
-        backgroundColor: COLORS.backgroundDark,
+        backgroundColor: COLORS.secondary,
     },
     outline: {
         backgroundColor: 'transparent',
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
         color: COLORS.textWhite,
     },
     text_secondary: {
-        color: COLORS.textPrimary,
+        color: COLORS.textWhite,
     },
     text_outline: {
         color: COLORS.primary,

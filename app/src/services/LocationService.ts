@@ -46,7 +46,7 @@ export const LocationService = {
     /**
      * Get current position with fallback
      */
-    getCurrentPosition(): Promise<Coordinates> {
+    getCurrentPosition(highAccuracy: boolean = true): Promise<Coordinates> {
         return new Promise((resolve, reject) => {
             Geolocation.getCurrentPosition(
                 (position) => {
@@ -78,7 +78,7 @@ export const LocationService = {
                     }
                 },
                 {
-                    enableHighAccuracy: true,
+                    enableHighAccuracy: highAccuracy,
                     timeout: 30000, // Increased to 30s
                     maximumAge: 10000,
                 }

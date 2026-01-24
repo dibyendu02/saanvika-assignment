@@ -166,8 +166,11 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                 keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.header}>
-                    <Text style={styles.logo}>SAANVIKA</Text>
-                    <Text style={styles.subtitle}>Registration</Text>
+                    <View style={styles.logoContainer}>
+                        <Text style={styles.logoPart1}>SAANVIK</Text>
+                        <Text style={styles.logoPart2}>A</Text>
+                    </View>
+                    <Text style={styles.subtitle}>Investor Registration</Text>
                 </View>
 
                 <View style={styles.form}>
@@ -275,16 +278,29 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: SPACING.xl,
     },
-    logo: {
-        fontSize: TYPOGRAPHY.fontSize['3xl'],
-        fontWeight: TYPOGRAPHY.fontWeight.bold,
+    logoContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    logoPart1: {
+        fontSize: 42,
+        fontWeight: '900',
         color: COLORS.primary,
-        letterSpacing: 2,
+        letterSpacing: -1,
+    },
+    logoPart2: {
+        fontSize: 42,
+        fontWeight: '900',
+        color: COLORS.secondary,
+        letterSpacing: -1,
     },
     subtitle: {
-        fontSize: TYPOGRAPHY.fontSize.base,
+        fontSize: TYPOGRAPHY.fontSize.sm,
         color: COLORS.textSecondary,
         marginTop: SPACING.xs,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 2,
     },
     form: {
         width: '100%',
