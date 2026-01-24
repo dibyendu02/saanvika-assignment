@@ -13,8 +13,10 @@ export interface LocationRecord {
         email: string;
         role: string;
     };
-    latitude: number;
-    longitude: number;
+    location: {
+        type: string;
+        coordinates: number[];
+    };
     reason?: string;
     sharedAt: string;
 }
@@ -62,7 +64,7 @@ export const locationApi = {
             page: params?.page || 1,
             limit: params?.limit || 10,
         };
-        
+
         if (params?.officeId && params.officeId !== 'all') {
             queryParams.officeId = params.officeId;
         }

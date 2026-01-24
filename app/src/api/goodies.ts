@@ -82,6 +82,15 @@ export const goodiesApi = {
         const data = response.data.data;
         return data.records || (Array.isArray(data) ? data : []);
     },
+
+    /**
+     * Get eligible employees for a distribution
+     */
+    async getEligibleEmployees(distributionId: string): Promise<any[]> {
+        const response = await apiClient.get(`/goodies/distributions/${distributionId}/eligible-employees`);
+        const data = response.data.data;
+        return data.employees || [];
+    },
 };
 
 export default goodiesApi;

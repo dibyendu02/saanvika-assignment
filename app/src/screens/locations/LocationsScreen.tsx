@@ -14,6 +14,9 @@ import {
     ActivityIndicator,
     FlatList,
     Alert,
+    Linking,
+    Platform,
+    PermissionsAndroid,
 } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 import { useAuth } from '../../context/AuthContext';
@@ -87,6 +90,30 @@ export const LocationsScreen: React.FC<{ navigation: any }> = ({ navigation }) =
         fetchLocations();
     };
 
+    const requestLocationPermission = async () => {
+        if (Platform.OS === 'ios') {
+            Geolocation.requestAuthorization();
+            return true;
+        }
+
+        try {
+            const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+                {
+                    title: 'Location Permission',
+                    message: 'This app needs access to your location to share it.',
+                    buttonNeutral: 'Ask Me Later',
+                    buttonNegative: 'Cancel',
+                    buttonPositive: 'OK',
+                }
+            );
+            return granted === PermissionsAndroid.RESULTS.GRANTED;
+        } catch (err) {
+            console.warn(err);
+            return false;
+        }
+    };
+
     const handleShareLocation = () => {
         Alert.alert(
             'Share Location',
@@ -96,11 +123,24 @@ export const LocationsScreen: React.FC<{ navigation: any }> = ({ navigation }) =
                 {
                     text: 'Share',
                     onPress: async () => {
+                        const hasPermission = await requestLocationPermission();
+                        if (!hasPermission) {
+                            showToast.error('Error', 'Location permission denied');
+                            return;
+                        }
+
                         setSharing(true);
-                        try {
-                            Geolocation.getCurrentPosition(
-                                async (position) => {
-                                    const { latitude, longitude } = position.coords;
+                        Geolocation.setRNConfiguration({
+                            skipPermissionRequests: false,
+                            authorizationLevel: 'whenInUse',
+                        });
+
+                        Geolocation.getCurrentPosition(
+                            async (position) => {
+                                const { latitude, longitude } = position.coords;
+                                console.log('Location:', latitude, longitude);
+
+                                try {
                                     await locationApi.shareLocation({
                                         latitude,
                                         longitude,
@@ -109,19 +149,29 @@ export const LocationsScreen: React.FC<{ navigation: any }> = ({ navigation }) =
                                     showToast.success('Success', 'Location shared successfully');
                                     setPagination({ ...pagination, currentPage: 1 });
                                     fetchLocations();
+                                } catch (error: any) {
+                                    console.error('API Error:', error);
+                                    showToast.error('Error', error.response?.data?.message || 'Failed to share location');
+                                } finally {
                                     setSharing(false);
-                                },
-                                (error) => {
-                                    console.error('Error getting location:', error);
-                                    showToast.error('Error', 'Failed to get current location');
-                                    setSharing(false);
-                                },
-                                { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-                            );
-                        } catch (error: any) {
-                            showToast.error('Error', error.response?.data?.message || 'Failed to share location');
-                            setSharing(false);
-                        }
+                                }
+                            },
+                            (error) => {
+                                console.error('Error getting location:', error);
+                                let errorMessage = 'Failed to get current location';
+                                if (error.code === 1) errorMessage = 'Location permission denied';
+                                if (error.code === 2) errorMessage = 'Location provider unavailable';
+                                if (error.code === 3) errorMessage = 'Location request timed out';
+
+                                showToast.error('Error', errorMessage);
+                                setSharing(false);
+                            },
+                            {
+                                enableHighAccuracy: false,
+                                timeout: 30000,
+                                maximumAge: 10000
+                            }
+                        );
                     },
                 },
             ]
@@ -140,9 +190,27 @@ export const LocationsScreen: React.FC<{ navigation: any }> = ({ navigation }) =
     };
 
     const handleViewOnMap = (location: LocationRecord) => {
-        // Open map with location coordinates
-        // For now, just show a toast
-        showToast.info('View on Map', `Lat: ${location.latitude}, Lng: ${location.longitude}`);
+        const [longitude, latitude] = location.location?.coordinates || [];
+
+        if (!latitude || !longitude) {
+            showToast.error('Error', 'Invalid location coordinates');
+            return;
+        }
+
+        const scheme = Platform.select({ ios: 'maps:0,0?q=', android: 'geo:0,0?q=' });
+        const latLng = `${latitude},${longitude}`;
+        const label = location.userId?.name || 'User Location';
+        const url = Platform.select({
+            ios: `${scheme}${label}@${latLng}`,
+            android: `${scheme}${latLng}(${label})`,
+        });
+
+        if (url) {
+            Linking.openURL(url).catch((err) => {
+                console.error('Error opening map:', err);
+                showToast.error('Error', 'Could not open map');
+            });
+        }
     };
 
     const handlePageChange = (page: number) => {
@@ -152,6 +220,8 @@ export const LocationsScreen: React.FC<{ navigation: any }> = ({ navigation }) =
     };
 
     const renderLocationCard = ({ item }: { item: LocationRecord }) => {
+        const [longitude, latitude] = item.location?.coordinates || [];
+
         return (
             <Card style={styles.locationCard}>
                 {/* User Info */}
@@ -190,11 +260,15 @@ export const LocationsScreen: React.FC<{ navigation: any }> = ({ navigation }) =
                 <View style={styles.coordinates}>
                     <View style={styles.coordinateItem}>
                         <Text style={styles.coordinateLabel}>Latitude</Text>
-                        <Text style={styles.coordinateValue}>{item.latitude.toFixed(6)}</Text>
+                        <Text style={styles.coordinateValue}>
+                            {latitude ? Number(latitude).toFixed(6) : 'N/A'}
+                        </Text>
                     </View>
                     <View style={styles.coordinateItem}>
                         <Text style={styles.coordinateLabel}>Longitude</Text>
-                        <Text style={styles.coordinateValue}>{item.longitude.toFixed(6)}</Text>
+                        <Text style={styles.coordinateValue}>
+                            {longitude ? Number(longitude).toFixed(6) : 'N/A'}
+                        </Text>
                     </View>
                 </View>
 

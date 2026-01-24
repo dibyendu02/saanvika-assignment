@@ -15,13 +15,14 @@ import {
 import { COLORS, TYPOGRAPHY, SPACING, BORDER_RADIUS } from '../../constants/theme';
 
 interface ButtonProps {
-    title: string;
+    title?: string;
     onPress: () => void;
     variant?: 'primary' | 'secondary' | 'outline' | 'danger';
     size?: 'sm' | 'md' | 'lg';
     disabled?: boolean;
     loading?: boolean;
     style?: ViewStyle;
+    children?: React.ReactNode;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -32,6 +33,7 @@ export const Button: React.FC<ButtonProps> = ({
     disabled = false,
     loading = false,
     style,
+    children,
 }) => {
     const buttonStyle: ViewStyle = {
         ...styles.base,
@@ -59,6 +61,8 @@ export const Button: React.FC<ButtonProps> = ({
                 <ActivityIndicator
                     color={variant === 'outline' ? COLORS.primary : COLORS.textWhite}
                 />
+            ) : children ? (
+                children
             ) : (
                 <Text style={textStyle}>{title}</Text>
             )}
