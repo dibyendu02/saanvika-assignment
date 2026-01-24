@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
 
     // Offices
     OFFICES: '/offices',
+    OFFICES_PUBLIC: '/offices/public',
     OFFICE_BY_ID: (id: string) => `/offices/${id}`,
     OFFICE_TARGETS: (id: string) => `/offices/${id}/targets`,
 

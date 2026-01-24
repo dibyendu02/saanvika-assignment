@@ -10,6 +10,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    TouchableOpacity,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/Button';
@@ -17,7 +18,7 @@ import { Input } from '../../components/ui/Input';
 import { showToast } from '../../utils/toast';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../constants/theme';
 
-export const LoginScreen: React.FC = () => {
+export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { login } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -111,6 +112,15 @@ export const LoginScreen: React.FC = () => {
                         loading={loading}
                         style={styles.loginButton}
                     />
+
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('Register')}
+                        style={styles.registerLink}
+                    >
+                        <Text style={styles.registerLinkText}>
+                            Don't have an account? <Text style={styles.registerLinkHighlight}>Register</Text>
+                        </Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </KeyboardAvoidingView>
@@ -158,6 +168,19 @@ const styles = StyleSheet.create({
     },
     loginButton: {
         marginTop: SPACING.base,
+    },
+    registerLink: {
+        marginTop: SPACING.xl,
+        alignItems: 'center',
+        paddingVertical: SPACING.md,
+    },
+    registerLinkText: {
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        color: COLORS.textSecondary,
+    },
+    registerLinkHighlight: {
+        color: COLORS.primary,
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
     },
 });
 

@@ -17,6 +17,15 @@ export const officesApi = {
     },
 
     /**
+     * Get public offices for registration
+     */
+    getPublic: async (): Promise<Office[]> => {
+        const response = await apiClient.get(API_ENDPOINTS.OFFICES_PUBLIC);
+        // Backend returns: { success: true, data: { offices: [] } }
+        return response.data.data?.offices || response.data.data || [];
+    },
+
+    /**
      * Get office by ID
      */
     getById: async (id: string): Promise<Office> => {

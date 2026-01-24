@@ -22,6 +22,7 @@ interface DropdownProps {
     value: string;
     onSelect: (value: string) => void;
     placeholder?: string;
+    error?: string;
 }
 
 export const Dropdown: React.FC<DropdownProps> = ({
@@ -30,6 +31,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
     value,
     onSelect,
     placeholder = 'Select an option',
+    error,
 }) => {
     const [visible, setVisible] = useState(false);
 
@@ -45,7 +47,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
             {label && <Text style={styles.label}>{label}</Text>}
 
             <TouchableOpacity
-                style={styles.trigger}
+                style={[
+                    styles.trigger,
+                    error && styles.triggerError
+                ]}
                 onPress={() => setVisible(true)}
                 activeOpacity={0.7}
             >
@@ -57,6 +62,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 </Text>
                 <Icon name="chevron-down" size={24} color={COLORS.textSecondary} />
             </TouchableOpacity>
+
+            {error && <Text style={styles.errorText}>{error}</Text>}
 
             <Modal
                 visible={visible}
@@ -120,6 +127,15 @@ const styles = StyleSheet.create({
         borderRadius: SPACING.sm,
         padding: SPACING.md,
         backgroundColor: COLORS.background,
+    },
+    triggerError: {
+        borderColor: COLORS.danger,
+    },
+    errorText: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        color: COLORS.danger,
+        marginTop: SPACING.xs,
+        marginBottom: SPACING.xs,
     },
     valueText: {
         fontSize: TYPOGRAPHY.fontSize.md,

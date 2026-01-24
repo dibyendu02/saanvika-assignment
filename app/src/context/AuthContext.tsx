@@ -71,21 +71,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const register = async (userData: any) => {
         try {
-            const response: AuthResponse = await authApi.register(userData);
-
-            // Save token and user to storage
-            await AsyncStorage.setItem('token', response.token);
-            await AsyncStorage.setItem('user', JSON.stringify(response.user));
-
-            setUser(response.user);
-
-            // Register FCM token after successful registration
-            try {
-                await fcmService.registerToken();
-            } catch (fcmError) {
-                console.error('FCM registration error:', fcmError);
-                // Don't fail registration if FCM registration fails
-            }
+            await authApi.register(userData);
+            // No longer auto-logging in after registration. 
+            // External employees need verification before login.
         } catch (error) {
             console.error('Register error:', error);
             throw error;
