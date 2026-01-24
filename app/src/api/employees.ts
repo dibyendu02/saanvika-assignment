@@ -29,7 +29,8 @@ export const employeesApi = {
      */
     getByOffice: async (officeId: string): Promise<User[]> => {
         const response = await apiClient.get(API_ENDPOINTS.USERS_BY_OFFICE(officeId));
-        return response.data.data || response.data;
+        const data = response.data.data;
+        return data?.users || data?.employees || (Array.isArray(data) ? data : []);
     },
 
     /**

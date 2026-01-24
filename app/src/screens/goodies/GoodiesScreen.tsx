@@ -22,12 +22,15 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { goodiesApi, GoodiesDistribution, ClaimRecord } from '../../api/goodies';
 import officesApi from '../../api/offices';
+import employeesApi from '../../api/employees';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { Dropdown } from '../../components/ui/Dropdown';
 import { showToast } from '../../utils/toast';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { pick, types, DocumentPickerResponse } from '@react-native-documents/picker';
 
 export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { user } = useAuth();
@@ -49,6 +52,9 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createLoading, setCreateLoading] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [createMode, setCreateMode] = useState<'single' | 'bulk'>('single');
+    const [selectedFile, setSelectedFile] = useState<DocumentPickerResponse | null>(null);
+    const [uploadResult, setUploadResult] = useState<any>(null);
     const [formData, setFormData] = useState({
         goodiesType: '',
         totalQuantity: '',
@@ -56,6 +62,11 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         officeId: '',
         isForAllEmployees: true,
     });
+
+    // Employee Selection State
+    const [employees, setEmployees] = useState<any[]>([]);
+    const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
+    const [loadingEmployees, setLoadingEmployees] = useState(false);
 
     const isManagement = ['super_admin', 'admin'].includes(user?.role || '');
     const canClaim = ['internal', 'external'].includes(user?.role || '');
@@ -67,6 +78,39 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
             fetchOffices();
         }
     }, [filterOfficeId]);
+
+
+
+    // Fetch employees when office or target mode changes
+    useEffect(() => {
+        if (!showCreateModal) return;
+
+        if (formData.isForAllEmployees) {
+            setEmployees([]);
+            return;
+        }
+
+        const fetchTargetEmployees = async () => {
+            const targetOfficeId = isSuperAdmin ? formData.officeId : (user?.primaryOfficeId && typeof user.primaryOfficeId === 'object' ? (user.primaryOfficeId as any)._id : user?.primaryOfficeId);
+
+            if (!targetOfficeId) return;
+
+            setLoadingEmployees(true);
+            try {
+                const data = await employeesApi.getByOffice(targetOfficeId);
+                // Filter to only show internal and external employees
+                const filteredEmployees = data.filter((emp: any) => ['internal', 'external'].includes(emp.role));
+                setEmployees(filteredEmployees);
+            } catch (error) {
+                console.error('Error fetching employees:', error);
+                showToast.error('Error', 'Failed to load employees');
+            } finally {
+                setLoadingEmployees(false);
+            }
+        };
+
+        fetchTargetEmployees();
+    }, [formData.isForAllEmployees, formData.officeId, showCreateModal, isSuperAdmin, user]);
 
     const fetchDistributions = useCallback(async () => {
         try {
@@ -144,9 +188,68 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         }
     };
 
+    const handleFilePick = async () => {
+        try {
+            const [res] = await pick({
+                type: [types.xls, types.xlsx],
+                allowMultiSelection: false,
+            });
+            setSelectedFile(res as any);
+            setUploadResult(null);
+        } catch (err) {
+            console.log('File pick cancelled or failed', err);
+        }
+    };
+
+    const handleBulkUpload = async () => {
+        if (!selectedFile || !formData.goodiesType || !formData.distributionDate) {
+            showToast.error('Error', 'Please fill all fields and select a file');
+            return;
+        }
+
+        setCreateLoading(true);
+        try {
+            const data = new FormData();
+            data.append('file', {
+                uri: selectedFile.uri,
+                type: selectedFile.type,
+                name: selectedFile.name,
+            });
+            data.append('goodiesType', formData.goodiesType);
+            data.append('distributionDate', formData.distributionDate);
+
+            const result = await goodiesApi.bulkUpload(data);
+            setUploadResult(result.data);
+
+            if (result.data.successCount > 0) {
+                showToast.success('Success', `Processed ${result.data.successCount} records successfully`);
+                fetchDistributions();
+            } else {
+                showToast.error('Error', 'No records were processed successfully');
+            }
+        } catch (error: any) {
+            console.error('Upload error:', error);
+            showToast.error('Error', error.response?.data?.message || 'Bulk upload failed');
+        } finally {
+            setCreateLoading(false);
+        }
+    };
+
     const handleCreateDistribution = async () => {
+        if (createMode === 'bulk') {
+            await handleBulkUpload();
+            return;
+        }
+
+
+
         if (!formData.goodiesType || !formData.totalQuantity || !formData.distributionDate) {
             showToast.error('Error', 'Please fill in all required fields');
+            return;
+        }
+
+        if (!formData.isForAllEmployees && selectedEmployeeIds.length === 0) {
+            showToast.error('Error', 'Please select at least one employee');
             return;
         }
 
@@ -168,18 +271,12 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                 distributionDate: formData.distributionDate,
                 officeId: isSuperAdmin ? formData.officeId : (userOfficeId || ''),
                 isForAllEmployees: formData.isForAllEmployees,
-                targetEmployees: [], // For now empty, or implement selection later
+                targetEmployees: formData.isForAllEmployees ? [] : selectedEmployeeIds,
             });
 
             showToast.success('Success', 'Distribution created successfully');
             setShowCreateModal(false);
-            setFormData({
-                goodiesType: '',
-                totalQuantity: '',
-                distributionDate: new Date().toISOString().split('T')[0],
-                officeId: '',
-                isForAllEmployees: true,
-            });
+            resetCreateForm();
             fetchDistributions();
         } catch (error: any) {
             console.error('Create error:', error);
@@ -187,6 +284,26 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         } finally {
             setCreateLoading(false);
         }
+    };
+
+    const resetCreateForm = () => {
+        setFormData({
+            goodiesType: '',
+            totalQuantity: '',
+            distributionDate: new Date().toISOString().split('T')[0],
+            officeId: '',
+            isForAllEmployees: true,
+        });
+        setSelectedFile(null);
+        setUploadResult(null);
+        setCreateMode('single');
+        setSelectedEmployeeIds([]);
+        setEmployees([]);
+    };
+
+    const handleCloseCreateModal = () => {
+        resetCreateForm();
+        setShowCreateModal(false);
     };
 
     const getStockColor = (remaining: number) => {
@@ -325,43 +442,15 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
             {/* Office Filter */}
             {showOfficeFilter && isSuperAdmin && (
                 <View style={styles.filterContainer}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        <TouchableOpacity
-                            style={[
-                                styles.filterChip,
-                                filterOfficeId === 'all' && styles.filterChipActive,
-                            ]}
-                            onPress={() => setFilterOfficeId('all')}
-                        >
-                            <Text
-                                style={[
-                                    styles.filterChipText,
-                                    filterOfficeId === 'all' && styles.filterChipTextActive,
-                                ]}
-                            >
-                                All Offices
-                            </Text>
-                        </TouchableOpacity>
-                        {offices.map((office) => (
-                            <TouchableOpacity
-                                key={office._id}
-                                style={[
-                                    styles.filterChip,
-                                    filterOfficeId === office._id && styles.filterChipActive,
-                                ]}
-                                onPress={() => setFilterOfficeId(office._id)}
-                            >
-                                <Text
-                                    style={[
-                                        styles.filterChipText,
-                                        filterOfficeId === office._id && styles.filterChipTextActive,
-                                    ]}
-                                >
-                                    {office.name}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                    <Dropdown
+                        placeholder="Filter by Office"
+                        options={[
+                            { label: 'All Offices', value: 'all' },
+                            ...offices.map(office => ({ label: office.name, value: office._id }))
+                        ]}
+                        value={filterOfficeId}
+                        onSelect={setFilterOfficeId}
+                    />
                 </View>
             )}
 
@@ -466,7 +555,7 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                 visible={showCreateModal}
                 animationType="slide"
                 transparent={true}
-                onRequestClose={() => setShowCreateModal(false)}
+                onRequestClose={handleCloseCreateModal}
             >
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -474,12 +563,29 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                 >
                     <View style={styles.modalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Create Distribution</Text>
+                            <Text style={styles.modalTitle}>
+                                {createMode === 'single' ? 'Create Distribution' : 'Bulk Upload'}
+                            </Text>
                             <TouchableOpacity
-                                onPress={() => setShowCreateModal(false)}
+                                onPress={handleCloseCreateModal}
                                 style={styles.closeButton}
                             >
                                 <Icon name="close" size={24} color={COLORS.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <View style={styles.tabContainer}>
+                            <TouchableOpacity
+                                style={[styles.tab, createMode === 'single' && styles.activeTab]}
+                                onPress={() => setCreateMode('single')}
+                            >
+                                <Text style={[styles.tabText, createMode === 'single' && styles.activeTabText]}>Single</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.tab, createMode === 'bulk' && styles.activeTab]}
+                                onPress={() => setCreateMode('bulk')}
+                            >
+                                <Text style={[styles.tabText, createMode === 'bulk' && styles.activeTabText]}>Bulk Upload</Text>
                             </TouchableOpacity>
                         </View>
 
@@ -491,17 +597,6 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                                     placeholder="e.g. Diwali Gift Box"
                                     value={formData.goodiesType}
                                     onChangeText={(text) => setFormData({ ...formData, goodiesType: text })}
-                                />
-                            </View>
-
-                            <View style={styles.formGroup}>
-                                <Text style={styles.label}>Total Quantity</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder="e.g. 100"
-                                    keyboardType="numeric"
-                                    value={formData.totalQuantity}
-                                    onChangeText={(text) => setFormData({ ...formData, totalQuantity: text })}
                                 />
                             </View>
 
@@ -525,49 +620,149 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                                 )}
                             </View>
 
-                            {isSuperAdmin && (
-                                <View style={styles.formGroup}>
-                                    <Text style={styles.label}>Select Office</Text>
-                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipContainer}>
-                                        {offices.map((office) => (
-                                            <TouchableOpacity
-                                                key={office._id}
-                                                style={[
-                                                    styles.filterChip,
-                                                    formData.officeId === office._id && styles.filterChipActive,
-                                                ]}
-                                                onPress={() => setFormData({ ...formData, officeId: office._id })}
-                                            >
-                                                <Text
-                                                    style={[
-                                                        styles.filterChipText,
-                                                        formData.officeId === office._id && styles.filterChipTextActive,
-                                                    ]}
-                                                >
-                                                    {office.name}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </ScrollView>
-                                </View>
-                            )}
+                            {createMode === 'single' ? (
+                                <>
+                                    <View style={styles.formGroup}>
+                                        <Text style={styles.label}>Total Quantity</Text>
+                                        <TextInput
+                                            style={styles.input}
+                                            placeholder="e.g. 100"
+                                            keyboardType="numeric"
+                                            value={formData.totalQuantity}
+                                            onChangeText={(text) => setFormData({ ...formData, totalQuantity: text })}
+                                        />
+                                    </View>
 
-                            <View style={styles.switchContainer}>
-                                <Text style={styles.label}>All Employees</Text>
-                                <Switch
-                                    value={formData.isForAllEmployees}
-                                    onValueChange={(val) => setFormData({ ...formData, isForAllEmployees: val })}
-                                    trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
-                                    thumbColor={formData.isForAllEmployees ? COLORS.primary : '#f4f3f4'}
-                                />
-                            </View>
+                                    {isSuperAdmin && (
+                                        <Dropdown
+                                            label="Select Office"
+                                            placeholder="Choose an office..."
+                                            options={offices.map(office => ({ label: office.name, value: office._id }))}
+                                            value={formData.officeId}
+                                            onSelect={(value) => setFormData({ ...formData, officeId: value })}
+                                        />
+                                    )}
+
+                                    <View style={styles.switchContainer}>
+                                        <Text style={styles.label}>All Employees</Text>
+                                        <Switch
+                                            value={formData.isForAllEmployees}
+                                            onValueChange={(val) => setFormData({ ...formData, isForAllEmployees: val })}
+                                            trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
+                                            thumbColor={formData.isForAllEmployees ? COLORS.primary : '#f4f3f4'}
+                                        />
+                                    </View>
+
+                                    {!formData.isForAllEmployees && (
+                                        <View style={styles.employeeListContainer}>
+                                            <Text style={styles.sectionTitle}>Select Employees</Text>
+
+                                            {loadingEmployees ? (
+                                                <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 20 }} />
+                                            ) : employees.length === 0 ? (
+                                                <Text style={styles.emptyText}>No employees found in this office</Text>
+                                            ) : (
+                                                <>
+                                                    <View style={styles.selectionHeader}>
+                                                        <Text style={styles.selectionCount}>
+                                                            {selectedEmployeeIds.length} selected
+                                                        </Text>
+                                                        <TouchableOpacity
+                                                            onPress={() => {
+                                                                if (selectedEmployeeIds.length === employees.length) {
+                                                                    setSelectedEmployeeIds([]);
+                                                                } else {
+                                                                    setSelectedEmployeeIds(employees.map(e => e._id));
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Text style={styles.selectAllText}>
+                                                                {selectedEmployeeIds.length === employees.length ? 'Deselect All' : 'Select All'}
+                                                            </Text>
+                                                        </TouchableOpacity>
+                                                    </View>
+
+                                                    <View style={styles.employeeList}>
+                                                        {employees.map((emp) => (
+                                                            <TouchableOpacity
+                                                                key={emp._id}
+                                                                style={[
+                                                                    styles.employeeItem,
+                                                                    selectedEmployeeIds.includes(emp._id) && styles.employeeItemActive
+                                                                ]}
+                                                                onPress={() => {
+                                                                    if (selectedEmployeeIds.includes(emp._id)) {
+                                                                        setSelectedEmployeeIds(prev => prev.filter(id => id !== emp._id));
+                                                                    } else {
+                                                                        setSelectedEmployeeIds(prev => [...prev, emp._id]);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <View style={[
+                                                                    styles.checkbox,
+                                                                    selectedEmployeeIds.includes(emp._id) && styles.checkboxActive
+                                                                ]}>
+                                                                    {selectedEmployeeIds.includes(emp._id) && (
+                                                                        <Icon name="check" size={12} color={COLORS.textWhite} />
+                                                                    )}
+                                                                </View>
+                                                                <View>
+                                                                    <Text style={styles.employeeName}>{emp.name}</Text>
+                                                                    <Text style={styles.employeeEmail}>{emp.email}</Text>
+                                                                </View>
+                                                            </TouchableOpacity>
+                                                        ))}
+                                                    </View>
+                                                </>
+                                            )}
+                                        </View>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <View style={styles.formGroup}>
+                                        <Text style={styles.label}>Excel File</Text>
+                                        <TouchableOpacity
+                                            style={styles.fileInput}
+                                            onPress={handleFilePick}
+                                        >
+                                            <Icon name={selectedFile ? "file-excel" : "upload"} size={24} color={COLORS.primary} />
+                                            <Text style={styles.fileInputText}>
+                                                {selectedFile ? selectedFile.name : 'Choose Excel File'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                        <Text style={styles.helperText}>
+                                            File must include employee_id column. {isSuperAdmin && 'Super admins must include office_id column.'}
+                                        </Text>
+                                    </View>
+
+                                    {uploadResult && (
+                                        <View style={styles.resultContainer}>
+                                            <View style={styles.resultRow}>
+                                                <Text style={styles.successText}>Success: {uploadResult.successCount}</Text>
+                                                <Text style={styles.errorText}>Failed: {uploadResult.failedCount}</Text>
+                                            </View>
+                                            {uploadResult.failedRecords?.length > 0 && (
+                                                <View style={styles.errorList}>
+                                                    <Text style={styles.errorTitle}>Errors:</Text>
+                                                    {uploadResult.failedRecords.map((item: any, index: number) => (
+                                                        <Text key={index} style={styles.errorItem}>
+                                                            {item.row ? `Row ${item.row}: ` : ''}{item.error}
+                                                        </Text>
+                                                    ))}
+                                                </View>
+                                            )}
+                                        </View>
+                                    )}
+                                </>
+                            )}
 
                             <Button
                                 variant="primary"
                                 onPress={handleCreateDistribution}
                                 loading={createLoading}
                                 style={styles.submitButton}
-                                title="Create Distribution"
+                                title={createMode === 'single' ? "Create Distribution" : "Upload & Distribute"}
                             />
                             <View style={{ height: 40 }} />
                         </ScrollView>
@@ -978,6 +1173,148 @@ const styles = StyleSheet.create({
     },
     submitButton: {
         marginTop: SPACING.sm,
+    },
+    tabContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: SPACING.md,
+        paddingTop: SPACING.md,
+        gap: SPACING.md,
+    },
+    tab: {
+        flex: 1,
+        paddingVertical: SPACING.sm,
+        alignItems: 'center',
+        borderBottomWidth: 2,
+        borderBottomColor: 'transparent',
+    },
+    activeTab: {
+        borderBottomColor: COLORS.primary,
+    },
+    tabText: {
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
+        color: COLORS.textSecondary,
+    },
+    activeTabText: {
+        color: COLORS.primary,
+    },
+    fileInput: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: SPACING.sm,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderStyle: 'dashed',
+        borderRadius: SPACING.md,
+        padding: SPACING.lg,
+        backgroundColor: COLORS.backgroundLight,
+    },
+    fileInputText: {
+        fontSize: TYPOGRAPHY.fontSize.md,
+        color: COLORS.textPrimary,
+    },
+    helperText: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        color: COLORS.textLight,
+        marginTop: SPACING.xs,
+    },
+    resultContainer: {
+        marginTop: SPACING.md,
+        padding: SPACING.md,
+        backgroundColor: COLORS.backgroundLight,
+        borderRadius: SPACING.sm,
+    },
+    resultRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: SPACING.sm,
+    },
+    successText: {
+        color: COLORS.success,
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
+    },
+    errorText: {
+        color: COLORS.danger,
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
+    },
+    errorList: {
+        marginTop: SPACING.sm,
+    },
+    errorTitle: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
+        color: COLORS.danger,
+        marginBottom: SPACING.xs,
+    },
+    errorItem: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        color: COLORS.danger,
+        marginBottom: 2,
+    },
+    employeeListContainer: {
+        marginTop: SPACING.md,
+        maxHeight: 300,
+    },
+    sectionTitle: {
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
+        color: COLORS.textPrimary,
+        marginBottom: SPACING.sm,
+    },
+    selectionHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: SPACING.sm,
+    },
+    selectionCount: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        color: COLORS.textSecondary,
+    },
+    selectAllText: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        color: COLORS.primary,
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
+    },
+    employeeList: {
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: SPACING.sm,
+    },
+    employeeItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: SPACING.sm,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.borderLight,
+    },
+    employeeItemActive: {
+        backgroundColor: COLORS.primaryLight + '20',
+    },
+    employeeName: {
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        fontWeight: TYPOGRAPHY.fontWeight.medium,
+        color: COLORS.textPrimary,
+    },
+    employeeEmail: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        color: COLORS.textSecondary,
+    },
+    checkbox: {
+        width: 18,
+        height: 18,
+        borderRadius: 4,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        marginRight: SPACING.sm,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: COLORS.background,
+    },
+    checkboxActive: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
     },
 });
 

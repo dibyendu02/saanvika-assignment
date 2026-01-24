@@ -21,6 +21,7 @@ import officesApi from '../../api/offices';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { showToast } from '../../utils/toast';
+import { Dropdown } from '../../components/ui/Dropdown';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
@@ -262,43 +263,15 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
             {/* Office Filter */}
             {showOfficeFilter && isSuperAdmin && (
                 <View style={styles.filterContainer}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        <TouchableOpacity
-                            style={[
-                                styles.filterChip,
-                                filterOfficeId === 'all' && styles.filterChipActive,
-                            ]}
-                            onPress={() => setFilterOfficeId('all')}
-                        >
-                            <Text
-                                style={[
-                                    styles.filterChipText,
-                                    filterOfficeId === 'all' && styles.filterChipTextActive,
-                                ]}
-                            >
-                                All Offices
-                            </Text>
-                        </TouchableOpacity>
-                        {offices.map((office) => (
-                            <TouchableOpacity
-                                key={office._id}
-                                style={[
-                                    styles.filterChip,
-                                    filterOfficeId === office._id && styles.filterChipActive,
-                                ]}
-                                onPress={() => setFilterOfficeId(office._id)}
-                            >
-                                <Text
-                                    style={[
-                                        styles.filterChipText,
-                                        filterOfficeId === office._id && styles.filterChipTextActive,
-                                    ]}
-                                >
-                                    {office.name}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
-                    </ScrollView>
+                    <Dropdown
+                        placeholder="Filter by Office"
+                        options={[
+                            { label: 'All Offices', value: 'all' },
+                            ...offices.map(office => ({ label: office.name, value: office._id }))
+                        ]}
+                        value={filterOfficeId}
+                        onSelect={setFilterOfficeId}
+                    />
                 </View>
             )}
 

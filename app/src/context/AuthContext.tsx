@@ -77,13 +77,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const logout = async () => {
         try {
-            await authApi.logout();
-        } catch (error) {
-            console.error('Logout API error:', error);
-        } finally {
-            // Clear storage and state regardless of API call result
+            // Clear storage and state (no API call needed for JWT-based auth)
             await AsyncStorage.removeItem('token');
             await AsyncStorage.removeItem('user');
+            setUser(null);
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Still clear state even if storage removal fails
             setUser(null);
         }
     };

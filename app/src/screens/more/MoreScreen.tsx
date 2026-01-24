@@ -12,6 +12,7 @@ import {
     TouchableOpacity,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { showToast } from '../../utils/toast';
@@ -110,10 +111,14 @@ export const MoreScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 </View>
 
                 {/* Logout Button */}
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Icon name="logout" size={ICON_SIZES.md} color={COLORS.danger} />
-                    <Text style={styles.logoutText}>Logout</Text>
-                </TouchableOpacity>
+                <Button
+                    variant="danger"
+                    onPress={handleLogout}
+                    style={styles.logoutButton}
+                >
+                    <Icon name="logout" size={ICON_SIZES.md} color={COLORS.textWhite} style={{ marginRight: SPACING.sm }} />
+                    <Text style={[styles.logoutText, { color: COLORS.textWhite }]}>Logout</Text>
+                </Button>
 
                 {/* App Info */}
                 <View style={styles.appInfo}>
@@ -195,19 +200,11 @@ const styles = StyleSheet.create({
         color: COLORS.textPrimary,
     },
     logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: SPACING.sm,
-        backgroundColor: COLORS.dangerLight,
-        padding: SPACING.base,
-        borderRadius: SPACING.md,
         marginBottom: SPACING.xl,
     },
     logoutText: {
         fontSize: TYPOGRAPHY.fontSize.base,
         fontWeight: TYPOGRAPHY.fontWeight.semibold,
-        color: COLORS.danger,
     },
     appInfo: {
         alignItems: 'center',

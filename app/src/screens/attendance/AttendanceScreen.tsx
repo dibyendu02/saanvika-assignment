@@ -10,12 +10,15 @@ import {
     StyleSheet,
     ScrollView,
     RefreshControl,
+    TouchableOpacity,
 
 } from 'react-native';
 import { attendanceApi } from '../../api/attendance';
+import officesApi from '../../api/offices';
 import { Card } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { showToast } from '../../utils/toast';
+import { Dropdown } from '../../components/ui/Dropdown';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import { Attendance } from '../../types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -25,12 +28,22 @@ export const AttendanceScreen: React.FC = () => {
     const [attendance, setAttendance] = useState<Attendance[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [offices, setOffices] = useState<any[]>([]);
+    const [selectedOffice, setSelectedOffice] = useState<string>('all');
+    const [showOfficeFilter, setShowOfficeFilter] = useState(false);
+    const [filteredAttendance, setFilteredAttendance] = useState<Attendance[]>([]);
 
     const fetchAttendance = useCallback(async () => {
         try {
-            const data = await attendanceApi.getAll();
+            const [attendanceData, officesData] = await Promise.all([
+                attendanceApi.getAll(),
+                officesApi.getAll()
+            ]);
+
             // Ensure data is always an array
-            setAttendance(Array.isArray(data) ? data : []);
+            const validAttendance = Array.isArray(attendanceData) ? attendanceData : [];
+            setAttendance(validAttendance);
+            setOffices(officesData);
         } catch (error) {
             console.error('Error fetching attendance:', error);
             showToast.error('Error', 'Failed to load attendance records');
@@ -44,6 +57,26 @@ export const AttendanceScreen: React.FC = () => {
     useEffect(() => {
         fetchAttendance();
     }, [fetchAttendance]);
+
+    useEffect(() => {
+        applyFilters(attendance, selectedOffice);
+    }, [attendance, selectedOffice]);
+
+    const applyFilters = (data: Attendance[], officeId: string) => {
+        if (officeId === 'all') {
+            setFilteredAttendance(data);
+        } else {
+            const filtered = data.filter(record => {
+                const recordOfficeId = typeof record.office === 'object' ? record.office?._id : record.office;
+                return recordOfficeId === officeId;
+            });
+            setFilteredAttendance(filtered);
+        }
+    };
+
+    const handleOfficeFilter = (officeId: string) => {
+        setSelectedOffice(officeId);
+    };
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -70,9 +103,38 @@ export const AttendanceScreen: React.FC = () => {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.title}>Attendance</Text>
-                <Text style={styles.subtitle}>{attendance.length} Records</Text>
+                <View>
+                    <Text style={styles.title}>Attendance</Text>
+                    <Text style={styles.subtitle}>{filteredAttendance.length} Records</Text>
+                </View>
+                {offices.length > 0 && (
+                    <TouchableOpacity
+                        style={styles.filterButton}
+                        onPress={() => setShowOfficeFilter(!showOfficeFilter)}
+                    >
+                        <Icon name="filter-variant" size={ICON_SIZES.sm} color={COLORS.primary} />
+                    </TouchableOpacity>
+                )}
             </View>
+
+            {/* Office Filters */}
+            {showOfficeFilter && (
+                <View style={{
+                    paddingHorizontal: SPACING.base,
+                    marginBottom: SPACING.base,
+                    marginTop: SPACING.sm
+                }}>
+                    <Dropdown
+                        placeholder="Filter by Office"
+                        options={[
+                            { label: 'All Offices', value: 'all' },
+                            ...offices.map(office => ({ label: office.name, value: office._id }))
+                        ]}
+                        value={selectedOffice}
+                        onSelect={handleOfficeFilter}
+                    />
+                </View>
+            )}
 
             {/* Stats */}
             <Card style={styles.statsCard}>
@@ -80,7 +142,7 @@ export const AttendanceScreen: React.FC = () => {
                     <View style={styles.statItem}>
                         <Icon name="calendar-check" size={ICON_SIZES.md} color={COLORS.success} />
                         <View style={styles.statInfo}>
-                            <Text style={styles.statValue}>{attendance.length}</Text>
+                            <Text style={styles.statValue}>{filteredAttendance.length}</Text>
                             <Text style={styles.statLabel}>Total Records</Text>
                         </View>
                     </View>
@@ -94,7 +156,7 @@ export const AttendanceScreen: React.FC = () => {
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                 }
             >
-                {Array.isArray(attendance) && attendance.map((record) => (
+                {Array.isArray(filteredAttendance) && filteredAttendance.map((record) => (
                     <Card key={record._id} style={styles.attendanceCard}>
                         <View style={styles.attendanceHeader}>
                             <Avatar name={record.user?.name || 'Unknown'} size={40} />
@@ -117,7 +179,7 @@ export const AttendanceScreen: React.FC = () => {
                     </Card>
                 ))}
 
-                {(!attendance || attendance.length === 0) && (
+                {(!filteredAttendance || filteredAttendance.length === 0) && (
                     <View style={styles.emptyContainer}>
                         <Icon name="calendar-blank-outline" size={64} color={COLORS.textLight} />
                         <Text style={styles.emptyText}>No attendance records found</Text>
@@ -134,10 +196,18 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
     },
     header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         paddingHorizontal: SPACING.base,
         paddingTop: SPACING['4xl'],
         paddingBottom: SPACING.base,
         backgroundColor: COLORS.backgroundLight,
+    },
+    filterButton: {
+        padding: SPACING.sm,
+        borderRadius: SPACING.sm,
+        backgroundColor: COLORS.primaryLight + '20',
     },
     title: {
         fontSize: TYPOGRAPHY.fontSize['2xl'],

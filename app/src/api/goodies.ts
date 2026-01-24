@@ -91,6 +91,18 @@ export const goodiesApi = {
         const data = response.data.data;
         return data.employees || [];
     },
+
+    /**
+     * Bulk upload distributions via Excel
+     */
+    async bulkUpload(formData: FormData): Promise<any> {
+        const response = await apiClient.post('/goodies/bulk-upload', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    },
 };
 
 export default goodiesApi;
