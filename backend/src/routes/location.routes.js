@@ -6,8 +6,11 @@ import express from 'express';
 import { protect, authorize } from '../middlewares/auth.middleware.js';
 import {
   shareLocation,
+  requestLocation,
   getLocations,
   getLocationById,
+  getLocationRequests,
+  denyLocationRequest,
 } from '../controllers/location.controller.js';
 import {
   shareLocationSchema,
@@ -29,11 +32,28 @@ router.post(
   shareLocation
 );
 
+// Request location (all but external)
+router.post(
+  '/request',
+  authorize('super_admin', 'admin', 'internal'),
+  requestLocation
+);
+
 // Get location records (role-based access)
 router.get(
   '/',
   validate(getLocationsQuerySchema, 'query'),
   getLocations
+);
+
+// Get location requests (sent or received) - MUST be before /:id
+router.get('/requests', getLocationRequests);
+
+// Deny location request (external employees only) - MUST be before /:id
+router.patch(
+  '/requests/:id/deny',
+  authorize('external'),
+  denyLocationRequest
 );
 
 // Get location record by ID (role-based access)

@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, UserPlus, ArrowLeft, Building2 } from 'lucide-react';
+import { Loader2, UserPlus, ArrowLeft, Building2, Eye, EyeOff } from 'lucide-react';
 
 const RegisterPage = () => {
     const navigate = useNavigate();
@@ -14,6 +14,7 @@ const RegisterPage = () => {
     const [loading, setLoading] = useState(false);
     const [fetchingOffices, setFetchingOffices] = useState(true);
     const [error, setError] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -21,6 +22,10 @@ const RegisterPage = () => {
         phone: '',
         password: '',
         primaryOfficeId: '',
+        employeeId: '',
+        age: '',
+        gender: '',
+        dob: '',
         role: 'external' // Default for self-registration
     });
 
@@ -105,9 +110,61 @@ const RegisterPage = () => {
                             <Input id="phone" type="tel" placeholder="9876543210" required value={formData.phone} onChange={handleChange} />
                         </div>
 
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="employeeId" className="text-sm font-medium text-gray-700">Employee ID</Label>
+                                <Input id="employeeId" placeholder="EMP001" value={formData.employeeId} onChange={handleChange} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="gender" className="text-sm font-medium text-gray-700">Gender</Label>
+                                <select
+                                    id="gender"
+                                    className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+                                    value={formData.gender}
+                                    onChange={handleChange}
+                                >
+                                    <option value="">Select gender</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="age" className="text-sm font-medium text-gray-700">Age</Label>
+                                <Input id="age" type="number" min="18" max="100" placeholder="18-100" value={formData.age} onChange={handleChange} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="dob" className="text-sm font-medium text-gray-700">Date of Birth</Label>
+                                <Input id="dob" type="date" value={formData.dob} onChange={handleChange} />
+                            </div>
+                        </div>
+
                         <div className="space-y-2">
                             <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
-                            <Input id="password" type="password" required value={formData.password} onChange={handleChange} />
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    required
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    className="pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                        <Eye className="h-4 w-4" />
+                                    )}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="space-y-2">

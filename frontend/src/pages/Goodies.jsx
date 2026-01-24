@@ -26,6 +26,8 @@ import {
 import { Loader2, Gift, CheckCircle2, AlertTriangle, Users, History, Mail, Calendar, Building, UserCheck, Filter, X, Eye, Package, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import BulkGoodiesUpload from '../components/BulkGoodiesUpload';
+import { Upload } from 'lucide-react';
 
 const Goodies = () => {
     const { user } = useAuth();
@@ -42,6 +44,7 @@ const Goodies = () => {
     const [distributionClaims, setDistributionClaims] = useState([]);
     const [fetchingClaims, setFetchingClaims] = useState(false);
     const [detailsOpen, setDetailsOpen] = useState(false);
+    const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
 
     // Filter state
     const [filterOfficeId, setFilterOfficeId] = useState('all');
@@ -281,7 +284,7 @@ const Goodies = () => {
                 </div>
                 {isManagement && (
                     <div className="flex items-center gap-3">
-                        {/* Office Filter - Inline with button */}
+                        {/* Office Filter - Only for Super Admin */}
                         {offices.length > 0 && (
                             <div className="flex items-center gap-2">
                                 <div className="relative">
@@ -299,18 +302,11 @@ const Goodies = () => {
                                         ))}
                                     </select>
                                 </div>
-                                {filterOfficeId && filterOfficeId !== 'all' && (
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setFilterOfficeId('all')}
-                                        className="h-8 w-8 text-gray-500"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                )}
                             </div>
                         )}
+                        <Button variant="outline" onClick={() => setBulkUploadOpen(true)}>
+                            <Upload className="mr-2 h-4 w-4" /> Bulk Upload
+                        </Button>
                         <Dialog open={open} onOpenChange={handleDialogChange}>
                             <DialogTrigger asChild>
                                 <Button className="shadow-sm"><Gift className="mr-2 h-4 w-4" /> New Distribution</Button>
@@ -851,6 +847,15 @@ const Goodies = () => {
                     </Table>
                 </CardContent>
             </Card>
+
+            <BulkGoodiesUpload
+                isOpen={bulkUploadOpen}
+                onClose={() => setBulkUploadOpen(false)}
+                onSuccess={() => {
+                    fetchDistributions();
+                    toast({ title: 'Success', description: 'Bulk distribution processed' });
+                }}
+            />
         </div>
     );
 };

@@ -30,6 +30,9 @@ export const getUsersByRole = async (requestingUser, targetRole, filters = {}) =
     if (targetRole) {
       query.role = targetRole;
     }
+    if (filters.officeId) {
+      query.primaryOfficeId = filters.officeId;
+    }
   } else if (requestingUser.role === 'admin') {
     // Admin can only see users from their office
     query.primaryOfficeId = requestingUser.primaryOfficeId;
@@ -224,7 +227,7 @@ export const getMyProfile = async (userId) => {
  */
 export const updateMyProfile = async (userId, updateData) => {
   // Only allow updating certain fields
-  const allowedFields = ['name', 'phone'];
+  const allowedFields = ['name', 'phone', 'employeeId', 'age', 'gender', 'dob'];
   const filteredData = {};
 
   for (const field of allowedFields) {
@@ -272,16 +275,16 @@ export const bulkCreateEmployees = async (requestingUser, employeesData, targetO
 
       if (requestingUser.role === 'admin') {
         // Admins can only create employees for their assigned office
-        if (!requestingUser.assignedOfficeId) {
+        primaryOfficeId = requestingUser.primaryOfficeId || requestingUser.assignedOfficeId;
+        if (!primaryOfficeId) {
           throw new Error('Admin must have an assigned office');
         }
-        primaryOfficeId = requestingUser.assignedOfficeId;
       } else if (requestingUser.role === 'super_admin') {
-        // Super admins must specify target office via UI
-        if (!targetOfficeId) {
+        // Super admins can specify target office via UI or it comes from Excel row
+        primaryOfficeId = employeeData.primaryOfficeId || targetOfficeId;
+        if (!primaryOfficeId) {
           throw new Error('Target office must be specified for super admin bulk import');
         }
-        primaryOfficeId = targetOfficeId;
       }
 
       // Create employee
@@ -292,6 +295,10 @@ export const bulkCreateEmployees = async (requestingUser, employeesData, targetO
         password: employeeData.password,
         role: employeeData.role,
         primaryOfficeId,
+        employeeId: employeeData.employeeId,
+        age: employeeData.age,
+        gender: employeeData.gender,
+        dob: employeeData.dob,
         createdBy: requestingUser._id,
         status: 'active', // Auto-activate bulk imported employees
       });
@@ -353,6 +360,43 @@ export const suspendUser = async (requestingUser, targetUserId) => {
 };
 
 /**
+ * Unsuspend a user (reactivate to active status)
+ * @param {Object} requestingUser - The user performing the action
+ * @param {string} targetUserId - ID of user to unsuspend
+ * @returns {Promise<Object>} - Updated user
+ */
+export const unsuspendUser = async (requestingUser, targetUserId) => {
+  // Role hierarchy for access control
+  const roleHierarchy = {
+    'super_admin': 4,
+    'admin': 3,
+    'internal': 2,
+    'external': 1
+  };
+
+  const requestingRank = roleHierarchy[requestingUser.role] || 0;
+
+  // Get target user
+  const targetUser = await User.findById(targetUserId);
+  if (!targetUser) {
+    throw new AppError('User not found', 404);
+  }
+
+  const targetRank = roleHierarchy[targetUser.role] || 0;
+
+  // Check hierarchy: can only unsuspend users with lower rank
+  if (targetRank >= requestingRank) {
+    throw new AppError('You can only reactivate users with a lower rank than yours', 403);
+  }
+
+  // Update status to active
+  targetUser.status = 'active';
+  await targetUser.save();
+
+  return targetUser;
+};
+
+/**
  * Delete a user (only super_admin and admin)
  * @param {Object} requestingUser - The user performing the action
  * @param {string} targetUserId - ID of user to delete
@@ -400,6 +444,7 @@ export default {
   updateMyProfile,
   bulkCreateEmployees,
   suspendUser,
+  unsuspendUser,
   deleteUser,
 };
 

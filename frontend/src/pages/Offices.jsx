@@ -34,7 +34,8 @@ const Offices = () => {
         address: '',
         latitude: '',
         longitude: '',
-        targetHeadcount: 0
+        targetHeadcount: 0,
+        officeId: ''
     });
 
     // Check if user is admin or super_admin
@@ -70,14 +71,15 @@ const Offices = () => {
                     type: 'Point',
                     coordinates: [parseFloat(newOffice.longitude), parseFloat(newOffice.latitude)]
                 },
-                targetHeadcount: Number(newOffice.targetHeadcount) || 0
+                targetHeadcount: Number(newOffice.targetHeadcount) || 0,
+                officeId: newOffice.officeId
             };
 
             console.log('Creating office with payload:', payload);
             console.log('newOffice state:', newOffice);
             await api.post('/offices', payload);
             setOpen(false);
-            setNewOffice({ name: '', address: '', latitude: '', longitude: '', targetHeadcount: 0 });
+            setNewOffice({ name: '', address: '', latitude: '', longitude: '', targetHeadcount: 0, officeId: '' });
             fetchOffices(); // Refresh list
         } catch (error) {
             console.error('Error creating office:', error);
@@ -115,6 +117,16 @@ const Offices = () => {
                                         onChange={e => setNewOffice({ ...newOffice, name: e.target.value })}
                                         required
                                         placeholder="e.g. Headquarters"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="officeId">Office ID</Label>
+                                    <Input
+                                        id="officeId"
+                                        value={newOffice.officeId}
+                                        onChange={e => setNewOffice({ ...newOffice, officeId: e.target.value })}
+                                        required
+                                        placeholder="e.g. BLR001"
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -174,6 +186,7 @@ const Offices = () => {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Name</TableHead>
+                                <TableHead>Office ID</TableHead>
                                 <TableHead>Location</TableHead>
                                 <TableHead>Coordinates</TableHead>
                                 <TableHead>Employees</TableHead>
@@ -200,6 +213,9 @@ const Offices = () => {
                                     <TableRow key={office._id || index}>
                                         <TableCell>
                                             <span className="font-medium text-gray-900">{office.name}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm font-mono text-gray-600">{office.officeId}</span>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center text-sm text-gray-600">

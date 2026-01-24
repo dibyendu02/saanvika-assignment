@@ -4,6 +4,7 @@
  */
 import asyncHandler from '../utils/asyncHandler.js';
 import * as goodiesService from '../services/goodies.service.js';
+import AppError from '../utils/AppError.js';
 
 /**
  * @desc    Create goodies distribution
@@ -133,6 +134,81 @@ export const getEligibleEmployees = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Bulk upload distributions from Excel
+ * @route   POST /api/v1/goodies/bulk-upload
+ * @access  Private (admin, super_admin)
+ */
+export const bulkUploadDistributions = asyncHandler(async (req, res) => {
+  const fs = await import('fs');
+  const excelService = await import('../services/excel.service.js');
+
+  if (!req.file) {
+    throw new AppError('Please upload an Excel file', 400);
+  }
+
+  const { goodiesType, distributionDate, totalQuantityPerEmployee = 1 } = req.body;
+
+  if (!goodiesType || !distributionDate) {
+    throw new AppError('Goodies type and distribution date are required', 400);
+  }
+
+  let filePath = req.file.path;
+
+  try {
+    const { items, errors: parseErrors } = await excelService.parseGoodiesExcel(filePath, req.user);
+
+    if (items.length === 0 && parseErrors.length === 0) {
+      throw new AppError('No valid employees found in the Excel file', 400);
+    }
+
+    const results = await goodiesService.bulkCreateDistribution(req.user, {
+      items,
+      goodiesType,
+      distributionDate,
+      totalQuantityPerEmployee: parseInt(totalQuantityPerEmployee)
+    });
+
+    // Clean up uploaded file
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    // Format response to match frontend expectations
+    const failedRecords = [
+      ...parseErrors.map(err => ({
+        row: err.row,
+        error: err.error
+      })),
+      ...results.failed.map(fail => ({
+        office: fail.office,
+        error: fail.error
+      }))
+    ];
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalProcessed: items.length,
+        successCount: results.success.length,
+        failedCount: results.failed.length + parseErrors.length,
+        successRecords: results.success,
+        failedRecords: failedRecords,
+        parseErrors: parseErrors
+      },
+      message: results.success.length > 0
+        ? `Successfully created distributions for ${results.success.length} office(s).`
+        : 'No distributions were created.',
+    });
+  } catch (error) {
+    // Clean up uploaded file on error
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+    throw error;
+  }
+});
+
 export default {
   createDistribution,
   getDistributions,
@@ -141,4 +217,5 @@ export default {
   getReceivedGoodies,
   getReceivedById,
   getEligibleEmployees,
+  bulkUploadDistributions,
 };

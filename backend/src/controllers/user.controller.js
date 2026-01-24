@@ -28,11 +28,12 @@ export const getProfile = asyncHandler(async (req, res) => {
  * @access  Private (super_admin, admin: all users; internal: same office; external: forbidden)
  */
 export const getAllUsers = asyncHandler(async (req, res) => {
-  const { role, page = 1, limit = 10 } = req.query;
+  const { role, page = 1, limit = 10, officeId } = req.query;
 
   const result = await userService.getUsersByRole(req.user, role, {
     page: parseInt(page),
     limit: parseInt(limit),
+    officeId,
   });
 
   res.status(200).json({
@@ -111,7 +112,7 @@ export const bulkUploadEmployees = asyncHandler(async (req, res) => {
 
   try {
     // Parse Excel file
-    const { employees, errors: parseErrors } = await excelService.parseEmployeeExcel(req.file.path);
+    const { employees, errors: parseErrors } = await excelService.parseEmployeeExcel(req.file.path, req.user);
 
     // Create employees with targetOfficeId
     const results = await userService.bulkCreateEmployees(req.user, employees, targetOfficeId);
@@ -150,7 +151,7 @@ export const bulkUploadEmployees = asyncHandler(async (req, res) => {
 export const downloadTemplate = asyncHandler(async (req, res) => {
   const excelService = await import('../services/excel.service.js');
 
-  const buffer = excelService.generateExcelTemplate();
+  const buffer = excelService.generateExcelTemplate(req.user);
 
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename=employee-template.xlsx');
@@ -170,6 +171,22 @@ export const suspendUser = asyncHandler(async (req, res) => {
     success: true,
     data: { user: updatedUser },
     message: 'User suspended successfully',
+  });
+});
+
+/**
+ * @desc    Unsuspend a user (set status to active)
+ * @route   PATCH /api/v1/users/:id/unsuspend
+ * @access  Private (admin, super_admin - hierarchy based)
+ */
+export const unsuspendUser = asyncHandler(async (req, res) => {
+  const targetUserId = req.params.id;
+  const updatedUser = await userService.unsuspendUser(req.user, targetUserId);
+
+  res.status(200).json({
+    success: true,
+    data: { user: updatedUser },
+    message: 'User reactivated successfully',
   });
 });
 
@@ -199,6 +216,7 @@ export default {
   bulkUploadEmployees,
   downloadTemplate,
   suspendUser,
+  unsuspendUser,
   deleteUser,
 };
 

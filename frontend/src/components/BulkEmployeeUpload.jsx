@@ -16,31 +16,7 @@ const BulkEmployeeUpload = ({ isOpen, onClose, onSuccess }) => {
     const [uploadResult, setUploadResult] = useState(null);
     const [error, setError] = useState(null);
 
-    // Office selection for super admins
-    const [offices, setOffices] = useState([]);
-    const [selectedOfficeId, setSelectedOfficeId] = useState('');
-    const [loadingOffices, setLoadingOffices] = useState(false);
 
-    // Fetch offices for super admins
-    useEffect(() => {
-        if (isOpen && isSuperAdmin()) {
-            fetchOffices();
-        }
-    }, [isOpen, isSuperAdmin]);
-
-    const fetchOffices = async () => {
-        try {
-            setLoadingOffices(true);
-            const response = await api.get('/offices');
-            const data = response.data.data;
-            const officesList = data.offices || data.docs || (Array.isArray(data) ? data : []);
-            setOffices(officesList);
-        } catch (err) {
-            console.error('Failed to fetch offices:', err);
-        } finally {
-            setLoadingOffices(false);
-        }
-    };
 
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
@@ -79,17 +55,11 @@ const BulkEmployeeUpload = ({ isOpen, onClose, onSuccess }) => {
             return;
         }
 
-        // Validate office selection for super admins
-        if (isSuperAdmin() && !selectedOfficeId) {
-            setError('Please select a target office');
-            return;
-        }
-
         setUploading(true);
         setError(null);
 
         try {
-            const result = await uploadEmployeesExcel(file, selectedOfficeId || null);
+            const result = await uploadEmployeesExcel(file, null);
             setUploadResult(result.data);
             if (result.data.successCount > 0) {
                 onSuccess?.();
@@ -105,7 +75,6 @@ const BulkEmployeeUpload = ({ isOpen, onClose, onSuccess }) => {
         setFile(null);
         setUploadResult(null);
         setError(null);
-        setSelectedOfficeId('');
         onClose();
     };
 
@@ -135,8 +104,11 @@ const BulkEmployeeUpload = ({ isOpen, onClose, onSuccess }) => {
                         </h3>
                         <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
                             <li>Download the Excel template using the button below</li>
-                            <li>Fill in employee details (name, age, gender, employee_id, employee_type)</li>
-                            {isSuperAdmin() && <li>Select the target office from the dropdown</li>}
+                            <li>
+                                Fill in employee details (name, age, gender, employee_id, employee_type, date_of_birth
+                                {isSuperAdmin() && ', office_id'}
+                                )
+                            </li>
                             <li>Upload the completed file</li>
                             <li>Review the results and fix any errors if needed</li>
                         </ol>
@@ -177,30 +149,6 @@ const BulkEmployeeUpload = ({ isOpen, onClose, onSuccess }) => {
                         )}
                     </div>
 
-                    {/* Office Selector for Super Admins */}
-                    {isSuperAdmin() && (
-                        <div className="space-y-2">
-                            <label className="block text-sm font-medium text-gray-700">
-                                Target Office <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                value={selectedOfficeId}
-                                onChange={(e) => setSelectedOfficeId(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                disabled={loadingOffices}
-                            >
-                                <option value="">Select office</option>
-                                {offices.map((office) => (
-                                    <option key={office._id} value={office._id}>
-                                        {office.name} {office.isMainOffice ? '(Main Office)' : ''}
-                                    </option>
-                                ))}
-                            </select>
-                            {loadingOffices && (
-                                <p className="text-sm text-gray-500">Loading offices...</p>
-                            )}
-                        </div>
-                    )}
 
                     {/* Error Message */}
                     {error && (
@@ -276,34 +224,33 @@ const BulkEmployeeUpload = ({ isOpen, onClose, onSuccess }) => {
                         </div>
                     )}
 
-                    {/* Upload Button */}
-                    <button
-                        onClick={handleUpload}
-                        disabled={!file || uploading}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {uploading ? (
-                            <>
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                Uploading...
-                            </>
-                        ) : (
-                            <>
-                                <Upload size={20} />
-                                Upload Employees
-                            </>
-                        )}
-                    </button>
-                </div>
-
-                {/* Footer */}
-                <div className="flex justify-end gap-3 p-6 border-t bg-gray-50">
-                    <button
-                        onClick={handleClose}
-                        className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                        Close
-                    </button>
+                    {/* Action Button */}
+                    {uploadResult ? (
+                        <button
+                            onClick={handleClose}
+                            className="w-full bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700"
+                        >
+                            Close
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleUpload}
+                            disabled={!file || uploading}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                        >
+                            {uploading ? (
+                                <>
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                    Uploading...
+                                </>
+                            ) : (
+                                <>
+                                    <Upload size={20} />
+                                    Upload Employees
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

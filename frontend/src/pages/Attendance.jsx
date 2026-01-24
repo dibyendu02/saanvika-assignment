@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, User, Building, Filter, X } from 'lucide-react';
+import { Loader2, Calendar, User, Building, Filter } from 'lucide-react';
 import { format, startOfDay, endOfDay } from 'date-fns';
 
 const Attendance = () => {
@@ -207,16 +207,6 @@ const Attendance = () => {
                                     ))}
                                 </select>
                             </div>
-                            {filterOfficeId && filterOfficeId !== 'all' && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setFilterOfficeId('all')}
-                                    className="h-8 w-8 text-gray-500"
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            )}
                         </div>
                     )}
 

@@ -29,7 +29,7 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
-import { Loader2, UserPlus, ShieldCheck, UserCog, Mail, Phone, Building, Eye, EyeOff, AlertTriangle, Upload, MoreVertical, UserX, Trash2 } from 'lucide-react';
+import { Loader2, UserPlus, ShieldCheck, UserCog, Mail, Phone, Building, Eye, EyeOff, AlertTriangle, Upload, MoreVertical, UserX, UserCheck, Trash2, MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import BulkEmployeeUpload from '../components/BulkEmployeeUpload';
 
@@ -56,6 +56,11 @@ const Employees = () => {
     const [suspendingEmployee, setSuspendingEmployee] = useState(null);
     const [suspending, setSuspending] = useState(false);
 
+    // Unsuspend modal state
+    const [unsuspendDialogOpen, setUnsuspendDialogOpen] = useState(false);
+    const [unsuspendingEmployee, setUnsuspendingEmployee] = useState(null);
+    const [unsuspending, setUnsuspending] = useState(false);
+
     // Delete modal state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deletingEmployee, setDeletingEmployee] = useState(null);
@@ -65,6 +70,10 @@ const Employees = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const limit = 10;
+
+    // Office filter state (for super admin)
+    const [filterOfficeId, setFilterOfficeId] = useState('all');
+    const isSuperAdmin = currentUser?.role === 'super_admin';
 
     // Hierarchy Definition for creation logic
     const roleHierarchy = {
@@ -82,7 +91,11 @@ const Employees = () => {
         phone: '',
         password: '',
         role: 'external',
-        primaryOfficeId: ''
+        primaryOfficeId: '',
+        employeeId: '',
+        age: '',
+        gender: '',
+        dob: ''
     });
 
     const canCreateAny = currentRank > 1;
@@ -90,7 +103,7 @@ const Employees = () => {
     useEffect(() => {
         fetchEmployees();
         fetchOffices();
-    }, [page]); // Re-fetch on page change
+    }, [page, filterOfficeId]); // Re-fetch on page or filter change
 
     useEffect(() => {
         if (open) {
@@ -105,9 +118,14 @@ const Employees = () => {
     const fetchEmployees = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/users', {
-                params: { page, limit }
-            });
+            const params = { page, limit };
+
+            // Add office filter for super admin
+            if (isSuperAdmin && filterOfficeId && filterOfficeId !== 'all') {
+                params.officeId = filterOfficeId;
+            }
+
+            const response = await api.get('/users', { params });
             const data = response.data.data;
             const docs = data.users || data.docs || (Array.isArray(data) ? data : []);
             setEmployees(docs);
@@ -161,7 +179,7 @@ const Employees = () => {
             toast({ title: 'Success', description: 'Employee created and activated' });
             fetchEmployees();
             setOpen(false);
-            setNewEmployee({ name: '', email: '', phone: '', password: '', role: 'external', primaryOfficeId: '' });
+            setNewEmployee({ name: '', email: '', phone: '', password: '', role: 'external', primaryOfficeId: '', employeeId: '', age: '', gender: '', dob: '' });
         } catch (error) {
             toast({
                 title: 'Error',
@@ -226,6 +244,33 @@ const Employees = () => {
         }
     };
 
+    // Unsuspend handlers
+    const initiateUnsuspend = (employee) => {
+        setUnsuspendingEmployee(employee);
+        setUnsuspendDialogOpen(true);
+    };
+
+    const confirmUnsuspend = async () => {
+        if (!unsuspendingEmployee) return;
+
+        setUnsuspending(true);
+        try {
+            await api.patch(`/users/${unsuspendingEmployee._id}/unsuspend`);
+            toast({ title: 'Success', description: 'Employee reactivated successfully' });
+            fetchEmployees();
+            setUnsuspendDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to reactivate employee',
+                variant: 'destructive'
+            });
+        } finally {
+            setUnsuspending(false);
+            setUnsuspendingEmployee(null);
+        }
+    };
+
     // Delete handlers
     const initiateDelete = (employee) => {
         setDeletingEmployee(employee);
@@ -266,7 +311,31 @@ const Employees = () => {
                     <p className="text-gray-500 mt-1">Manage and verify employee accounts</p>
                 </div>
                 {canCreateAny && (
-                    <div className="flex gap-3">
+                    <div className="flex gap-3 items-center">
+                        {/* Office Filter - Only for Super Admin */}
+                        {isSuperAdmin && offices.length > 0 && (
+                            <div className="flex items-center gap-2">
+                                <div className="relative">
+                                    <Building className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                    <select
+                                        className="h-10 w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                        value={filterOfficeId}
+                                        onChange={(e) => {
+                                            setFilterOfficeId(e.target.value);
+                                            setPage(1);
+                                        }}
+                                    >
+                                        <option value="all">All Offices</option>
+                                        {offices.map((office) => (
+                                            <option key={office._id} value={office._id}>
+                                                {office.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Bulk Upload Button */}
                         <Button
                             variant="outline"
@@ -282,21 +351,70 @@ const Employees = () => {
                                     <UserPlus className="mr-2 h-4 w-4" /> Add Employee
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-w-2xl">
                                 <DialogHeader>
                                     <DialogTitle>Register New Employee</DialogTitle>
                                     <DialogDescription>Create a new employee account with assigned role and office</DialogDescription>
                                 </DialogHeader>
                                 <form onSubmit={handleCreate} className="space-y-4 px-6 py-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</Label>
-                                        <Input
-                                            id="name"
-                                            value={newEmployee.name}
-                                            onChange={e => setNewEmployee({ ...newEmployee, name: e.target.value })}
-                                            required
-                                            placeholder="Enter full name"
-                                        />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</Label>
+                                            <Input
+                                                id="name"
+                                                value={newEmployee.name}
+                                                onChange={e => setNewEmployee({ ...newEmployee, name: e.target.value })}
+                                                required
+                                                placeholder="Enter full name"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="employeeId" className="text-sm font-medium text-gray-700">Employee ID</Label>
+                                            <Input
+                                                id="employeeId"
+                                                value={newEmployee.employeeId}
+                                                onChange={e => setNewEmployee({ ...newEmployee, employeeId: e.target.value })}
+                                                placeholder="e.g., EMP001"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="dob" className="text-sm font-medium text-gray-700">Date of Birth</Label>
+                                            <Input
+                                                id="dob"
+                                                type="date"
+                                                value={newEmployee.dob}
+                                                onChange={e => setNewEmployee({ ...newEmployee, dob: e.target.value })}
+                                                className="w-40"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="age" className="text-sm font-medium text-gray-700">Age</Label>
+                                            <Input
+                                                id="age"
+                                                type="number"
+                                                min="18"
+                                                max="100"
+                                                value={newEmployee.age}
+                                                onChange={e => setNewEmployee({ ...newEmployee, age: e.target.value })}
+                                                placeholder="18-100"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="gender" className="text-sm font-medium text-gray-700">Gender</Label>
+                                            <select
+                                                id="gender"
+                                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+                                                value={newEmployee.gender}
+                                                onChange={e => setNewEmployee({ ...newEmployee, gender: e.target.value })}
+                                            >
+                                                <option value="">Select gender</option>
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
@@ -394,6 +512,7 @@ const Employees = () => {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Employee</TableHead>
+                                <TableHead>Employee ID</TableHead>
                                 <TableHead>Contact</TableHead>
                                 <TableHead>Office & Role</TableHead>
                                 <TableHead>Status</TableHead>
@@ -403,13 +522,13 @@ const Employees = () => {
                         <TableBody>
                             {loading ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10">
+                                    <TableCell colSpan={6} className="text-center py-10">
                                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
                                     </TableCell>
                                 </TableRow>
                             ) : filteredEmployees.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-10 text-gray-500">
+                                    <TableCell colSpan={6} className="text-center py-10 text-gray-500">
                                         No employees found.
                                     </TableCell>
                                 </TableRow>
@@ -423,9 +542,13 @@ const Employees = () => {
                                                 </div>
                                                 <div>
                                                     <div className="font-medium text-gray-900">{emp.name}</div>
-                                                    <div className="text-xs text-gray-400 font-mono">{emp._id?.slice(-8)}</div>
                                                 </div>
                                             </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm font-mono text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                                                {emp.employeeId || 'N/A'}
+                                            </span>
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center text-sm text-gray-700">
@@ -473,10 +596,34 @@ const Employees = () => {
                                                             </>
                                                         )}
                                                         {emp.status === 'active' && (
-                                                            <DropdownMenuItem onClick={() => initiateSuspend(emp)}>
-                                                                <UserX className="mr-2 h-4 w-4" />
-                                                                Suspend
-                                                            </DropdownMenuItem>
+                                                            <>
+                                                                <DropdownMenuItem onClick={() => initiateSuspend(emp)}>
+                                                                    <UserX className="mr-2 h-4 w-4" />
+                                                                    Suspend
+                                                                </DropdownMenuItem>
+                                                                {emp.role === 'external' && currentUser.role !== 'external' && (
+                                                                    <DropdownMenuItem onClick={async () => {
+                                                                        try {
+                                                                            await api.post('/location/request', { targetUserId: emp._id });
+                                                                            toast({ title: 'Success', description: 'Location request sent' });
+                                                                        } catch (e) {
+                                                                            toast({ title: 'Error', description: 'Failed to send request', variant: 'destructive' });
+                                                                        }
+                                                                    }}>
+                                                                        <MapPin className="mr-2 h-4 w-4" />
+                                                                        Request Location
+                                                                    </DropdownMenuItem>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                        {emp.status === 'inactive' && (
+                                                            <>
+                                                                <DropdownMenuItem onClick={() => initiateUnsuspend(emp)}>
+                                                                    <UserCheck className="mr-2 h-4 w-4" />
+                                                                    Reactivate
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuSeparator />
+                                                            </>
                                                         )}
                                                         {['super_admin', 'admin'].includes(currentUser?.role) && (
                                                             <DropdownMenuItem
@@ -588,6 +735,41 @@ const Employees = () => {
                         >
                             {suspending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Suspend Employee
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Unsuspend Confirmation Modal */}
+            <Dialog open={unsuspendDialogOpen} onOpenChange={setUnsuspendDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-green-50">
+                                <UserCheck className="h-5 w-5 text-green-600" />
+                            </div>
+                            Confirm Reactivation
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to reactivate <strong className="text-gray-900">{unsuspendingEmployee?.name}</strong>?
+                            This will set their status to active and restore system access.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="px-6 py-4">
+                        <p className="text-sm text-gray-500">
+                            The employee will be able to log in and access the system again.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setUnsuspendDialogOpen(false)} disabled={unsuspending}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={confirmUnsuspend}
+                            disabled={unsuspending}
+                        >
+                            {unsuspending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Reactivate Employee
                         </Button>
                     </DialogFooter>
                 </DialogContent>

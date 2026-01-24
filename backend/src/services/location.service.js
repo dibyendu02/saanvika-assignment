@@ -4,8 +4,11 @@
  * NOTE: This does NOT create attendance records and does NOT enforce office radius
  */
 import Location from '../models/location.model.js';
+import LocationRequest from '../models/locationRequest.model.js';
+import User from '../models/user.model.js';
 import AppError from '../utils/AppError.js';
 import { parsePagination, buildPaginationMeta } from '../utils/pagination.utils.js';
+import * as notificationService from './notification.service.js';
 
 /**
  * Share location (does not enforce office proximity)
@@ -15,7 +18,7 @@ import { parsePagination, buildPaginationMeta } from '../utils/pagination.utils.
  * @param {string} reason - Optional reason for sharing location
  * @returns {Promise<Object>} - Created location record
  */
-export const shareLocation = async (requestingUser, longitude, latitude, reason) => {
+export const shareLocation = async (requestingUser, longitude, latitude, reason, requestId) => {
   // Business rule: Only internal and external employees can share location
   if (!['internal', 'external'].includes(requestingUser.role)) {
     throw new AppError('Only employees can share location', 403);
@@ -31,6 +34,27 @@ export const shareLocation = async (requestingUser, longitude, latitude, reason)
     reason: reason || undefined,
     officeId: requestingUser.primaryOfficeId,
   });
+
+  // If this was shared in response to a request
+  if (requestId) {
+    const request = await LocationRequest.findById(requestId);
+    if (request && request.targetUser.toString() === requestingUser._id.toString()) {
+      request.status = 'shared';
+      request.respondedAt = new Date();
+      request.locationId = locationRecord._id;
+      await request.save();
+
+      // Notify the requester
+      await notificationService.createNotification({
+        recipient: request.requester,
+        sender: requestingUser._id,
+        title: 'Location Shared',
+        message: `${requestingUser.name} has shared their location in response to your request.`,
+        type: 'location_shared',
+        relatedId: locationRecord._id,
+      });
+    }
+  }
 
   return locationRecord;
 };
@@ -146,8 +170,127 @@ export const getLocationById = async (requestingUser, locationId) => {
   throw new AppError('Access denied', 403);
 };
 
+/**
+ * Request an external employee's location
+ * @param {Object} requestingUser - The user making the request
+ * @param {string} targetUserId - The ID of the employee whose location is requested
+ */
+export const requestLocation = async (requestingUser, targetUserId) => {
+  // Check if target user is external
+  const targetUser = await User.findById(targetUserId);
+  if (!targetUser) {
+    throw new AppError('Target user not found', 404);
+  }
+
+  if (targetUser.role !== 'external') {
+    throw new AppError('Location requests can only be sent to external employees', 400);
+  }
+
+  // Check if requesting user is allowed to request (anyone but external)
+  if (requestingUser.role === 'external') {
+    throw new AppError('External employees cannot request locations', 403);
+  }
+
+  const request = await LocationRequest.create({
+    requester: requestingUser._id,
+    targetUser: targetUserId,
+    status: 'pending',
+  });
+
+  // Create notification for external employee
+  await notificationService.createNotification({
+    recipient: targetUserId,
+    sender: requestingUser._id,
+    title: 'Location Request',
+    message: `${requestingUser.name} is requesting your current location.`,
+    type: 'location_request',
+    relatedId: request._id,
+  });
+
+  return request;
+};
+
+/**
+ * Get location requests for a user
+ * - External employees see requests they received
+ * - Others see requests they sent
+ * - Super admin can filter by office
+ */
+export const getLocationRequests = async (user, filters = {}) => {
+  let query;
+
+  if (user.role === 'external') {
+    // External employees see requests sent to them
+    query = { targetUser: user._id };
+  } else {
+    // Others see requests they sent
+    query = { requester: user._id };
+  }
+
+  const requests = await LocationRequest.find(query)
+    .populate('requester', 'name email role primaryOfficeId')
+    .populate('targetUser', 'name email role primaryOfficeId')
+    .populate('locationId')
+    .sort({ requestedAt: -1 });
+
+  // Filter by office if super admin and officeId provided
+  if (user.role === 'super_admin' && filters.officeId) {
+    return requests.filter(request => {
+      const targetOfficeId = request.targetUser?.primaryOfficeId?._id || request.targetUser?.primaryOfficeId;
+      const requesterOfficeId = request.requester?.primaryOfficeId?._id || request.requester?.primaryOfficeId;
+      return targetOfficeId?.toString() === filters.officeId || requesterOfficeId?.toString() === filters.officeId;
+    });
+  }
+
+  return requests;
+};
+
+/**
+ * Deny a location request
+ */
+export const denyLocationRequest = async (user, requestId) => {
+  const request = await LocationRequest.findById(requestId);
+
+  if (!request) {
+    throw new AppError('Location request not found', 404);
+  }
+
+  // Only the target user can deny
+  if (request.targetUser.toString() !== user._id.toString()) {
+    throw new AppError('You are not authorized to deny this request', 403);
+  }
+
+  if (request.status !== 'pending') {
+    throw new AppError('This request has already been responded to', 400);
+  }
+
+  request.status = 'denied';
+  request.respondedAt = new Date();
+  await request.save();
+
+  // Notify the requester (non-blocking)
+  try {
+    await notificationService.createNotification({
+      recipient: request.requester,
+      sender: user._id,
+      title: 'Location Request Denied',
+      message: `${user.name} has denied your location request.`,
+      type: 'location_denied',
+      relatedId: request._id,
+    });
+  } catch (error) {
+    // Log but don't fail the deny operation
+    console.error('Failed to create notification:', error);
+  }
+
+  return request;
+};
+
 export default {
   shareLocation,
+  requestLocation,
   getLocations,
   getLocationById,
+  getLocationRequests,
+  denyLocationRequest,
 };

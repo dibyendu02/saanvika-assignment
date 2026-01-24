@@ -38,6 +38,27 @@ const userSchema = new mongoose.Schema(
       minlength: [6, 'Password must be at least 6 characters'],
       select: false,
     },
+    employeeId: {
+      type: String,
+      trim: true,
+      sparse: true, // Allows multiple null values but enforces uniqueness for non-null values
+      unique: true,
+    },
+    age: {
+      type: Number,
+      min: [18, 'Age must be at least 18'],
+      max: [100, 'Age must be less than 100'],
+    },
+    gender: {
+      type: String,
+      enum: {
+        values: ['male', 'female', 'other'],
+        message: 'Gender must be one of: male, female, other',
+      },
+    },
+    dob: {
+      type: Date,
+    },
     role: {
       type: String,
       enum: {
@@ -95,6 +116,30 @@ const userSchema = new mongoose.Schema(
     verifiedAt: {
       type: Date,
     },
+    // Multiple FCM tokens for multi-device support
+    fcmTokens: [{
+      token: {
+        type: String,
+        required: true,
+      },
+      deviceId: {
+        type: String,
+        required: true,
+      },
+      platform: {
+        type: String,
+        enum: ['web', 'ios', 'android'],
+        default: 'web',
+      },
+      addedAt: {
+        type: Date,
+        default: Date.now,
+      },
+      lastUsed: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
   },
   {
     timestamps: true,
@@ -160,6 +205,69 @@ userSchema.methods.generateAuthToken = function () {
   return jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   });
+};
+
+/**
+ * Add or update FCM token for a device
+ * @param {string} token - FCM token
+ * @param {string} deviceId - Unique device identifier
+ * @param {string} platform - Platform (web, ios, android)
+ * @returns {Promise<void>}
+ */
+userSchema.methods.addFcmToken = async function (token, deviceId, platform = 'web') {
+  // Check if token already exists for this device
+  const existingTokenIndex = this.fcmTokens.findIndex(
+    (t) => t.deviceId === deviceId
+  );
+
+  if (existingTokenIndex !== -1) {
+    // Update existing token
+    this.fcmTokens[existingTokenIndex].token = token;
+    this.fcmTokens[existingTokenIndex].lastUsed = new Date();
+    this.fcmTokens[existingTokenIndex].platform = platform;
+  } else {
+    // Add new token
+    this.fcmTokens.push({
+      token,
+      deviceId,
+      platform,
+      addedAt: new Date(),
+      lastUsed: new Date(),
+    });
+  }
+
+  await this.save();
+};
+
+/**
+ * Remove FCM token for a device
+ * @param {string} deviceId - Unique device identifier
+ * @returns {Promise<void>}
+ */
+userSchema.methods.removeFcmToken = async function (deviceId) {
+  this.fcmTokens = this.fcmTokens.filter((t) => t.deviceId !== deviceId);
+  await this.save();
+};
+
+/**
+ * Update last used timestamp for a device token
+ * @param {string} deviceId - Unique device identifier
+ * @returns {Promise<void>}
+ */
+userSchema.methods.updateTokenLastUsed = async function (deviceId) {
+  const tokenIndex = this.fcmTokens.findIndex((t) => t.deviceId === deviceId);
+  if (tokenIndex !== -1) {
+    this.fcmTokens[tokenIndex].lastUsed = new Date();
+    await this.save();
+  }
+};
+
+/**
+ * Get all active FCM tokens
+ * @returns {Array<string>} - Array of FCM tokens
+ */
+userSchema.methods.getActiveFcmTokens = function () {
+  return this.fcmTokens.map((t) => t.token);
 };
 
 const User = mongoose.model('User', userSchema);

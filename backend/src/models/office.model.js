@@ -94,6 +94,12 @@ const officeSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    officeId: {
+      type: String,
+      required: [true, 'Office ID is required'],
+      unique: true,
+      trim: true,
+    },
   },
   {
     timestamps: true,

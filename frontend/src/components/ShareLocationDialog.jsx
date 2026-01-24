@@ -14,7 +14,7 @@ import { Label } from './ui/label';
 import { MapPin, Loader2, AlertCircle } from 'lucide-react';
 import MapView from './MapView';
 
-export default function ShareLocationDialog({ trigger, onSuccess }) {
+export default function ShareLocationDialog({ trigger, triggerButton, onSuccess, requestId }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [gettingLocation, setGettingLocation] = useState(false);
@@ -103,6 +103,7 @@ export default function ShareLocationDialog({ trigger, onSuccess }) {
                 longitude: coordinates.longitude,
                 latitude: coordinates.latitude,
                 reason: reason.trim() || undefined,
+                requestId: requestId || undefined,
             });
 
             toast({
@@ -147,7 +148,7 @@ export default function ShareLocationDialog({ trigger, onSuccess }) {
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                {trigger || (
+                {triggerButton || trigger || (
                     <Button>
                         <MapPin className="h-4 w-4 md:mr-2" />
                         <span className="hidden md:inline">Share Location</span>

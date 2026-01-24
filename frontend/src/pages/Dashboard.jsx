@@ -20,12 +20,13 @@ const Dashboard = () => {
     const [checkingAttendance, setCheckingAttendance] = useState(false);
 
     const isAdmin = ['super_admin', 'admin'].includes(user?.role);
+    const isSuperAdmin = user?.role === 'super_admin';
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
                 const [officesRes, attendanceRes, goodiesRes, summaryRes] = await Promise.all([
-                    api.get('/offices?limit=1').catch(() => ({ data: { data: { total: 0 } } })),
+                    isSuperAdmin ? api.get('/offices?limit=1').catch(() => ({ data: { data: { total: 0 } } })) : Promise.resolve({ data: { data: { total: 0 } } }),
                     api.get('/attendance?limit=1').catch(() => ({ data: { data: { total: 0 } } })),
                     api.get('/goodies/distributions?limit=1').catch(() => ({ data: { data: { total: 0 } } })),
                     isAdmin ? api.get('/dashboard/summary').catch(() => ({ data: { data: { summary: null } } })) : Promise.resolve({ data: { data: { summary: null } } }),

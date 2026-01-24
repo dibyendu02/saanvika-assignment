@@ -12,7 +12,9 @@ import {
   getReceivedGoodies,
   getReceivedById,
   getEligibleEmployees,
+  bulkUploadDistributions,
 } from '../controllers/goodies.controller.js';
+import { uploadSingleFile, handleUploadError } from '../middlewares/upload.middleware.js';
 import {
   createDistributionSchema,
   receiveGoodiesSchema,
@@ -33,6 +35,14 @@ router.post(
   authorize('admin', 'super_admin'),
   validate(createDistributionSchema),
   createDistribution
+);
+
+router.post(
+  '/bulk-upload',
+  authorize('admin', 'super_admin'),
+  uploadSingleFile,
+  handleUploadError,
+  bulkUploadDistributions
 );
 
 router.get(

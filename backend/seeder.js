@@ -72,7 +72,8 @@ const importData = async () => {
             role: 'super_admin',
             phone: '9999999999',
             status: 'active',
-            isVerified: true
+            isVerified: true,
+            employeeId: 'SA001'
         });
 
         // 10 Internal Employees
@@ -85,7 +86,8 @@ const importData = async () => {
                 phone: `99000000${i.toString().padStart(2, '0')}`,
                 status: 'active',
                 isVerified: true,
-                primaryOfficeId: office._id
+                primaryOfficeId: office._id,
+                employeeId: `INT${i.toString().padStart(3, '0')}`
             });
         }
 
@@ -99,7 +101,8 @@ const importData = async () => {
                 phone: `88000000${i.toString().padStart(2, '0')}`,
                 status: 'active',
                 isVerified: true,
-                primaryOfficeId: office._id
+                primaryOfficeId: office._id,
+                employeeId: `EXT${i.toString().padStart(3, '0')}`
             });
         }
 

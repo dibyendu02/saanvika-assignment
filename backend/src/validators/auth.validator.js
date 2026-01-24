@@ -61,8 +61,25 @@ export const registerSchema = Joi.object({
       'any.required': 'Primary office ID is required for internal and external employees',
     }),
 
+  employeeId: Joi.string().trim().optional().messages({
+    'string.empty': 'Employee ID cannot be empty',
+  }),
+
+  age: Joi.number().integer().min(18).max(100).optional().messages({
+    'number.min': 'Age must be at least 18',
+    'number.max': 'Age cannot exceed 100',
+  }),
+
+  gender: Joi.string().valid('male', 'female', 'other').optional().messages({
+    'any.only': 'Gender must be one of: male, female, other',
+  }),
+
   createdBy: Joi.string().pattern(objectIdPattern).optional().messages({
     'string.pattern.base': 'Invalid creator ID format',
+  }),
+
+  dob: Joi.date().optional().messages({
+    'date.base': 'Date of birth must be a valid date',
   }),
 });
 

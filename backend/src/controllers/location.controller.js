@@ -11,13 +11,14 @@ import * as locationService from '../services/location.service.js';
  * @access  Private (internal, external)
  */
 export const shareLocation = asyncHandler(async (req, res) => {
-  const { longitude, latitude, reason } = req.body;
+  const { longitude, latitude, reason, requestId } = req.body;
 
   const location = await locationService.shareLocation(
     req.user,
     longitude,
     latitude,
-    reason
+    reason,
+    requestId
   );
 
   res.status(201).json({
@@ -66,8 +67,59 @@ export const getLocationById = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Request external employee's location
+ * @route   POST /api/v1/location/request
+ * @access  Private (all but external)
+ */
+export const requestLocation = asyncHandler(async (req, res) => {
+  const { targetUserId } = req.body;
+
+  const request = await locationService.requestLocation(req.user, targetUserId);
+
+  res.status(201).json({
+    success: true,
+    data: { request },
+    message: 'Location request sent successfully',
+  });
+});
+
+/**
+ * @desc    Get location requests (sent or received)
+ * @route   GET /api/v1/location/requests
+ * @access  Private
+ */
+export const getLocationRequests = asyncHandler(async (req, res) => {
+  const { officeId } = req.query;
+  const requests = await locationService.getLocationRequests(req.user, { officeId });
+
+  res.status(200).json({
+    success: true,
+    data: { requests },
+    message: 'Location requests fetched successfully',
+  });
+});
+
+/**
+ * @desc    Deny a location request
+ * @route   PATCH /api/v1/location/requests/:id/deny
+ * @access  Private (external only)
+ */
+export const denyLocationRequest = asyncHandler(async (req, res) => {
+  const request = await locationService.denyLocationRequest(req.user, req.params.id);
+
+  res.status(200).json({
+    success: true,
+    data: { request },
+    message: 'Location request denied',
+  });
+});
+
 export default {
   shareLocation,
+  requestLocation,
   getLocations,
   getLocationById,
+  getLocationRequests,
+  denyLocationRequest,
 };

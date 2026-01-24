@@ -236,9 +236,10 @@ export const getAttendanceById = async (requestingUser, attendanceId) => {
  * Get monthly attendance summary with aggregated counts per employee
  * @param {Object} requestingUser - The user making the request
  * @param {string} month - Month in YYYY-MM format
+ * @param {Object} filters - Optional filters { officeId }
  * @returns {Promise<Array>} - Summary with attendance counts per employee
  */
-export const getMonthlySummary = async (requestingUser, month) => {
+export const getMonthlySummary = async (requestingUser, month, filters = {}) => {
   // Parse month (format: YYYY-MM)
   const [year, monthNum] = month.split('-').map(Number);
   if (!year || !monthNum || monthNum < 1 || monthNum > 12) {
@@ -260,7 +261,9 @@ export const getMonthlySummary = async (requestingUser, month) => {
   // Role-based access control
   if (requestingUser.role === 'super_admin') {
     // Super admin can see all attendance
-    // No additional filters
+    if (filters && filters.officeId) {
+      matchQuery.officeId = filters.officeId;
+    }
   } else if (requestingUser.role === 'admin') {
     // Admin can only see attendance from their office
     matchQuery.officeId = requestingUser.primaryOfficeId;

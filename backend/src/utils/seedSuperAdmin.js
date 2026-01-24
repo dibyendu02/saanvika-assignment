@@ -28,6 +28,7 @@ export const seedSuperAdmin = async () => {
             password: 'password123',
             role: 'super_admin',
             status: 'active',
+            employeeId: 'SA001',
         });
 
         console.log('Super admin created successfully');

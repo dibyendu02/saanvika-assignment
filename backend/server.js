@@ -2,6 +2,7 @@ import 'dotenv/config';
 import app from './src/app.js';
 import connectDB from './src/config/database.js';
 import seedSuperAdmin from './src/utils/seedSuperAdmin.js';
+import { initializeFirebase } from './src/services/firebase.service.js';
 
 const PORT = process.env.PORT || 5001;
 
@@ -9,6 +10,9 @@ const startServer = async () => {
   try {
     // Connect to MongoDB
     await connectDB();
+
+    // Initialize Firebase Admin SDK
+    initializeFirebase();
 
     // Seed super admin if not exists
     await seedSuperAdmin();

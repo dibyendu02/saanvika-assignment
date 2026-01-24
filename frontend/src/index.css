@@ -114,3 +114,14 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Date input calendar icon styling */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-right: 4px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+input[type="date"] {
+  padding-right: 8px;
+}

@@ -423,6 +423,62 @@ export const getEligibleEmployees = async (requestingUser, distributionId) => {
   return distribution.targetEmployees;
 };
 
+/**
+ * Bulk create goodies distribution from parsed Excel items
+ * @param {Object} requestingUser - The user creating the distributions
+ * @param {Object} bulkData - Object containing distributions items and global settings
+ * @returns {Promise<Object>} - Results of creation
+ */
+export const bulkCreateDistribution = async (requestingUser, bulkData) => {
+  const { items, goodiesType, distributionDate, totalQuantityPerEmployee } = bulkData;
+
+  const results = {
+    totalProcessed: items.length,
+    success: [],
+    failed: []
+  };
+
+  // Create a distribution for each office involved, or group items by office
+  const itemsByOffice = items.reduce((acc, item) => {
+    const officeId = item.office._id.toString();
+    if (!acc[officeId]) {
+      acc[officeId] = {
+        office: item.office,
+        employees: []
+      };
+    }
+    acc[officeId].employees.push(item.user._id);
+    return acc;
+  }, {});
+
+  for (const officeId in itemsByOffice) {
+    const { office, employees } = itemsByOffice[officeId];
+
+    try {
+      const distribution = await createDistribution(requestingUser, {
+        officeId,
+        goodiesType,
+        distributionDate,
+        totalQuantity: employees.length * totalQuantityPerEmployee,
+        isForAllEmployees: false,
+        targetEmployees: employees
+      });
+      results.success.push({
+        office: office.name,
+        employeeCount: employees.length,
+        distributionId: distribution._id
+      });
+    } catch (error) {
+      results.failed.push({
+        office: office.name,
+        error: error.message
+      });
+    }
+  }
+
+  return results;
+};
+
 export default {
   createDistribution,
   getDistributions,
@@ -431,4 +487,5 @@ export default {
   getReceivedGoodies,
   getReceivedById,
   getEligibleEmployees,
+  bulkCreateDistribution,
 };

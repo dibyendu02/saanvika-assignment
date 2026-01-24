@@ -12,8 +12,10 @@ import {
     Users,
     MapPin,
     ChevronRight,
-    X
+    X,
+    Navigation
 } from 'lucide-react';
+import Notifications from './Notifications';
 
 const Layout = ({ children }) => {
     const { user, logout } = useAuth();
@@ -33,6 +35,7 @@ const Layout = ({ children }) => {
         { name: 'Attendance', href: '/attendance', icon: UserCheck, roles: ['super_admin', 'admin', 'internal', 'external'] },
         { name: 'Goodies', href: '/goodies', icon: Gift, roles: ['super_admin', 'admin', 'internal', 'external'] },
         { name: 'Locations', href: '/locations', icon: MapPin, roles: ['super_admin', 'admin', 'internal', 'external'] },
+        { name: 'Location Requests', href: '/location-requests', icon: Navigation, roles: ['super_admin', 'admin', 'internal', 'external'] },
     ];
 
     const filteredNavigation = navigation.filter(item => item.roles.includes(user?.role));
@@ -153,13 +156,15 @@ const Layout = ({ children }) => {
                 </header>
 
                 {/* Desktop Header */}
-                <header className="hidden md:flex h-14 bg-white border-b border-gray-200 items-center px-6 sticky top-0 z-10">
+                <header className="hidden md:flex h-14 bg-white border-b border-gray-200 items-center justify-between px-6 sticky top-0 z-10">
                     <nav className="flex items-center text-sm text-gray-500">
                         <span className="font-medium text-gray-900">
-                            {/* {navigation.find(n => n.href === location.pathname)?.name || 'Dashboard'} */}
                             Welcome, {user?.name || 'User'}
                         </span>
                     </nav>
+                    <div className="flex items-center gap-4">
+                        <Notifications />
+                    </div>
                 </header>
 
                 <div className="p-6 lg:p-8 max-w-[1600px] mx-auto w-full">

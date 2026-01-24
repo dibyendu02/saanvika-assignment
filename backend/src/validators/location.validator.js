@@ -41,6 +41,13 @@ export const shareLocationSchema = Joi.object({
     .messages({
       'string.max': 'Reason cannot exceed 500 characters',
     }),
+
+  requestId: Joi.string()
+    .pattern(objectIdPattern)
+    .optional()
+    .messages({
+      'string.pattern.base': 'Invalid request ID format',
+    }),
 });
 
 /**

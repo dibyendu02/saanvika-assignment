@@ -11,6 +11,7 @@ import attendanceRoutes from './routes/attendance.routes.js';
 import goodiesRoutes from './routes/goodies.routes.js';
 import locationRoutes from './routes/location.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 
 // Import middlewares
 import errorHandler from './middlewares/errorHandler.js';
@@ -43,6 +44,7 @@ app.use('/api/v1/attendance', attendanceRoutes);
 app.use('/api/v1/goodies', goodiesRoutes);
 app.use('/api/v1/location', locationRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 
 // 404 handler for unknown routes
 app.use((req, res) => {

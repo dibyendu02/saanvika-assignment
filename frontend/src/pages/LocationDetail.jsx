@@ -88,7 +88,7 @@ export default function LocationDetail() {
                 </button>
                 <div>
                     <h1 className="text-3xl font-bold flex items-center gap-2">
-                        <MapPin className="h-8 w-8" />
+
                         Location Details
                     </h1>
                     <p className="text-gray-600 mt-1">

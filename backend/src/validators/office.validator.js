@@ -85,6 +85,11 @@ export const createOfficeSchema = Joi.object({
   }),
 
   targets: Joi.array().items(targetSchema).optional().default([]),
+
+  officeId: Joi.string().trim().required().messages({
+    'string.empty': 'Office ID is required',
+    'any.required': 'Office ID is required',
+  }),
 });
 
 /**

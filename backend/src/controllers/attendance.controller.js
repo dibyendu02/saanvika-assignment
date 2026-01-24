@@ -75,13 +75,13 @@ export const getAttendanceById = asyncHandler(async (req, res) => {
  * @access  Private (role-based)
  */
 export const getMonthlySummary = asyncHandler(async (req, res) => {
-  const { month } = req.query;
+  const { month, officeId } = req.query;
 
   if (!month) {
     throw new AppError('Month parameter is required (format: YYYY-MM)', 400);
   }
 
-  const result = await attendanceService.getMonthlySummary(req.user, month);
+  const result = await attendanceService.getMonthlySummary(req.user, month, { officeId });
 
   res.status(200).json({
     success: true,

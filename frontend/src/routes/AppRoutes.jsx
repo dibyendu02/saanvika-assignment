@@ -8,6 +8,7 @@ import Employees from '../pages/Employees';
 import RegisterPage from '../pages/RegisterPage';
 import Locations from '../pages/Locations';
 import LocationDetail from '../pages/LocationDetail';
+import LocationRequests from '../pages/LocationRequests';
 import ProtectedRoute from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
 
@@ -91,6 +92,17 @@ const AppRoutes = () => {
                     <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal', 'external']}>
                         <Layout>
                             <LocationDetail />
+                        </Layout>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/location-requests"
+                element={
+                    <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal', 'external']}>
+                        <Layout>
+                            <LocationRequests />
                         </Layout>
                     </ProtectedRoute>
                 }

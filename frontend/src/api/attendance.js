@@ -57,11 +57,16 @@ export const checkTodayAttendance = async () => {
 /**
  * Get monthly attendance summary
  * @param {string} month - Month in YYYY-MM format
+ * @param {string} officeId - Optional office ID filter (for super admin)
  * @returns {Promise} - Monthly summary with attendance counts
  */
-export const getMonthlySummary = async (month) => {
+export const getMonthlySummary = async (month, officeId) => {
+    const params = { month };
+    if (officeId) {
+        params.officeId = officeId;
+    }
     const response = await api.get('/attendance/summary/monthly', {
-        params: { month },
+        params,
     });
     return response.data;
 };
