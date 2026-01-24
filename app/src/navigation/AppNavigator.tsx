@@ -12,6 +12,8 @@ import BottomTabNavigator from './BottomTabNavigator';
 import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { COLORS } from '../constants/theme';
 
+import { navigationRef } from '../services/NavigationService';
+
 const Stack = createStackNavigator();
 
 export const AppNavigator: React.FC = () => {
@@ -26,7 +28,7 @@ export const AppNavigator: React.FC = () => {
     }
 
     return (
-        <NavigationContainer>
+        <NavigationContainer ref={navigationRef}>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {isAuthenticated ? (
                     <Stack.Screen name="Main" component={BottomTabNavigator} />

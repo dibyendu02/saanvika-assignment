@@ -16,6 +16,7 @@ import {
     Alert,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { useFocusEffect } from '@react-navigation/native';
 import { locationApi, LocationRequest } from '../../api/location';
 import officesApi from '../../api/offices';
 import { Card } from '../../components/ui/Card';
@@ -24,26 +25,21 @@ import { showToast } from '../../utils/toast';
 import { Dropdown } from '../../components/ui/Dropdown';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import LocationService from '../../services/LocationService';
 
 export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { user } = useAuth();
     const [requests, setRequests] = useState<LocationRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [responding, setResponding] = useState<string | null>(null);
+    const [respondingId, setRespondingId] = useState<string | null>(null);
+    const [respondingAction, setRespondingAction] = useState<'share' | 'deny' | null>(null);
     const [offices, setOffices] = useState<any[]>([]);
     const [filterOfficeId, setFilterOfficeId] = useState('all');
     const [showOfficeFilter, setShowOfficeFilter] = useState(false);
 
     const isExternal = user?.role === 'external';
     const isSuperAdmin = user?.role === 'super_admin';
-
-    useEffect(() => {
-        fetchRequests();
-        if (isSuperAdmin) {
-            fetchOffices();
-        }
-    }, [filterOfficeId]);
 
     const fetchRequests = useCallback(async () => {
         try {
@@ -59,6 +55,16 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
             setRefreshing(false);
         }
     }, [filterOfficeId]);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchRequests();
+            if (isSuperAdmin) {
+                fetchOffices();
+            }
+            return () => { }; // Optional cleanup
+        }, [fetchRequests, isSuperAdmin])
+    );
 
     const fetchOffices = async () => {
         try {
@@ -84,7 +90,8 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
                     text: 'Deny',
                     style: 'destructive',
                     onPress: async () => {
-                        setResponding(requestId);
+                        setRespondingId(requestId);
+                        setRespondingAction('deny');
                         try {
                             await locationApi.denyLocationRequest(requestId);
                             showToast.success('Success', 'Request denied');
@@ -92,7 +99,8 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
                         } catch (error: any) {
                             showToast.error('Error', error.response?.data?.message || 'Failed to deny request');
                         } finally {
-                            setResponding(null);
+                            setRespondingId(null);
+                            setRespondingAction(null);
                         }
                     },
                 },
@@ -100,10 +108,39 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
         );
     };
 
-    const handleShareLocation = (requestId: string) => {
-        // Navigate to a location sharing screen or show modal
-        // For now, we'll just show a toast
-        showToast.info('Share Location', 'This will open location sharing interface');
+    const handleShareLocation = async (requestId: string) => {
+        try {
+            setRespondingId(requestId);
+            setRespondingAction('share');
+
+            // 1. Request Permission
+            const hasPermission = await LocationService.requestPermission();
+            if (!hasPermission) {
+                showToast.error('Permission Denied', 'Please enable location access to share your location.');
+                return;
+            }
+
+            // 2. Get Current Position
+            showToast.info('Fetching Location', 'Getting your current coordinates...');
+            const coords = await LocationService.getCurrentPosition();
+
+            // 3. Share Location with Backend
+            await locationApi.shareLocation({
+                requestId,
+                latitude: coords.latitude,
+                longitude: coords.longitude,
+                reason: 'Requested by team',
+            });
+
+            showToast.success('Success', 'Location shared successfully');
+            fetchRequests();
+        } catch (error: any) {
+            console.error('Error sharing location:', error);
+            showToast.error('Error', error.code === 3 ? 'Location request timed out. Please try again or move to an open area.' : (error.response?.data?.message || 'Failed to share location'));
+        } finally {
+            setRespondingId(null);
+            setRespondingAction(null);
+        }
     };
 
     const getStatusColor = (status: string) => {
@@ -204,19 +241,26 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
                             variant="primary"
                             size="sm"
                             onPress={() => handleShareLocation(item._id)}
+                            disabled={respondingId === item._id}
                             style={styles.actionButton}
                         >
-                            <Icon name="map-marker" size={16} color={COLORS.textWhite} />
-                            <Text style={styles.buttonText}>Share Location</Text>
+                            {respondingId === item._id && respondingAction === 'share' ? (
+                                <ActivityIndicator size="small" color={COLORS.textWhite} />
+                            ) : (
+                                <>
+                                    <Icon name="map-marker" size={16} color={COLORS.textWhite} />
+                                    <Text style={styles.buttonText}>Share Location</Text>
+                                </>
+                            )}
                         </Button>
                         <Button
                             variant="outline"
                             size="sm"
                             onPress={() => handleDeny(item._id)}
-                            disabled={responding === item._id}
+                            disabled={respondingId === item._id}
                             style={styles.actionButton}
                         >
-                            {responding === item._id ? (
+                            {respondingId === item._id && respondingAction === 'deny' ? (
                                 <ActivityIndicator size="small" color={COLORS.danger} />
                             ) : (
                                 <>

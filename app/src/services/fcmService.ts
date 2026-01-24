@@ -1,16 +1,14 @@
 /**
  * FCM Service
  * Handles Firebase Cloud Messaging functionality
- * Note: This is a placeholder implementation that requires @react-native-firebase packages
  */
 
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import { fcmApi } from '../api/fcm';
 import { showToast } from '../utils/toast';
-
-// This will be replaced with actual Firebase imports once packages are installed
-// import messaging from '@react-native-firebase/messaging';
+import { navigate } from './NavigationService';
 
 const DEVICE_TOKEN_KEY = 'fcm_device_token';
 const DEVICE_ID_KEY = 'device_id';
@@ -40,25 +38,21 @@ export const fcmService = {
      */
     async initialize(): Promise<boolean> {
         try {
-            // Check if Firebase packages are available
-            // In real implementation, uncomment this:
-            /*
+            // Request Firebase permission
             const authStatus = await messaging().requestPermission();
             const enabled =
                 authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
                 authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
-            if (!enabled) {
-                console.log('Push notification permission not granted');
-                return false;
+            if (enabled) {
+                console.log('✅ FCM initialized successfully');
+            } else {
+                console.log('❌ FCM permission denied');
             }
-            */
 
-            // For now, just return success (placeholder)
-            console.log('FCM initialization placeholder - Firebase packages not yet installed');
-            return true;
+            return enabled;
         } catch (error) {
-            console.error('Error initializing FCM:', error);
+            console.error('Error initializing notifications:', error);
             return false;
         }
     },
@@ -72,16 +66,14 @@ export const fcmService = {
             const deviceId = await getDeviceId();
 
             // Get FCM token
-            // In real implementation, uncomment this:
-            /*
             const token = await messaging().getToken();
-            
+
             if (!token) {
                 console.log('No FCM token available');
                 return;
             }
 
-            console.log('FCM Token:', token);
+            console.log('FCM Token obtained');
 
             // Save token locally
             await AsyncStorage.setItem(DEVICE_TOKEN_KEY, token);
@@ -93,11 +85,7 @@ export const fcmService = {
                 platform: Platform.OS as 'android' | 'ios',
             });
 
-            console.log('FCM token registered successfully');
-            */
-
-            // Placeholder log
-            console.log('FCM token registration placeholder - Firebase packages not yet installed');
+            console.log('✅ FCM token registered with backend');
         } catch (error) {
             console.error('Error registering FCM token:', error);
             showToast.error('Error', 'Failed to register for notifications');
@@ -112,7 +100,8 @@ export const fcmService = {
             const deviceId = await getDeviceId();
             await fcmApi.removeFCMToken(deviceId);
             await AsyncStorage.removeItem(DEVICE_TOKEN_KEY);
-            console.log('FCM token removed successfully');
+            await messaging().deleteToken();
+            console.log('✅ FCM token removed successfully');
         } catch (error) {
             console.error('Error removing FCM token:', error);
         }
@@ -123,16 +112,14 @@ export const fcmService = {
      */
     setupNotificationHandlers(onNotificationReceived?: (notification: any) => void) {
         // Foreground message handler
-        // In real implementation, uncomment this:
-        /*
         messaging().onMessage(async remoteMessage => {
-            console.log('Foreground notification:', remoteMessage);
-            
+            console.log('📬 Foreground notification:', remoteMessage);
+
             if (onNotificationReceived) {
                 onNotificationReceived(remoteMessage);
             }
 
-            // Show local notification or toast
+            // Show toast for foreground notifications
             if (remoteMessage.notification) {
                 showToast.info(
                     remoteMessage.notification.title || 'Notification',
@@ -141,29 +128,69 @@ export const fcmService = {
             }
         });
 
-        // Background message handler (must be outside component)
-        messaging().setBackgroundMessageHandler(async remoteMessage => {
-            console.log('Background notification:', remoteMessage);
-        });
-
-        // Notification opened app from quit state
+        // Notification opened app from quit state (Firebase handler)
         messaging()
             .getInitialNotification()
             .then(remoteMessage => {
                 if (remoteMessage) {
-                    console.log('Notification opened app from quit state:', remoteMessage);
-                    // Handle navigation based on notification data
+                    console.log('📬 Notification opened app from quit state:', remoteMessage);
+                    this.handleNotificationOpen(remoteMessage);
                 }
             });
 
-        // Notification opened app from background state
+        // Notification opened app from background state (Firebase handler)
         messaging().onNotificationOpenedApp(remoteMessage => {
-            console.log('Notification opened app from background:', remoteMessage);
-            // Handle navigation based on notification data
+            console.log('📬 Notification opened app from background (Firebase):', remoteMessage);
+            this.handleNotificationOpen(remoteMessage);
         });
-        */
 
-        console.log('Notification handlers setup placeholder - Firebase packages not yet installed');
+        console.log('✅ Notification handlers setup complete');
+    },
+
+    /**
+     * Handle notification open/tap
+     */
+    handleNotificationOpen(remoteMessage: FirebaseMessagingTypes.RemoteMessage) {
+        const { data } = remoteMessage;
+
+        if (!data) return;
+
+        console.log('Processing notification data for navigation:', data);
+
+        // Check for specific navigation targets
+        if (data.screen === 'location_request' || data.type === 'location_request') {
+            console.log('🚀 Navigating to Location Requests');
+
+            // Navigate through the nested structure
+            navigate('Main', {
+                screen: 'More',
+                params: {
+                    screen: 'LocationRequests'
+                }
+            });
+        }
+    },
+
+    /**
+     * Handle token refresh
+     */
+    onTokenRefresh(callback: (token: string) => void) {
+        messaging().onTokenRefresh(async token => {
+            console.log('🔄 FCM token refreshed');
+            await AsyncStorage.setItem(DEVICE_TOKEN_KEY, token);
+
+            try {
+                const deviceId = await getDeviceId();
+                await fcmApi.registerFCMToken({
+                    fcmToken: token,
+                    deviceId,
+                    platform: Platform.OS as 'android' | 'ios',
+                });
+                callback(token);
+            } catch (error) {
+                console.error('Error updating refreshed token:', error);
+            }
+        });
     },
 };
 

@@ -2,13 +2,14 @@
  * Saanvika Admin Dashboard Mobile App
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar, View, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Toast from 'react-native-toast-message';
 import { AuthProvider } from './src/context/AuthContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import fcmService from './src/services/fcmService';
 
 function App() {
   const toastConfig = {
@@ -76,6 +77,23 @@ function App() {
       </View>
     ),
   };
+
+  // Initialize FCM on app start
+  useEffect(() => {
+    const initializeFCM = async () => {
+      try {
+        const initialized = await fcmService.initialize();
+        if (initialized) {
+          fcmService.setupNotificationHandlers();
+          console.log('✅ FCM initialized and handlers setup');
+        }
+      } catch (error) {
+        console.error('FCM initialization error:', error);
+      }
+    };
+
+    initializeFCM();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

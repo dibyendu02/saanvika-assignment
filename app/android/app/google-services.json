@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "533854655791",
+    "project_id": "saanvika-assignment",
+    "storage_bucket": "saanvika-assignment.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:533854655791:android:13e76f80caf5b2eeb5bdda",
+        "android_client_info": {
+          "package_name": "com.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjjTr9E6Outbr1-nuAnW9meM95oDEabjM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
