@@ -1,8 +1,3 @@
-/**
- * Attendance Screen
- * Attendance records with filtering
- */
-
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
@@ -13,6 +8,7 @@ import {
     TouchableOpacity,
 
 } from 'react-native';
+import { useAuth } from '../../context/AuthContext';
 import { attendanceApi } from '../../api/attendance';
 import officesApi from '../../api/offices';
 import { Card } from '../../components/ui/Card';
@@ -25,6 +21,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { format } from 'date-fns';
 
 export const AttendanceScreen: React.FC = () => {
+    const { user } = useAuth();
     const [attendance, setAttendance] = useState<Attendance[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -33,17 +30,27 @@ export const AttendanceScreen: React.FC = () => {
     const [showOfficeFilter, setShowOfficeFilter] = useState(false);
     const [filteredAttendance, setFilteredAttendance] = useState<Attendance[]>([]);
 
+    const isSuperAdmin = user?.role === 'super_admin';
+
     const fetchAttendance = useCallback(async () => {
         try {
-            const [attendanceData, officesData] = await Promise.all([
-                attendanceApi.getAll(),
-                officesApi.getAll()
-            ]);
+            // Only fetch offices if user is super admin
+            if (isSuperAdmin) {
+                const [attendanceData, officesData] = await Promise.all([
+                    attendanceApi.getAll(),
+                    officesApi.getAll()
+                ]);
 
-            // Ensure data is always an array
-            const validAttendance = Array.isArray(attendanceData) ? attendanceData : [];
-            setAttendance(validAttendance);
-            setOffices(officesData);
+                // Ensure data is always an array
+                const validAttendance = Array.isArray(attendanceData) ? attendanceData : [];
+                setAttendance(validAttendance);
+                setOffices(officesData);
+            } else {
+                // For non-super admins, only fetch attendance
+                const attendanceData = await attendanceApi.getAll();
+                const validAttendance = Array.isArray(attendanceData) ? attendanceData : [];
+                setAttendance(validAttendance);
+            }
         } catch (error) {
             console.error('Error fetching attendance:', error);
             showToast.error('Error', 'Failed to load attendance records');
@@ -52,7 +59,7 @@ export const AttendanceScreen: React.FC = () => {
             setLoading(false);
             setRefreshing(false);
         }
-    }, []);
+    }, [isSuperAdmin]);
 
     useEffect(() => {
         fetchAttendance();
@@ -104,21 +111,27 @@ export const AttendanceScreen: React.FC = () => {
             {/* Header */}
             <View style={styles.header}>
                 <View>
-                    <Text style={styles.title}>Attendance</Text>
-                    <Text style={styles.subtitle}>{filteredAttendance.length} Records</Text>
+                    <Text style={styles.title}>Attendance Records</Text>
+                    <Text style={styles.subtitle}>View and manage attendance</Text>
                 </View>
-                {offices.length > 0 && (
+
+                {/* Office Filter - Only for Super Admin */}
+                {isSuperAdmin && offices.length > 0 && (
                     <TouchableOpacity
                         style={styles.filterButton}
                         onPress={() => setShowOfficeFilter(!showOfficeFilter)}
                     >
                         <Icon name="filter-variant" size={ICON_SIZES.sm} color={COLORS.primary} />
+                        <Text style={styles.filterButtonText}>
+                            {selectedOffice === 'all' ? 'All Offices' : offices.find(o => o._id === selectedOffice)?.name || 'Filter'}
+                        </Text>
+                        <Icon name={showOfficeFilter ? 'chevron-up' : 'chevron-down'} size={ICON_SIZES.sm} color={COLORS.textSecondary} />
                     </TouchableOpacity>
                 )}
             </View>
 
-            {/* Office Filters */}
-            {showOfficeFilter && (
+            {/* Office Filters - Only for Super Admin */}
+            {isSuperAdmin && showOfficeFilter && (
                 <View style={{
                     paddingHorizontal: SPACING.base,
                     marginBottom: SPACING.base,
@@ -205,9 +218,20 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.backgroundLight,
     },
     filterButton: {
-        padding: SPACING.sm,
-        borderRadius: SPACING.sm,
-        backgroundColor: COLORS.primaryLight + '20',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: SPACING.sm,
+        paddingVertical: SPACING.xs,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.backgroundLight,
+        gap: SPACING.xs,
+    },
+    filterButtonText: {
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        color: COLORS.textPrimary,
+        fontWeight: TYPOGRAPHY.fontWeight.medium,
     },
     title: {
         fontSize: TYPOGRAPHY.fontSize['2xl'],

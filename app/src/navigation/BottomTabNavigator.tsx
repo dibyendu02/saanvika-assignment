@@ -1,6 +1,6 @@
 /**
  * Bottom Tab Navigator
- * Main tab navigation matching UI references
+ * Main tab navigation with core features accessible to all roles
  */
 
 import React from 'react';
@@ -8,11 +8,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { COLORS, TYPOGRAPHY } from '../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-// Import screens (we'll create these next)
+// Import screens
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
-import OfficesScreen from '../screens/offices/OfficesScreen';
-import EmployeeDirectoryScreen from '../screens/employees/EmployeeDirectoryScreen';
 import AttendanceScreen from '../screens/attendance/AttendanceScreen';
+import GoodiesScreen from '../screens/goodies/GoodiesScreen';
+import LocationsScreen from '../screens/locations/LocationsScreen';
 import MoreStackNavigator from './MoreStackNavigator';
 
 const Tab = createBottomTabNavigator();
@@ -47,29 +47,29 @@ export const BottomTabNavigator: React.FC = () => {
                 }}
             />
             <Tab.Screen
-                name="Offices"
-                component={OfficesScreen}
-                options={{
-                    tabBarIcon: ({ color, size }) => (
-                        <Icon name="office-building" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Tab.Screen
-                name="Directory"
-                component={EmployeeDirectoryScreen}
-                options={{
-                    tabBarIcon: ({ color, size }) => (
-                        <Icon name="account-group" size={size} color={color} />
-                    ),
-                }}
-            />
-            <Tab.Screen
                 name="Attendance"
                 component={AttendanceScreen}
                 options={{
                     tabBarIcon: ({ color, size }) => (
                         <Icon name="calendar-check" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="Goodies"
+                component={GoodiesScreen}
+                options={{
+                    tabBarIcon: ({ color, size }) => (
+                        <Icon name="gift" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="Locations"
+                component={LocationsScreen}
+                options={{
+                    tabBarIcon: ({ color, size }) => (
+                        <Icon name="map-marker" size={size} color={color} />
                     ),
                 }}
             />

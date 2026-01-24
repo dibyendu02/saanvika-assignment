@@ -17,8 +17,8 @@ export const attendanceApi = {
         endDate?: string;
     }): Promise<Attendance[]> => {
         const response = await apiClient.get(API_ENDPOINTS.ATTENDANCE, { params });
-        // Backend returns paginated data: { success: true, data: { attendance: [], total, page, limit } }
-        return response.data.data?.attendance || response.data.data || response.data || [];
+        // Backend returns paginated data: { success: true, data: { records: [], total, page, limit } }
+        return response.data.data?.records || response.data.data || response.data || [];
     },
 
     /**
@@ -33,10 +33,8 @@ export const attendanceApi = {
      * Mark attendance
      */
     mark: async (data: {
-        location: {
-            latitude: number;
-            longitude: number;
-        };
+        longitude: number;
+        latitude: number;
     }): Promise<Attendance> => {
         const response = await apiClient.post(API_ENDPOINTS.MARK_ATTENDANCE, data);
         return response.data.data || response.data;

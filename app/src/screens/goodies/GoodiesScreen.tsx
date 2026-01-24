@@ -72,6 +72,10 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
     const canClaim = ['internal', 'external'].includes(user?.role || '');
     const isSuperAdmin = user?.role === 'super_admin';
 
+    // Confirmation Dialog State
+    const [showClaimConfirm, setShowClaimConfirm] = useState(false);
+    const [selectedClaimDistribution, setSelectedClaimDistribution] = useState<GoodiesDistribution | null>(null);
+
     useEffect(() => {
         fetchDistributions();
         if (isSuperAdmin) {
@@ -146,12 +150,19 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         try {
             await goodiesApi.claimGoodies(distributionId);
             showToast.success('Success', 'Goodies claimed successfully!');
+            setShowClaimConfirm(false);
+            setSelectedClaimDistribution(null);
             fetchDistributions();
         } catch (error: any) {
             showToast.error('Error', error.response?.data?.message || 'Failed to claim goodies');
         } finally {
             setClaiming(null);
         }
+    };
+
+    const handleClaimPress = (distribution: GoodiesDistribution) => {
+        setSelectedClaimDistribution(distribution);
+        setShowClaimConfirm(true);
     };
 
     const handleShowDetails = async (distribution: GoodiesDistribution) => {
@@ -319,7 +330,8 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
 
     const renderDistributionCard = ({ item }: { item: GoodiesDistribution }) => {
         const stockColor = getStockColor(item.remainingCount);
-        const canClaimItem = canClaim && item.remainingCount > 0;
+        const canClaimItem = canClaim && item.remainingCount > 0 && !item.isReceived;
+        const hasAlreadyClaimed = item.isReceived;
 
         return (
             <Card style={styles.distributionCard}>
@@ -382,14 +394,13 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                 </View>
 
                 {/* Actions */}
-                {/* Actions */}
                 {canClaimItem && (
                     <View style={styles.cardFooter}>
                         <View style={styles.actionRow}>
                             <Button
                                 variant="primary"
                                 size="sm"
-                                onPress={() => handleClaim(item._id)}
+                                onPress={() => handleClaimPress(item)}
                                 disabled={claiming === item._id}
                                 style={styles.claimButton}
                             >
@@ -409,7 +420,14 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                     </View>
                 )}
 
-                {item.remainingCount <= 0 && (
+                {hasAlreadyClaimed && (
+                    <View style={styles.claimedBadge}>
+                        <Icon name="check-circle" size={16} color={COLORS.success} />
+                        <Text style={styles.claimedText}>Already Claimed</Text>
+                    </View>
+                )}
+
+                {item.remainingCount <= 0 && !hasAlreadyClaimed && (
                     <View style={styles.outOfStock}>
                         <Icon name="alert-circle" size={16} color={COLORS.danger} />
                         <Text style={styles.outOfStockText}>Out of Stock</Text>
@@ -768,6 +786,48 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                         </ScrollView>
                     </View>
                 </KeyboardAvoidingView>
+            </Modal>
+
+            {/* Claim Confirmation Modal */}
+            <Modal
+                visible={showClaimConfirm}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setShowClaimConfirm(false)}
+            >
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmDialog}>
+                        <View style={styles.confirmHeader}>
+                            <Icon name="gift" size={48} color={COLORS.primary} />
+                        </View>
+                        <Text style={styles.confirmTitle}>Claim Goodies?</Text>
+                        <Text style={styles.confirmMessage}>
+                            Are you sure you want to claim{' '}
+                            <Text style={styles.confirmHighlight}>{selectedClaimDistribution?.goodiesType}</Text>?
+                            {'\n\n'}This action cannot be undone.
+                        </Text>
+                        <View style={styles.confirmActions}>
+                            <Button
+                                variant="outline"
+                                onPress={() => setShowClaimConfirm(false)}
+                                style={styles.confirmButton}
+                                disabled={claiming !== null}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onPress={() => selectedClaimDistribution && handleClaim(selectedClaimDistribution._id)}
+                                loading={claiming !== null}
+                                style={styles.confirmButton}
+                            >
+                                <Text style={styles.confirmButtonText}>
+                                    {claiming ? 'Claiming...' : 'Confirm'}
+                                </Text>
+                            </Button>
+                        </View>
+                    </View>
+                </View>
             </Modal>
 
             {/* FAB */}
@@ -1315,6 +1375,74 @@ const styles = StyleSheet.create({
     checkboxActive: {
         backgroundColor: COLORS.primary,
         borderColor: COLORS.primary,
+    },
+    claimedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: SPACING.xs,
+        backgroundColor: COLORS.successLight,
+        padding: SPACING.sm,
+        borderRadius: SPACING.sm,
+        marginTop: SPACING.sm,
+    },
+    claimedText: {
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        fontWeight: TYPOGRAPHY.fontWeight.semibold,
+        color: COLORS.success,
+    },
+    confirmOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: SPACING.xl,
+    },
+    confirmDialog: {
+        backgroundColor: COLORS.backgroundLight,
+        borderRadius: SPACING.md,
+        padding: SPACING.xl,
+        width: '100%',
+        maxWidth: 400,
+    },
+    confirmHeader: {
+        alignItems: 'center',
+        marginBottom: SPACING.base,
+    },
+    confirmTitle: {
+        fontSize: TYPOGRAPHY.fontSize.xl,
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
+        color: COLORS.textPrimary,
+        textAlign: 'center',
+        marginBottom: SPACING.sm,
+    },
+    confirmMessage: {
+        fontSize: TYPOGRAPHY.fontSize.base,
+        color: COLORS.textSecondary,
+        textAlign: 'center',
+        marginBottom: SPACING.xl,
+        lineHeight: TYPOGRAPHY.fontSize.base * 1.5,
+    },
+    confirmHighlight: {
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
+        color: COLORS.primary,
+    },
+    confirmActions: {
+        flexDirection: 'row',
+        gap: SPACING.md,
+    },
+    confirmButton: {
+        flex: 1,
+    },
+    cancelButtonText: {
+        fontSize: TYPOGRAPHY.fontSize.base,
+        fontWeight: TYPOGRAPHY.fontWeight.semibold,
+        color: COLORS.textPrimary,
+    },
+    confirmButtonText: {
+        fontSize: TYPOGRAPHY.fontSize.base,
+        fontWeight: TYPOGRAPHY.fontWeight.semibold,
+        color: COLORS.textWhite,
     },
 });
 

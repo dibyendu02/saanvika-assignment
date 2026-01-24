@@ -22,6 +22,7 @@ export interface GoodiesDistribution {
     };
     isForAllEmployees: boolean;
     targetEmployees?: any[];
+    isReceived?: boolean;
     createdAt: string;
 }
 

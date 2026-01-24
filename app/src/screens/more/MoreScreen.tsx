@@ -40,38 +40,50 @@ export const MoreScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         ).join(' ');
     };
 
+    // Role-based access control
+    const isSuperAdmin = user?.role === 'super_admin';
+    const isAdmin = user?.role === 'admin';
+    const isInternal = user?.role === 'internal';
+    const isExternal = user?.role === 'external';
+
     const menuItems = [
         {
             icon: 'bell',
             label: 'Notifications',
             onPress: () => navigation.navigate('Notifications'),
+            roles: ['super_admin', 'admin', 'internal', 'external'],
         },
         {
-            icon: 'gift',
-            label: 'Goodies',
-            onPress: () => navigation.navigate('Goodies'),
+            icon: 'office-building',
+            label: 'Offices',
+            onPress: () => navigation.navigate('Offices'),
+            roles: ['super_admin'],
+        },
+        {
+            icon: 'account-group',
+            label: 'Employees',
+            onPress: () => navigation.navigate('Employees'),
+            roles: ['super_admin', 'admin', 'internal'],
         },
         {
             icon: 'map-marker-check',
             label: 'Location Requests',
             onPress: () => navigation.navigate('LocationRequests'),
-        },
-        {
-            icon: 'map-marker-multiple',
-            label: 'Shared Locations',
-            onPress: () => navigation.navigate('Locations'),
+            roles: ['super_admin', 'admin', 'internal', 'external'],
         },
         {
             icon: 'cog',
             label: 'Settings',
             onPress: () => showToast.info('Coming Soon', 'Settings feature'),
+            roles: ['super_admin', 'admin', 'internal', 'external'],
         },
         {
             icon: 'help-circle',
             label: 'Help & Support',
             onPress: () => showToast.info('Coming Soon', 'Help & support feature'),
+            roles: ['super_admin', 'admin', 'internal', 'external'],
         },
-    ];
+    ].filter(item => item.roles.includes(user?.role || ''));
 
     return (
         <View style={styles.container}>
