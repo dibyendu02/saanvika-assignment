@@ -13,7 +13,7 @@ import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import OfficesScreen from '../screens/offices/OfficesScreen';
 import EmployeeDirectoryScreen from '../screens/employees/EmployeeDirectoryScreen';
 import AttendanceScreen from '../screens/attendance/AttendanceScreen';
-import MoreScreen from '../screens/more/MoreScreen';
+import MoreStackNavigator from './MoreStackNavigator';
 
 const Tab = createBottomTabNavigator();
 
@@ -75,7 +75,7 @@ export const BottomTabNavigator: React.FC = () => {
             />
             <Tab.Screen
                 name="More"
-                component={MoreScreen}
+                component={MoreStackNavigator}
                 options={{
                     tabBarIcon: ({ color, size }) => (
                         <Icon name="dots-horizontal" size={size} color={color} />

@@ -18,7 +18,7 @@ import { showToast } from '../../utils/toast';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-export const MoreScreen: React.FC = () => {
+export const MoreScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { user, logout } = useAuth();
 
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -41,14 +41,24 @@ export const MoreScreen: React.FC = () => {
 
     const menuItems = [
         {
+            icon: 'bell',
+            label: 'Notifications',
+            onPress: () => navigation.navigate('Notifications'),
+        },
+        {
             icon: 'gift',
             label: 'Goodies',
-            onPress: () => showToast.info('Coming Soon', 'Goodies management feature'),
+            onPress: () => navigation.navigate('Goodies'),
         },
         {
             icon: 'map-marker-check',
             label: 'Location Requests',
-            onPress: () => showToast.info('Coming Soon', 'Location requests feature'),
+            onPress: () => navigation.navigate('LocationRequests'),
+        },
+        {
+            icon: 'map-marker-multiple',
+            label: 'Shared Locations',
+            onPress: () => navigation.navigate('Locations'),
         },
         {
             icon: 'cog',
