@@ -67,7 +67,7 @@ export const getAllOffices = async (requestingUser, filters = {}) => {
         role: 'external', // Count only external employees for target tracking
         status: 'active',
       });
-      return { ...office, employeesCount };
+      return { ...office, currentEmployeeCount: employeesCount };
     })
   );
 
