@@ -479,6 +479,76 @@ export const bulkCreateDistribution = async (requestingUser, bulkData) => {
   return results;
 };
 
+/**
+ * Delete a goodies distribution
+ * @param {Object} requestingUser - The user performing the action
+ * @param {string} distributionId - ID of distribution to delete
+ * @returns {Promise<void>}
+ */
+export const deleteDistribution = async (requestingUser, distributionId) => {
+  const distribution = await GoodiesDistribution.findById(distributionId);
+
+  if (!distribution) {
+    throw new AppError('Distribution not found', 404);
+  }
+
+  // Access control
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can delete any distribution
+  } else if (requestingUser.role === 'admin') {
+    // Admin can only delete distributions for their office
+    if (distribution.officeId.toString() !== requestingUser.primaryOfficeId?.toString()) {
+      throw new AppError('You are not authorized to delete this distribution', 403);
+    }
+  } else {
+    throw new AppError('You are not authorized to delete distributions', 403);
+  }
+
+  // Check if any goodies have been received
+  const receivedCount = await GoodiesReceived.countDocuments({
+    goodiesDistributionId: distributionId
+  });
+
+  if (receivedCount > 0) {
+    throw new AppError(`Cannot delete distribution because ${receivedCount} employees have already received goodies`, 400);
+  }
+
+  await GoodiesDistribution.findByIdAndDelete(distributionId);
+};
+
+/**
+ * Delete a received goodies record
+ * @param {Object} requestingUser - The user performing the action
+ * @param {string} recordId - ID of received record to delete
+ * @returns {Promise<void>}
+ */
+export const deleteReceivedRecord = async (requestingUser, recordId) => {
+  const record = await GoodiesReceived.findById(recordId)
+    .populate('userId', 'primaryOfficeId')
+    .populate('receivedAtOfficeId', '_id');
+
+  if (!record) {
+    throw new AppError('Received record not found', 404);
+  }
+
+  // Access control
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can delete any record
+  } else if (requestingUser.role === 'admin') {
+    // Admin can only delete records for their office employees OR records created at their office
+    const isEmployeeInOffice = record.userId?.primaryOfficeId?.toString() === requestingUser.primaryOfficeId?.toString();
+    const isAtOffice = record.receivedAtOfficeId?._id.toString() === requestingUser.primaryOfficeId?.toString();
+
+    if (!isEmployeeInOffice && !isAtOffice) {
+      throw new AppError('You are not authorized to delete this record', 403);
+    }
+  } else {
+    throw new AppError('You are not authorized to delete received records', 403);
+  }
+
+  await GoodiesReceived.findByIdAndDelete(recordId);
+};
+
 export default {
   createDistribution,
   getDistributions,
@@ -488,4 +558,6 @@ export default {
   getReceivedById,
   getEligibleEmployees,
   bulkCreateDistribution,
+  deleteDistribution,
+  deleteReceivedRecord,
 };

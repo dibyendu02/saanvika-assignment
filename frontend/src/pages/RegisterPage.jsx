@@ -69,22 +69,26 @@ const RegisterPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader>
-                    <div className="flex items-center justify-between mb-2">
-                        <Link to="/login" className="text-sm text-gray-600 flex items-center hover:text-gray-900 transition-colors">
-                            <ArrowLeft className="mr-1 h-3 w-3" /> Back to Login
+        <div className="min-h-screen flex items-center justify-center bg-primary p-4 relative overflow-hidden">
+            {/* Background decorative elements */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl -mr-48 -mt-48" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl -ml-48 -mb-48" />
+
+            <Card className="w-full max-w-lg shadow-2xl border-primary-600/50 relative z-10 bg-white/95 backdrop-blur-sm my-8">
+                <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between mb-4">
+                        <Link to="/login" className="text-sm text-primary hover:text-secondary flex items-center font-semibold transition-colors group">
+                            <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to Login
                         </Link>
                     </div>
-                    <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <UserPlus className="h-5 w-5 text-gray-700" />
+                    <CardTitle className="text-2xl font-bold flex items-center gap-3 text-primary">
+                        <div className="w-12 h-12 bg-secondary rounded-xl flex items-center justify-center shadow-lg shadow-secondary/20">
+                            <UserPlus className="h-6 w-6 text-primary" />
                         </div>
                         Employee Registration
                     </CardTitle>
-                    <CardDescription>
-                        Register as an external employee for SAANVIKA
+                    <CardDescription className="text-gray-500">
+                        Join the SAANVIKA enterprise portal
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
@@ -119,7 +123,7 @@ const RegisterPage = () => {
                                 <Label htmlFor="gender" className="text-sm font-medium text-gray-700">Gender</Label>
                                 <select
                                     id="gender"
-                                    className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+                                    className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none"
                                     value={formData.gender}
                                     onChange={handleChange}
                                 >
@@ -171,7 +175,7 @@ const RegisterPage = () => {
                             <Label htmlFor="primaryOfficeId" className="text-sm font-medium text-gray-700">Primary Office</Label>
                             <select
                                 id="primaryOfficeId"
-                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-50"
+                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-50"
                                 value={formData.primaryOfficeId}
                                 onChange={handleChange}
                                 required
@@ -187,8 +191,8 @@ const RegisterPage = () => {
                             {fetchingOffices && <p className="text-xs text-gray-500">Loading offices...</p>}
                         </div>
                     </CardContent>
-                    <CardFooter>
-                        <Button className="w-full" type="submit" disabled={loading}>
+                    <CardFooter className="pb-8 pt-2">
+                        <Button className="w-full h-11 bg-primary hover:bg-primary-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-primary/20" type="submit" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Register Account
                         </Button>

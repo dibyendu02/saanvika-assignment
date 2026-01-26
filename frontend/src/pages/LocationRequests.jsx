@@ -6,9 +6,18 @@ import { useToast } from '../hooks/use-toast';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Clock, User, CheckCircle, XCircle, Navigation, Filter } from 'lucide-react';
+import { Loader2, MapPin, Clock, User, CheckCircle, XCircle, Navigation, Filter, Trash2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import ShareLocationDialog from '../components/ShareLocationDialog';
+import { deleteLocationRequest } from '../api/location';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter
+} from '@/components/ui/dialog';
 
 const LocationRequests = () => {
     const { user } = useAuth();
@@ -19,6 +28,11 @@ const LocationRequests = () => {
     const [responding, setResponding] = useState(null);
     const [offices, setOffices] = useState([]);
     const [filterOfficeId, setFilterOfficeId] = useState('all');
+
+    // Delete modal state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingRequest, setDeletingRequest] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const isExternal = user?.role === 'external';
     const isSuperAdmin = user?.role === 'super_admin';
@@ -85,16 +99,45 @@ const LocationRequests = () => {
         }
     };
 
+    const initiateDelete = (request) => {
+        setDeletingRequest(request);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingRequest) return;
+
+        setDeleting(true);
+        try {
+            await deleteLocationRequest(deletingRequest._id);
+            toast({
+                title: 'Success',
+                description: 'Location request deleted successfully',
+            });
+            fetchRequests();
+            setDeleteDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to delete request',
+                variant: 'destructive',
+            });
+        } finally {
+            setDeleting(false);
+            setDeletingRequest(null);
+        }
+    };
+
     const handleViewLocation = (locationId) => {
         navigate(`/locations/${locationId}`);
     };
 
     const getStatusBadge = (status) => {
         const variants = {
-            pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-            shared: 'bg-green-100 text-green-800 border-green-300',
-            denied: 'bg-red-100 text-red-800 border-red-300',
-            expired: 'bg-gray-100 text-gray-800 border-gray-300',
+            pending: 'bg-warning-50 text-warning-700 border-warning-200',
+            shared: 'bg-success-50 text-success-700 border-success-200',
+            denied: 'bg-destructive/10 text-destructive border-destructive/20',
+            expired: 'bg-muted text-muted-foreground border-border',
         };
 
         const icons = {
@@ -121,25 +164,24 @@ const LocationRequests = () => {
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex items-center justify-between">
+        <div className="space-y-6 pb-24">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-
+                    <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-gray-900">
                         Location Requests
                     </h1>
-                    <p className="text-gray-600 mt-1">
+                    <p className="text-sm text-gray-500 mt-1">
                         {isExternal
                             ? 'Manage location requests from your team'
                             : 'Track your location requests'}
                     </p>
                 </div>
                 {isSuperAdmin && offices.length > 0 && (
-                    <div className="flex items-center gap-2">
-                        <div className="relative">
+                    <div className="flex items-center gap-2 w-full md:w-auto">
+                        <div className="relative w-full md:w-auto">
                             <Filter className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                             <select
-                                className="h-10 w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                className="h-10 w-full md:w-[200px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none appearance-none cursor-pointer"
                                 value={filterOfficeId}
                                 onChange={e => setFilterOfficeId(e.target.value)}
                             >
@@ -170,21 +212,21 @@ const LocationRequests = () => {
                 <div className="grid gap-4">
                     {requests.map((request) => (
                         <Card key={request._id} className="hover:shadow-md transition-shadow">
-                            <CardContent className="p-6">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1 space-y-3">
+                            <CardContent className="p-4 md:p-6">
+                                <div className="flex flex-col sm:flex-row items-start justify-between gap-0 sm:gap-6 relative">
+                                    <div className="flex-1 space-y-3 w-full pr-16 sm:pr-0">
                                         {/* User Info */}
                                         <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                                <User className="h-5 w-5 text-blue-600" />
+                                            <div className="h-10 w-10 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
+                                                <User className="h-5 w-5 text-primary-600" />
                                             </div>
-                                            <div>
-                                                <p className="font-semibold text-gray-900">
+                                            <div className="min-w-0">
+                                                <p className="font-semibold text-gray-900 leading-none truncate">
                                                     {isExternal
                                                         ? request.requester?.name
                                                         : request.targetUser?.name}
                                                 </p>
-                                                <p className="text-sm text-gray-500">
+                                                <p className="text-sm text-gray-500 mt-1 truncate">
                                                     {isExternal
                                                         ? request.requester?.email
                                                         : request.targetUser?.email}
@@ -193,17 +235,17 @@ const LocationRequests = () => {
                                         </div>
 
                                         {/* Request Details */}
-                                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                                            <div className="flex items-center gap-1">
-                                                <Clock className="h-4 w-4" />
+                                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600">
+                                            <div className="flex items-center gap-1.5">
+                                                <Clock className="h-4 w-4 text-gray-400" />
                                                 <span>
                                                     Requested{' '}
                                                     {format(new Date(request.requestedAt), 'MMM dd, yyyy HH:mm')}
                                                 </span>
                                             </div>
                                             {request.respondedAt && (
-                                                <div className="flex items-center gap-1">
-                                                    <CheckCircle className="h-4 w-4" />
+                                                <div className="flex items-center gap-1.5">
+                                                    <CheckCircle className="h-4 w-4 text-success-500" />
                                                     <span>
                                                         Responded{' '}
                                                         {format(new Date(request.respondedAt), 'MMM dd, yyyy HH:mm')}
@@ -216,8 +258,33 @@ const LocationRequests = () => {
                                         <div>{getStatusBadge(request.status)}</div>
                                     </div>
 
-                                    {/* Actions */}
-                                    <div className="flex flex-col gap-2 ml-4">
+                                    {/* Mobile Toolbar (Top Right Icons) */}
+                                    <div className="sm:hidden absolute top-0 right-0 flex items-center gap-1">
+                                        {!isExternal && request.status === 'shared' && request.locationId && (
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 h-8 w-8"
+                                                onClick={() => handleViewLocation(request.locationId._id || request.locationId)}
+                                            >
+                                                <MapPin className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                        {!isExternal && (request.status === 'pending' || isSuperAdmin || user?.role === 'admin') && (
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                                                onClick={() => initiateDelete(request)}
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {/* Actions Container - Only visible on mobile if primary actions exist */}
+                                    <div className={`flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0 ${isExternal && request.status === 'pending' ? 'flex' : 'hidden sm:flex'
+                                        }`}>
                                         {isExternal && request.status === 'pending' && (
                                             <>
                                                 <ShareLocationDialog
@@ -239,6 +306,7 @@ const LocationRequests = () => {
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
+                                                    className="w-full"
                                                     onClick={() => handleDenyRequest(request._id)}
                                                     disabled={responding === request._id}
                                                 >
@@ -253,6 +321,7 @@ const LocationRequests = () => {
                                         {!isExternal && request.status === 'shared' && request.locationId && (
                                             <Button
                                                 size="sm"
+                                                className="hidden sm:flex w-full"
                                                 onClick={() => handleViewLocation(request.locationId._id || request.locationId)}
                                             >
                                                 <MapPin className="h-4 w-4 mr-2" />
@@ -260,10 +329,17 @@ const LocationRequests = () => {
                                             </Button>
                                         )}
 
-                                        {request.status === 'pending' && !isExternal && (
-                                            <Badge variant="outline" className="text-xs">
-                                                Waiting for response
-                                            </Badge>
+                                        {/* Desktop Delete Button */}
+                                        {!isExternal && (request.status === 'pending' || isSuperAdmin || user?.role === 'admin') && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="hidden sm:flex w-full text-red-500 hover:text-red-700 hover:bg-red-50 justify-center sm:justify-start"
+                                                onClick={() => initiateDelete(request)}
+                                            >
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                {request.status === 'pending' ? 'Cancel' : 'Delete'}
+                                            </Button>
                                         )}
                                     </div>
                                 </div>
@@ -272,6 +348,36 @@ const LocationRequests = () => {
                     ))}
                 </div>
             )}
+            {/* Delete Confirmation Modal */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 font-semibold">
+                            <div className="p-2 rounded-lg bg-red-50">
+                                <Trash2 className="h-5 w-5 text-red-600" />
+                            </div>
+                            Confirm Deletion
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this location request?
+                            <br />This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleting}
+                        >
+                            {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

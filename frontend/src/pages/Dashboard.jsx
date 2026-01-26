@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -9,6 +10,7 @@ import { checkTodayAttendance } from '../api/attendance';
 
 const Dashboard = () => {
     const { user } = useAuth();
+    const navigate = useNavigate();
     const [stats, setStats] = useState({
         offices: 0,
         attendance: 0,
@@ -72,10 +74,12 @@ const Dashboard = () => {
     };
 
     const cards = [
-        { title: 'Total Offices', value: stats.offices, icon: Building2, color: 'text-blue-600' },
-        { title: 'Attendance Records', value: stats.attendance, icon: UserCheck, color: 'text-green-600' },
-        { title: 'Goodies Managed', value: stats.goodies, icon: Gift, color: 'text-purple-600' },
+        { title: 'Total Offices', value: stats.offices, icon: Building2, color: 'text-primary-600', href: '/offices', roles: ['super_admin'] },
+        { title: 'Attendance Records', value: stats.attendance, icon: UserCheck, color: 'text-success-600', href: '/attendance' },
+        { title: 'Goodies Managed', value: stats.goodies, icon: Gift, color: 'text-accent-foreground', href: '/goodies' },
     ];
+
+    const visibleCards = cards.filter(card => !card.roles || card.roles.includes(user?.role));
 
     const canShareLocation = user?.role === 'internal' || user?.role === 'external';
     const canMarkAttendance = user?.role === 'internal' || user?.role === 'external';
@@ -92,14 +96,18 @@ const Dashboard = () => {
 
             {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {cards.map((card) => {
+                {visibleCards.map((card) => {
                     const Icon = card.icon;
                     return (
-                        <Card key={card.title} className="hover:shadow-elevation-md transition-all duration-200">
+                        <Card
+                            key={card.title}
+                            className="hover:shadow-elevation-md transition-all duration-300 cursor-pointer group hover:-translate-y-1 active:scale-[0.98]"
+                            onClick={() => navigate(card.href)}
+                        >
                             <CardContent className="pt-6">
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <p className="text-sm font-medium text-gray-500">{card.title}</p>
+                                        <p className="text-sm font-medium text-gray-500 group-hover:text-primary transition-colors">{card.title}</p>
                                         <div className="text-3xl font-bold text-gray-900 mt-1">
                                             {loading ? (
                                                 <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
@@ -111,7 +119,7 @@ const Dashboard = () => {
                                             Across all registered locations
                                         </p>
                                     </div>
-                                    <div className={`p-3 rounded-lg bg-gray-50 ${card.color}`}>
+                                    <div className={`p-3 rounded-xl bg-gray-50 transition-all duration-300 group-hover:bg-primary group-hover:text-white ${card.color}`}>
                                         <Icon className="h-6 w-6" />
                                     </div>
                                 </div>
@@ -126,14 +134,14 @@ const Dashboard = () => {
                 <div className="grid gap-4 lg:grid-cols-5">
                     {/* Notice Card - 60% width (3/5) */}
                     <Card className="lg:col-span-3 md:max-h-[110px]">
-                        <CardContent className="pt-6 pb-6">
-                            <div className="flex items-start gap-3 md:max-h-[110px]">
-                                <div className="p-2 rounded-lg bg-gray-100 flex-shrink-0">
+                        <CardContent className="p-5 md:p-6">
+                            <div className="flex items-start gap-4">
+                                <div className="p-2.5 rounded-xl bg-gray-100 flex-shrink-0">
                                     <AlertCircle className="h-5 w-5 text-gray-600" />
                                 </div>
-                                <div className="flex-1 overflow-y-auto pr-2">
-                                    <h3 className="font-semibold text-gray-900">Internal Notice</h3>
-                                    <p className="text-sm text-gray-600 mt-1">
+                                <div className="space-y-1 md:max-h-[70px] md:overflow-y-auto pr-1">
+                                    <h3 className="font-semibold text-gray-900 leading-tight">Internal Notice</h3>
+                                    <p className="text-sm text-gray-600 leading-relaxed">
                                         This dashboard provides a high-level overview of the SAANVIKA operations.
                                         Use the sidebar to navigate to specific sections for detailed management.
                                     </p>
@@ -145,12 +153,12 @@ const Dashboard = () => {
                     {/* Quick Actions - 40% width (2/5) - Stacked on the right */}
                     <div className="lg:col-span-2 space-y-4">
                         {canMarkAttendance && !hasMarkedAttendance && !checkingAttendance && (
-                            <Card className="border-emerald-200 bg-emerald-50/50">
+                            <Card className="border-success-200 bg-success-50/50">
                                 <CardContent className="pt-6">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-lg bg-emerald-100">
-                                                <UserCheck className="h-5 w-5 text-emerald-600" />
+                                            <div className="p-2 rounded-lg bg-success-100">
+                                                <UserCheck className="h-5 w-5 text-success-600" />
                                             </div>
                                             <div>
                                                 <h3 className="font-semibold text-gray-900">Mark Today's Attendance</h3>
@@ -166,12 +174,12 @@ const Dashboard = () => {
                         )}
 
                         {canShareLocation && (
-                            <Card className="border-blue-200 bg-blue-50/50">
+                            <Card className="border-primary-200 bg-primary-50/50">
                                 <CardContent className="pt-6">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-lg bg-blue-100">
-                                                <MapPin className="h-5 w-5 text-blue-600" />
+                                            <div className="p-2 rounded-lg bg-primary-100">
+                                                <MapPin className="h-5 w-5 text-primary-600" />
                                             </div>
                                             <div>
                                                 <h3 className="font-semibold text-gray-900">Quick Location Share</h3>
@@ -193,15 +201,15 @@ const Dashboard = () => {
             {isAdmin && !(canMarkAttendance || canShareLocation) && (
                 <div className="grid gap-4 lg:grid-cols-5">
                     {/* Notice Card - 60% width (3/5) */}
-                    <Card className="lg:col-span-3 max-h-[110px]">
-                        <CardContent className="pt-6 pb-6">
-                            <div className="flex items-start gap-3 max-h-[110px]">
-                                <div className="p-2 rounded-lg bg-gray-100 flex-shrink-0">
+                    <Card className="lg:col-span-3 md:max-h-[110px]">
+                        <CardContent className="p-5 md:p-6">
+                            <div className="flex items-start gap-4">
+                                <div className="p-2.5 rounded-xl bg-gray-100 flex-shrink-0">
                                     <AlertCircle className="h-5 w-5 text-gray-600" />
                                 </div>
-                                <div className="flex-1 overflow-y-auto pr-2">
-                                    <h3 className="font-semibold text-gray-900">Internal Notice</h3>
-                                    <p className="text-sm text-gray-600 mt-1">
+                                <div className="space-y-1 md:max-h-[70px] md:overflow-y-auto pr-1">
+                                    <h3 className="font-semibold text-gray-900 leading-tight">Internal Notice</h3>
+                                    <p className="text-sm text-gray-600 leading-relaxed">
                                         This dashboard provides a high-level overview of the SAANVIKA operations.
                                         Use the sidebar to navigate to specific sections for detailed management.
                                     </p>
@@ -215,11 +223,11 @@ const Dashboard = () => {
                         <Card className="lg:col-span-2">
                             <CardHeader className="py-3 ">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-amber-50">
-                                        <Target className="h-4 w-4 text-amber-600" />
+                                    <div className="p-2 rounded-lg bg-warning-50">
+                                        <Target className="h-4 w-4 text-warning-600" />
                                     </div>
                                     <div>
-                                        <CardTitle className="text-base">External Employee Targets</CardTitle>
+                                        <CardTitle className="text-base font-semibold">External Employee Targets</CardTitle>
                                     </div>
                                 </div>
                             </CardHeader>
@@ -235,19 +243,19 @@ const Dashboard = () => {
                                                     </p>
                                                 </div>
                                                 <div className="flex items-center gap-1">
-                                                    <span className={`text-lg font-bold ${office.targetReached ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                                    <span className={`text-lg font-bold ${office.targetReached ? 'text-success-600' : 'text-warning-600'}`}>
                                                         {office.progress}%
                                                     </span>
                                                     {office.targetReached ? (
-                                                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                                        <CheckCircle2 className="h-4 w-4 text-success-600" />
                                                     ) : (
-                                                        <TrendingUp className="h-4 w-4 text-amber-600" />
+                                                        <TrendingUp className="h-4 w-4 text-warning-600" />
                                                     )}
                                                 </div>
                                             </div>
                                             <div className="w-full bg-gray-100 rounded-full h-1.5">
                                                 <div
-                                                    className={`h-1.5 rounded-full transition-all duration-300 ${office.targetReached ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                                                    className={`h-1.5 rounded-full transition-all duration-300 ${office.targetReached ? 'bg-success-500' : 'bg-warning-500'}`}
                                                     style={{ width: `${Math.min(office.progress, 100)}%` }}
                                                 ></div>
                                             </div>
@@ -265,8 +273,8 @@ const Dashboard = () => {
                 <Card>
                     <CardHeader className="py-3">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-amber-50">
-                                <Target className="h-4 w-4 text-amber-600" />
+                            <div className="p-2 rounded-lg bg-warning-50">
+                                <Target className="h-4 w-4 text-warning-600" />
                             </div>
                             <div>
                                 <CardTitle className="text-base">External Employee Targets</CardTitle>
@@ -285,19 +293,19 @@ const Dashboard = () => {
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <span className={`text-lg font-bold ${office.targetReached ? 'text-emerald-600' : 'text-amber-600'}`}>
+                                            <span className={`text-lg font-bold ${office.targetReached ? 'text-success-600' : 'text-warning-600'}`}>
                                                 {office.progress}%
                                             </span>
                                             {office.targetReached ? (
-                                                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                                <CheckCircle2 className="h-4 w-4 text-success-600" />
                                             ) : (
-                                                <TrendingUp className="h-4 w-4 text-amber-600" />
+                                                <TrendingUp className="h-4 w-4 text-warning-600" />
                                             )}
                                         </div>
                                     </div>
                                     <div className="w-full bg-gray-100 rounded-full h-1.5">
                                         <div
-                                            className={`h-1.5 rounded-full transition-all duration-300 ${office.targetReached ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                                            className={`h-1.5 rounded-full transition-all duration-300 ${office.targetReached ? 'bg-success-500' : 'bg-warning-500'}`}
                                             style={{ width: `${Math.min(office.progress, 100)}%` }}
                                         ></div>
                                     </div>

@@ -71,9 +71,21 @@ export const getEmployeesByOffice = async (officeId, params = {}) => {
     return response.data;
 };
 
+
+/**
+ * Delete an employee
+ * @param {string} id - Employee ID
+ * @returns {Promise} - Success response
+ */
+export const deleteEmployee = async (id) => {
+    const response = await api.delete(`/users/${id}`);
+    return response.data;
+};
+
 export default {
     uploadEmployeesExcel,
     downloadEmployeeTemplate,
     getEmployees,
     getEmployeesByOffice,
+    deleteEmployee,
 };

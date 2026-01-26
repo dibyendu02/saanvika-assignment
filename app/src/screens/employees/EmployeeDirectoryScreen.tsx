@@ -14,6 +14,7 @@ import {
     TouchableOpacity,
 
 } from 'react-native';
+import { useAuth } from '../../context/AuthContext';
 import { employeesApi } from '../../api/employees';
 import { officesApi } from '../../api/offices';
 import { Card } from '../../components/ui/Card';
@@ -21,11 +22,14 @@ import { Badge } from '../../components/ui/Badge';
 import { Avatar } from '../../components/ui/Avatar';
 import AddEmployeeForm from '../../components/forms/AddEmployeeForm';
 import { showToast } from '../../utils/toast';
+import { Dropdown } from '../../components/ui/Dropdown';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES, BORDER_RADIUS } from '../../constants/theme';
 import { User, Office } from '../../types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Alert, ActivityIndicator } from 'react-native';
 
 export const EmployeeDirectoryScreen: React.FC = () => {
+    const { user } = useAuth();
     const [employees, setEmployees] = useState<User[]>([]);
     const [filteredEmployees, setFilteredEmployees] = useState<User[]>([]);
     const [offices, setOffices] = useState<Office[]>([]);
@@ -33,7 +37,11 @@ export const EmployeeDirectoryScreen: React.FC = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedOffice, setSelectedOffice] = useState<string>('all');
+    const [showOfficeFilter, setShowOfficeFilter] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const isManagement = ['super_admin', 'admin'].includes(user?.role || '');
 
     const fetchData = useCallback(async () => {
         try {
@@ -84,6 +92,32 @@ export const EmployeeDirectoryScreen: React.FC = () => {
         setFilteredEmployees(filtered);
     };
 
+    const handleDeleteEmployee = (employee: User) => {
+        Alert.alert(
+            'Delete Employee',
+            `Are you sure you want to delete ${employee.name}? This action cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setDeletingId(employee._id);
+                        try {
+                            await employeesApi.delete(employee._id);
+                            showToast.success('Success', `${employee.name} deleted successfully`);
+                            fetchData();
+                        } catch (error: any) {
+                            showToast.error('Error', error.response?.data?.message || 'Failed to delete employee');
+                        } finally {
+                            setDeletingId(null);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     const onRefresh = () => {
         setRefreshing(true);
         fetchData();
@@ -103,8 +137,18 @@ export const EmployeeDirectoryScreen: React.FC = () => {
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.title}>Employee Directory</Text>
-                <Text style={styles.subtitle}>Manage and view all accounts</Text>
+                <View>
+                    <Text style={styles.title}>Employee Directory</Text>
+                    <Text style={styles.subtitle}>Manage and view all accounts</Text>
+                </View>
+                {offices.length > 0 && (
+                    <TouchableOpacity
+                        style={styles.filterButton}
+                        onPress={() => setShowOfficeFilter(!showOfficeFilter)}
+                    >
+                        <Icon name="filter-variant" size={ICON_SIZES.sm} color={COLORS.primary} />
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Search Bar */}
@@ -120,33 +164,19 @@ export const EmployeeDirectoryScreen: React.FC = () => {
             </View>
 
             {/* Office Filters */}
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={styles.filtersContainer}
-                contentContainerStyle={styles.filtersContent}
-            >
-                <TouchableOpacity
-                    style={[styles.filterChip, selectedOffice === 'all' && styles.filterChipActive]}
-                    onPress={() => handleOfficeFilter('all')}
-                >
-                    <Text style={[styles.filterText, selectedOffice === 'all' && styles.filterTextActive]}>
-                        All Offices
-                    </Text>
-                </TouchableOpacity>
-
-                {offices.map((office) => (
-                    <TouchableOpacity
-                        key={office._id}
-                        style={[styles.filterChip, selectedOffice === office._id && styles.filterChipActive]}
-                        onPress={() => handleOfficeFilter(office._id)}
-                    >
-                        <Text style={[styles.filterText, selectedOffice === office._id && styles.filterTextActive]}>
-                            {office.name}
-                        </Text>
-                    </TouchableOpacity>
-                ))}
-            </ScrollView>
+            {showOfficeFilter && (
+                <View style={{ paddingHorizontal: SPACING.base, marginBottom: SPACING.base }}>
+                    <Dropdown
+                        placeholder="Filter by Office"
+                        options={[
+                            { label: 'All Offices', value: 'all' },
+                            ...offices.map(office => ({ label: office.name, value: office._id }))
+                        ]}
+                        value={selectedOffice}
+                        onSelect={handleOfficeFilter}
+                    />
+                </View>
+            )}
 
             {/* Employee List */}
             <ScrollView
@@ -165,10 +195,25 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                                     {employee.employeeId || `#${employee._id.slice(-6).toUpperCase()}`}
                                 </Text>
                             </View>
-                            <Badge
-                                label={employee.status}
-                                variant={employee.status === 'active' ? 'success' : 'default'}
-                            />
+                            <View style={styles.employeeHeaderActions}>
+                                <Badge
+                                    label={employee.status}
+                                    variant={employee.status === 'active' ? 'success' : 'default'}
+                                />
+                                {isManagement && employee._id !== user?._id && (
+                                    <TouchableOpacity
+                                        style={styles.deleteButton}
+                                        onPress={() => handleDeleteEmployee(employee)}
+                                        disabled={deletingId === employee._id}
+                                    >
+                                        {deletingId === employee._id ? (
+                                            <ActivityIndicator size="small" color={COLORS.danger} />
+                                        ) : (
+                                            <Icon name="trash-can-outline" size={ICON_SIZES.sm} color={COLORS.danger} />
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                            </View>
                         </View>
 
                         <View style={styles.employeeDetails}>
@@ -231,10 +276,18 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
     },
     header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         paddingHorizontal: SPACING.base,
         paddingTop: SPACING['4xl'],
         paddingBottom: SPACING.base,
         backgroundColor: COLORS.backgroundLight,
+    },
+    filterButton: {
+        padding: SPACING.sm,
+        borderRadius: SPACING.sm,
+        backgroundColor: COLORS.primaryLight + '20',
     },
     title: {
         fontSize: TYPOGRAPHY.fontSize['2xl'],
@@ -321,6 +374,15 @@ const styles = StyleSheet.create({
     },
     employeeDetails: {
         gap: SPACING.md,
+    },
+    employeeHeaderActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+    },
+    deleteButton: {
+        padding: SPACING.xs,
+        borderRadius: BORDER_RADIUS.sm,
     },
     detailRow: {
         gap: SPACING.xs,

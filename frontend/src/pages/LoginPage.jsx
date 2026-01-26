@@ -37,15 +37,24 @@ const LoginPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 flex-col gap-4 p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    <div className="mx-auto w-12 h-12 bg-gray-900 rounded-lg flex items-center justify-center mb-4">
-                        <span className="text-white font-bold text-lg">S</span>
-                    </div>
-                    <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-                    <CardDescription>
-                        Enter your credentials to access the portal
+        <div className="min-h-screen flex items-center justify-center bg-primary flex-col gap-6 p-4 relative overflow-hidden">
+            {/* Background decorative elements */}
+            <div className="absolute top-0 right-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl -mr-48 -mt-48" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-secondary/10 rounded-full blur-3xl -ml-48 -mb-48" />
+
+            <div className="flex flex-col items-center mb-2 z-10">
+                <div className="w-16 h-16 bg-secondary rounded-2xl flex items-center justify-center mb-4 shadow-xl shadow-secondary/20">
+                    <span className="text-primary font-bold text-3xl">S</span>
+                </div>
+                <h1 className="text-3xl font-bold text-white tracking-tight">SAANVIKA</h1>
+                <p className="text-primary-200 mt-2 font-medium">Enterprise Management Portal</p>
+            </div>
+
+            <Card className="w-full max-w-md shadow-2xl border-primary-600/50 relative z-10 bg-white/95 backdrop-blur-sm">
+                <CardHeader className="text-center pt-8 pb-4">
+                    <CardTitle className="text-2xl font-bold text-primary">Welcome Back</CardTitle>
+                    <CardDescription className="text-gray-500">
+                        Enter your credentials to access your secure workspace
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
@@ -91,17 +100,17 @@ const LoginPage = () => {
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex flex-col gap-4">
-                        <Button className="w-full" type="submit" disabled={loading}>
+                    <CardFooter className="flex flex-col gap-6 pb-8">
+                        <Button className="w-full h-11 bg-primary hover:bg-primary-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-primary/20" type="submit" disabled={loading}>
                             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Sign In
                         </Button>
-                        <div className="text-sm text-center text-gray-600">
+                        <div className="text-sm text-center text-gray-500">
                             Don't have an account?{' '}
                             <button
                                 type="button"
                                 onClick={() => navigate('/register')}
-                                className="text-blue-600 hover:text-blue-700 hover:underline font-medium transition-colors"
+                                className="text-secondary hover:text-secondary/80 font-bold transition-colors underline underline-offset-4"
                             >
                                 Register Now
                             </button>

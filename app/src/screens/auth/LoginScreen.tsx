@@ -10,6 +10,7 @@ import {
     KeyboardAvoidingView,
     Platform,
     ScrollView,
+    TouchableOpacity,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/Button';
@@ -17,7 +18,7 @@ import { Input } from '../../components/ui/Input';
 import { showToast } from '../../utils/toast';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../constants/theme';
 
-export const LoginScreen: React.FC = () => {
+export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { login } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -70,8 +71,11 @@ export const LoginScreen: React.FC = () => {
                 keyboardShouldPersistTaps="handled"
             >
                 <View style={styles.header}>
-                    <Text style={styles.logo}>SAANVIKA</Text>
-                    <Text style={styles.subtitle}>Admin Dashboard</Text>
+                    <View style={styles.logoContainer}>
+                        <Text style={styles.logoPart1}>SAANVIK</Text>
+                        <Text style={styles.logoPart2}>A</Text>
+                    </View>
+                    <Text style={styles.subtitle}>Investment Management Panel</Text>
                 </View>
 
                 <View style={styles.form}>
@@ -111,6 +115,15 @@ export const LoginScreen: React.FC = () => {
                         loading={loading}
                         style={styles.loginButton}
                     />
+
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('Register')}
+                        style={styles.registerLink}
+                    >
+                        <Text style={styles.registerLinkText}>
+                            Don't have an account? <Text style={styles.registerLinkHighlight}>Register</Text>
+                        </Text>
+                    </TouchableOpacity>
                 </View>
             </ScrollView>
         </KeyboardAvoidingView>
@@ -131,16 +144,29 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: SPACING['3xl'],
     },
-    logo: {
-        fontSize: TYPOGRAPHY.fontSize['3xl'],
-        fontWeight: TYPOGRAPHY.fontWeight.bold,
+    logoContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    logoPart1: {
+        fontSize: 42,
+        fontWeight: '900',
         color: COLORS.primary,
-        letterSpacing: 2,
+        letterSpacing: -1,
+    },
+    logoPart2: {
+        fontSize: 42,
+        fontWeight: '900',
+        color: COLORS.secondary,
+        letterSpacing: -1,
     },
     subtitle: {
-        fontSize: TYPOGRAPHY.fontSize.base,
+        fontSize: TYPOGRAPHY.fontSize.sm,
         color: COLORS.textSecondary,
         marginTop: SPACING.xs,
+        fontWeight: '600',
+        textTransform: 'uppercase',
+        letterSpacing: 2,
     },
     form: {
         width: '100%',
@@ -158,6 +184,19 @@ const styles = StyleSheet.create({
     },
     loginButton: {
         marginTop: SPACING.base,
+    },
+    registerLink: {
+        marginTop: SPACING.xl,
+        alignItems: 'center',
+        paddingVertical: SPACING.md,
+    },
+    registerLinkText: {
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        color: COLORS.textSecondary,
+    },
+    registerLinkHighlight: {
+        color: COLORS.primary,
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
     },
 });
 

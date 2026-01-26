@@ -59,10 +59,36 @@ export const markAllAsRead = asyncHandler(async (req, res) => {
         success: true,
         message: 'All notifications marked as read',
     });
+
+});
+
+/**
+ * @desc    Delete a notification
+ * @route   DELETE /api/v1/notifications/:id
+ * @access  Private
+ */
+export const deleteNotification = asyncHandler(async (req, res) => {
+    try {
+        await notificationService.deleteNotification(req.params.id, req.user);
+        res.status(200).json({
+            success: true,
+            message: 'Notification deleted successfully',
+        });
+    } catch (error) {
+        if (error.message === 'Notification not found') {
+            res.status(404);
+            throw error;
+        } else if (error.message === 'You are not authorized to delete this notification') {
+            res.status(403);
+            throw error;
+        }
+        throw error;
+    }
 });
 
 export default {
     getMyNotifications,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
 };

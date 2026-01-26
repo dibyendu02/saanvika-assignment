@@ -13,6 +13,8 @@ import {
   getReceivedById,
   getEligibleEmployees,
   bulkUploadDistributions,
+  deleteDistribution,
+  deleteReceivedRecord,
 } from '../controllers/goodies.controller.js';
 import { uploadSingleFile, handleUploadError } from '../middlewares/upload.middleware.js';
 import {
@@ -63,6 +65,13 @@ router.get(
   getEligibleEmployees
 );
 
+router.delete(
+  '/distributions/:id',
+  authorize('admin', 'super_admin'),
+  validate(idParamSchema, 'params'),
+  deleteDistribution
+);
+
 // Receive goodies route
 router.post(
   '/receive',
@@ -82,6 +91,13 @@ router.get(
   '/received/:id',
   validate(idParamSchema, 'params'),
   getReceivedById
+);
+
+router.delete(
+  '/received/:id',
+  authorize('admin', 'super_admin'),
+  validate(idParamSchema, 'params'),
+  deleteReceivedRecord
 );
 
 export default router;

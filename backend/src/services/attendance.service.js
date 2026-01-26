@@ -348,9 +348,40 @@ export const getMonthlySummary = async (requestingUser, month, filters = {}) => 
   };
 };
 
+
+/**
+ * Delete an attendance record
+ * @param {Object} requestingUser - The user performing the action
+ * @param {string} attendanceId - ID of attendance record to delete
+ * @returns {Promise<void>}
+ */
+export const deleteAttendance = async (requestingUser, attendanceId) => {
+  const attendance = await Attendance.findById(attendanceId);
+
+  if (!attendance) {
+    throw new AppError('Attendance record not found', 404);
+  }
+
+  // Access control
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can delete any attendance record
+  } else if (requestingUser.role === 'admin') {
+    // Admin can only delete attendance for their office
+    if (attendance.officeId.toString() !== requestingUser.primaryOfficeId?.toString()) {
+      throw new AppError('You are not authorized to delete this attendance record', 403);
+    }
+  } else {
+    throw new AppError('You are not authorized to delete attendance records', 403);
+  }
+
+  await Attendance.findByIdAndDelete(attendanceId);
+};
+
 export default {
   markAttendance,
   getAttendance,
   getAttendanceById,
+  getAttendanceById,
   getMonthlySummary,
+  deleteAttendance,
 };

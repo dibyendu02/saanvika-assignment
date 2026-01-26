@@ -4,42 +4,49 @@
  */
 
 export const COLORS = {
-    // Primary colors - Deep blue from UI references
-    primary: '#1E3A8A',
-    primaryLight: '#3B82F6',
-    primaryDark: '#1E40AF',
+    // Brand Colors - High Fidelity Navy and Gold
+    primary: '#002B45',      // Deep Brand Navy
+    primaryLight: '#003A5C',
+    primaryDark: '#001D2E',
+
+    secondary: '#C5A059',    // Brand Gold
+    secondaryLight: '#D4B476',
+    secondaryDark: '#A6823D',
+
+    accent: '#C5A059',       // Alias for Brand Gold
 
     // Background colors
-    background: '#F5F7FA',
-    backgroundLight: '#FFFFFF',
-    backgroundDark: '#E5E7EB',
+    background: '#FFFFFF',   // Pristine White
+    backgroundLight: '#F8F9FA',
+    backgroundDark: '#E9ECEF',
 
     // Text colors
-    textPrimary: '#1F2937',
-    textSecondary: '#6B7280',
-    textLight: '#9CA3AF',
+    textPrimary: '#1A1A1A',
+    textSecondary: '#4A4A4A',
+    textLight: '#8E8E8E',
     textWhite: '#FFFFFF',
+    textGold: '#C5A059',
 
-    // Status colors
+    // Status colors - Refined palette
     success: '#10B981',
-    successLight: '#D1FAE5',
+    successLight: '#ECFDF5',
     warning: '#F59E0B',
-    warningLight: '#FEF3C7',
+    warningLight: '#FFFBEB',
     danger: '#EF4444',
-    dangerLight: '#FEE2E2',
-    info: '#8B5CF6',
-    infoLight: '#EDE9FE',
+    dangerLight: '#FEF2F2',
+    info: '#002B45',         // Use navy for info to match brand
+    infoLight: '#E6EAED',
 
     // UI colors
-    border: '#E5E7EB',
-    borderLight: '#F3F4F6',
-    shadow: '#00000015',
+    border: '#DEE2E6',
+    borderLight: '#F1F3F5',
+    shadow: '#00000010',
 
     // Badge colors
     activeGreen: '#10B981',
-    activeBg: '#D1FAE5',
-    inactiveBg: '#F3F4F6',
-    inactiveText: '#6B7280',
+    activeBg: '#ECFDF5',
+    inactiveBg: '#F1F3F5',
+    inactiveText: '#8E8E8E',
 };
 
 export const TYPOGRAPHY = {

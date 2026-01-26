@@ -87,7 +87,7 @@ const BulkGoodiesUpload = ({ isOpen, onClose, onSuccess }) => {
                 </div>
 
                 <div className="p-6 space-y-6">
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-blue-800">
+                    <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 text-sm text-primary-800">
                         <h3 className="font-semibold flex items-center gap-2 mb-1">
                             <AlertCircle size={18} /> Instructions
                         </h3>
@@ -123,7 +123,7 @@ const BulkGoodiesUpload = ({ isOpen, onClose, onSuccess }) => {
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700">Excel File</label>
                         <div className="flex items-center gap-4">
-                            <label className="flex-1 flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-blue-500">
+                            <label className="flex-1 flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-lg cursor-pointer hover:border-primary-500">
                                 <input type="file" onChange={handleFileChange} className="hidden" />
                                 <div className="flex items-center gap-2 text-gray-600">
                                     <Upload size={20} />
@@ -203,7 +203,7 @@ const BulkGoodiesUpload = ({ isOpen, onClose, onSuccess }) => {
                         <button
                             onClick={handleUpload}
                             disabled={!file || uploading}
-                            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+                            className="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 disabled:bg-gray-300 transition-colors"
                         >
                             {uploading ? 'Uploading...' : 'Upload & Distribute'}
                         </button>

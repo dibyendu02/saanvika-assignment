@@ -7,6 +7,7 @@ import React, { createContext, useState, useContext, useEffect, ReactNode } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi } from '../api/auth';
 import { User, AuthResponse } from '../types';
+import fcmService from '../services/fcmService';
 
 interface AuthContextType {
     user: User | null;
@@ -54,6 +55,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             await AsyncStorage.setItem('user', JSON.stringify(response.user));
 
             setUser(response.user);
+
+            // Register FCM token after successful login
+            try {
+                await fcmService.registerToken();
+            } catch (fcmError) {
+                console.error('FCM registration error:', fcmError);
+                // Don't fail login if FCM registration fails
+            }
         } catch (error) {
             console.error('Login error:', error);
             throw error;
@@ -62,13 +71,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const register = async (userData: any) => {
         try {
-            const response: AuthResponse = await authApi.register(userData);
-
-            // Save token and user to storage
-            await AsyncStorage.setItem('token', response.token);
-            await AsyncStorage.setItem('user', JSON.stringify(response.user));
-
-            setUser(response.user);
+            await authApi.register(userData);
+            // No longer auto-logging in after registration. 
+            // External employees need verification before login.
         } catch (error) {
             console.error('Register error:', error);
             throw error;
@@ -77,13 +82,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const logout = async () => {
         try {
-            await authApi.logout();
+            // Remove FCM token before logout
+            try {
+                await fcmService.removeToken();
+            } catch (fcmError) {
+                console.error('FCM removal error:', fcmError);
+                // Continue with logout even if FCM removal fails
+            }
+
+            // Clear storage and state
+            await AsyncStorage.multiRemove(['token', 'user']);
+            setUser(null);
         } catch (error) {
-            console.error('Logout API error:', error);
-        } finally {
-            // Clear storage and state regardless of API call result
-            await AsyncStorage.removeItem('token');
-            await AsyncStorage.removeItem('user');
+            console.error('Logout error:', error);
+            // Still clear state even if storage removal fails
             setUser(null);
         }
     };

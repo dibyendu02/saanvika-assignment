@@ -12,13 +12,14 @@ import {
     TouchableOpacity,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
+import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Avatar } from '../../components/ui/Avatar';
 import { showToast } from '../../utils/toast';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-export const MoreScreen: React.FC = () => {
+export const MoreScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { user, logout } = useAuth();
 
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -39,28 +40,50 @@ export const MoreScreen: React.FC = () => {
         ).join(' ');
     };
 
+    // Role-based access control
+    const isSuperAdmin = user?.role === 'super_admin';
+    const isAdmin = user?.role === 'admin';
+    const isInternal = user?.role === 'internal';
+    const isExternal = user?.role === 'external';
+
     const menuItems = [
         {
-            icon: 'gift',
-            label: 'Goodies',
-            onPress: () => showToast.info('Coming Soon', 'Goodies management feature'),
+            icon: 'bell',
+            label: 'Notifications',
+            onPress: () => navigation.navigate('Notifications'),
+            roles: ['super_admin', 'admin', 'internal', 'external'],
+        },
+        {
+            icon: 'office-building',
+            label: 'Offices',
+            onPress: () => navigation.navigate('Offices'),
+            roles: ['super_admin'],
+        },
+        {
+            icon: 'account-group',
+            label: 'Employees',
+            onPress: () => navigation.navigate('Employees'),
+            roles: ['super_admin', 'admin', 'internal'],
         },
         {
             icon: 'map-marker-check',
             label: 'Location Requests',
-            onPress: () => showToast.info('Coming Soon', 'Location requests feature'),
+            onPress: () => navigation.navigate('LocationRequests'),
+            roles: ['super_admin', 'admin', 'internal', 'external'],
         },
         {
             icon: 'cog',
             label: 'Settings',
             onPress: () => showToast.info('Coming Soon', 'Settings feature'),
+            roles: ['super_admin', 'admin', 'internal', 'external'],
         },
         {
             icon: 'help-circle',
             label: 'Help & Support',
             onPress: () => showToast.info('Coming Soon', 'Help & support feature'),
+            roles: ['super_admin', 'admin', 'internal', 'external'],
         },
-    ];
+    ].filter(item => item.roles.includes(user?.role || ''));
 
     return (
         <View style={styles.container}>
@@ -91,7 +114,7 @@ export const MoreScreen: React.FC = () => {
                             onPress={item.onPress}
                         >
                             <View style={styles.menuItemLeft}>
-                                <Icon name={item.icon} size={ICON_SIZES.md} color={COLORS.textSecondary} />
+                                <Icon name={item.icon} size={ICON_SIZES.md} color={COLORS.secondary} />
                                 <Text style={styles.menuItemText}>{item.label}</Text>
                             </View>
                             <Icon name="chevron-right" size={ICON_SIZES.md} color={COLORS.textLight} />
@@ -100,14 +123,17 @@ export const MoreScreen: React.FC = () => {
                 </View>
 
                 {/* Logout Button */}
-                <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-                    <Icon name="logout" size={ICON_SIZES.md} color={COLORS.danger} />
-                    <Text style={styles.logoutText}>Logout</Text>
-                </TouchableOpacity>
+                <Button
+                    variant="danger"
+                    onPress={handleLogout}
+                    style={styles.logoutButton}
+                >
+                    <Icon name="logout" size={ICON_SIZES.md} color={COLORS.textWhite} style={{ marginRight: SPACING.sm }} />
+                    <Text style={[styles.logoutText, { color: COLORS.textWhite }]}>Logout</Text>
+                </Button>
 
-                {/* App Info */}
                 <View style={styles.appInfo}>
-                    <Text style={styles.appInfoText}>SAANVIKA Admin Dashboard</Text>
+                    <Text style={styles.appInfoText}>SAANVIKA Console</Text>
                     <Text style={styles.appInfoText}>Version 1.0.0</Text>
                 </View>
             </ScrollView>
@@ -153,8 +179,9 @@ const styles = StyleSheet.create({
     },
     profileRole: {
         fontSize: TYPOGRAPHY.fontSize.sm,
-        color: COLORS.primary,
+        color: COLORS.secondary,
         marginTop: SPACING.xs,
+        fontWeight: '700',
     },
     profileEmail: {
         fontSize: TYPOGRAPHY.fontSize.sm,
@@ -185,19 +212,11 @@ const styles = StyleSheet.create({
         color: COLORS.textPrimary,
     },
     logoutButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: SPACING.sm,
-        backgroundColor: COLORS.dangerLight,
-        padding: SPACING.base,
-        borderRadius: SPACING.md,
         marginBottom: SPACING.xl,
     },
     logoutText: {
         fontSize: TYPOGRAPHY.fontSize.base,
         fontWeight: TYPOGRAPHY.fontWeight.semibold,
-        color: COLORS.danger,
     },
     appInfo: {
         alignItems: 'center',

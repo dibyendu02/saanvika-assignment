@@ -50,9 +50,11 @@ const styles = StyleSheet.create({
     },
     label: {
         fontSize: TYPOGRAPHY.fontSize.sm,
-        fontWeight: TYPOGRAPHY.fontWeight.medium,
+        fontWeight: TYPOGRAPHY.fontWeight.bold,
         color: COLORS.textSecondary,
-        marginBottom: SPACING.xs,
+        marginBottom: SPACING.sm,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     input: {
         backgroundColor: COLORS.backgroundLight,
@@ -60,10 +62,10 @@ const styles = StyleSheet.create({
         borderColor: COLORS.border,
         borderRadius: BORDER_RADIUS.md,
         paddingHorizontal: SPACING.base,
-        paddingVertical: SPACING.md,
+        paddingVertical: 14,
         fontSize: TYPOGRAPHY.fontSize.base,
         color: COLORS.textPrimary,
-        minHeight: 44,
+        minHeight: 48,
     },
     inputError: {
         borderColor: COLORS.danger,

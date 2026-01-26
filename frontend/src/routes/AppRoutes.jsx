@@ -9,6 +9,7 @@ import RegisterPage from '../pages/RegisterPage';
 import Locations from '../pages/Locations';
 import LocationDetail from '../pages/LocationDetail';
 import LocationRequests from '../pages/LocationRequests';
+import NotificationsPage from '../pages/NotificationsPage';
 import ProtectedRoute from '../components/ProtectedRoute';
 import Layout from '../components/Layout';
 
@@ -103,6 +104,17 @@ const AppRoutes = () => {
                     <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal', 'external']}>
                         <Layout>
                             <LocationRequests />
+                        </Layout>
+                    </ProtectedRoute>
+                }
+            />
+
+            <Route
+                path="/notifications"
+                element={
+                    <ProtectedRoute allowedRoles={['super_admin', 'admin', 'internal', 'external']}>
+                        <Layout>
+                            <NotificationsPage />
                         </Layout>
                     </ProtectedRoute>
                 }
