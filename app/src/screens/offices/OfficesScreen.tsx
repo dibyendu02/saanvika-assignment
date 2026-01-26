@@ -13,6 +13,7 @@ import {
     TouchableOpacity,
 
 } from 'react-native';
+import { useAuth } from '../../context/AuthContext';
 import { officesApi } from '../../api/offices';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -22,12 +23,17 @@ import { showToast } from '../../utils/toast';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES, BORDER_RADIUS } from '../../constants/theme';
 import { Office } from '../../types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Alert, ActivityIndicator } from 'react-native';
 
 export const OfficesScreen: React.FC = () => {
+    const { user } = useAuth();
     const [offices, setOffices] = useState<Office[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const isSuperAdmin = user?.role === 'super_admin';
 
     const fetchOffices = useCallback(async () => {
         try {
@@ -45,6 +51,32 @@ export const OfficesScreen: React.FC = () => {
     useEffect(() => {
         fetchOffices();
     }, [fetchOffices]);
+
+    const handleDeleteOffice = (office: Office) => {
+        Alert.alert(
+            'Delete Office',
+            `Are you sure you want to delete ${office.name}? All employee associations may be affected.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setDeletingId(office._id);
+                        try {
+                            await officesApi.delete(office._id);
+                            showToast.success('Success', `${office.name} deleted successfully`);
+                            fetchOffices();
+                        } catch (error: any) {
+                            showToast.error('Error', error.response?.data?.message || 'Failed to delete office');
+                        } finally {
+                            setDeletingId(null);
+                        }
+                    },
+                },
+            ]
+        );
+    };
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -82,10 +114,25 @@ export const OfficesScreen: React.FC = () => {
                                 <Text style={styles.officeName}>{office.name}</Text>
                                 <Text style={styles.officeId}>#{office._id.slice(-6).toUpperCase()}</Text>
                             </View>
-                            <Badge
-                                label={office.status || 'active'}
-                                variant={office.status === 'active' ? 'success' : 'default'}
-                            />
+                            <View style={styles.officeHeaderActions}>
+                                <Badge
+                                    label={office.status || 'active'}
+                                    variant={office.status === 'active' ? 'success' : 'default'}
+                                />
+                                {isSuperAdmin && (
+                                    <TouchableOpacity
+                                        style={styles.deleteButton}
+                                        onPress={() => handleDeleteOffice(office)}
+                                        disabled={deletingId === office._id}
+                                    >
+                                        {deletingId === office._id ? (
+                                            <ActivityIndicator size="small" color={COLORS.danger} />
+                                        ) : (
+                                            <Icon name="trash-can-outline" size={ICON_SIZES.sm} color={COLORS.danger} />
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                            </View>
                         </View>
 
                         <View style={styles.officeLocation}>
@@ -229,6 +276,15 @@ const styles = StyleSheet.create({
     },
     officeInfo: {
         flex: 1,
+    },
+    officeHeaderActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+    },
+    deleteButton: {
+        padding: SPACING.xs,
+        borderRadius: BORDER_RADIUS.sm,
     },
     officeName: {
         fontSize: TYPOGRAPHY.fontSize.md,

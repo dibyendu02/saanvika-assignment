@@ -4,6 +4,7 @@
  */
 
 import apiClient from './client';
+import { API_ENDPOINTS } from '../constants/api';
 
 export interface Notification {
     _id: string;
@@ -41,7 +42,7 @@ export const notificationsApi = {
             page: params?.page || 1,
             limit: params?.limit || 20,
         };
-        const response = await apiClient.get('/notifications', { params: queryParams });
+        const response = await apiClient.get(API_ENDPOINTS.NOTIFICATIONS, { params: queryParams });
         return response.data.data;
     },
 
@@ -49,7 +50,7 @@ export const notificationsApi = {
      * Mark notification as read
      */
     async markAsRead(notificationId: string): Promise<Notification> {
-        const response = await apiClient.patch(`/notifications/${notificationId}/read`);
+        const response = await apiClient.patch(API_ENDPOINTS.MARK_READ(notificationId));
         return response.data.data.notification;
     },
 
@@ -57,7 +58,14 @@ export const notificationsApi = {
      * Mark all notifications as read
      */
     async markAllAsRead(): Promise<void> {
-        await apiClient.patch('/notifications/read-all');
+        await apiClient.patch(API_ENDPOINTS.MARK_ALL_READ);
+    },
+
+    /**
+     * Delete a notification
+     */
+    async deleteNotification(notificationId: string): Promise<void> {
+        await apiClient.delete(API_ENDPOINTS.NOTIFICATION_BY_ID(notificationId));
     },
 };
 

@@ -4,6 +4,7 @@
  */
 
 import apiClient from './client';
+import { API_ENDPOINTS } from '../constants/api';
 
 export interface GoodiesDistribution {
     _id: string;
@@ -51,11 +52,11 @@ export const goodiesApi = {
      * Get all goodies distributions
      */
     async getDistributions(officeId?: string): Promise<GoodiesDistribution[]> {
-        const params = new URLSearchParams();
+        const params: any = {};
         if (officeId && officeId !== 'all') {
-            params.append('officeId', officeId);
+            params.officeId = officeId;
         }
-        const response = await apiClient.get(`/goodies/distributions?${params.toString()}`);
+        const response = await apiClient.get(API_ENDPOINTS.DISTRIBUTIONS, { params });
         const data = response.data.data;
         return data.distributions || data.docs || (Array.isArray(data) ? data : []);
     },
@@ -64,7 +65,7 @@ export const goodiesApi = {
      * Create a new goodies distribution (admin only)
      */
     async createDistribution(payload: CreateDistributionPayload): Promise<GoodiesDistribution> {
-        const response = await apiClient.post('/goodies/distributions', payload);
+        const response = await apiClient.post(API_ENDPOINTS.DISTRIBUTIONS, payload);
         return response.data.data;
     },
 
@@ -72,14 +73,14 @@ export const goodiesApi = {
      * Claim goodies (employee only)
      */
     async claimGoodies(distributionId: string): Promise<void> {
-        await apiClient.post('/goodies/receive', { distributionId });
+        await apiClient.post(API_ENDPOINTS.RECEIVE_GOODIES, { distributionId });
     },
 
     /**
      * Get claim history for a distribution
      */
     async getDistributionClaims(distributionId: string): Promise<ClaimRecord[]> {
-        const response = await apiClient.get(`/goodies/received?distributionId=${distributionId}&limit=100`);
+        const response = await apiClient.get(`${API_ENDPOINTS.RECEIVED_GOODIES}?distributionId=${distributionId}&limit=100`);
         const data = response.data.data;
         return data.records || (Array.isArray(data) ? data : []);
     },
@@ -88,7 +89,7 @@ export const goodiesApi = {
      * Get eligible employees for a distribution
      */
     async getEligibleEmployees(distributionId: string): Promise<any[]> {
-        const response = await apiClient.get(`/goodies/distributions/${distributionId}/eligible-employees`);
+        const response = await apiClient.get(`${API_ENDPOINTS.DISTRIBUTION_BY_ID(distributionId)}/eligible-employees`);
         const data = response.data.data;
         return data.employees || [];
     },
@@ -97,12 +98,26 @@ export const goodiesApi = {
      * Bulk upload distributions via Excel
      */
     async bulkUpload(formData: FormData): Promise<any> {
-        const response = await apiClient.post('/goodies/bulk-upload', formData, {
+        const response = await apiClient.post(API_ENDPOINTS.GOODIES + '/bulk-upload', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
         });
         return response.data;
+    },
+
+    /**
+     * Delete a goodies distribution (admin only)
+     */
+    async deleteDistribution(id: string): Promise<void> {
+        await apiClient.delete(API_ENDPOINTS.DISTRIBUTION_BY_ID(id));
+    },
+
+    /**
+     * Delete a received goodies record (admin only)
+     */
+    async deleteReceivedRecord(id: string): Promise<void> {
+        await apiClient.delete(API_ENDPOINTS.RECEIVED_BY_ID(id));
     },
 };
 

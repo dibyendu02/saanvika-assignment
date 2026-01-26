@@ -98,6 +98,17 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
         }
     };
 
+    const handleDeleteNotification = async (notificationId: string) => {
+        try {
+            await notificationsApi.deleteNotification(notificationId);
+            setNotifications(notifications.filter((n) => n._id !== notificationId));
+            showToast.success('Success', 'Notification deleted');
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+            showToast.error('Error', 'Failed to delete notification');
+        }
+    };
+
     const handleNotificationTap = async (notification: Notification) => {
         // Mark as read if unread
         if (!notification.isRead) {
@@ -156,7 +167,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
                 onPress={() => handleNotificationTap(item)}
                 activeOpacity={0.7}
             >
-                <Card style={[styles.notificationCard, !item.isRead && styles.unreadCard]}>
+                <Card style={[styles.notificationCard, !item.isRead ? styles.unreadCard : null] as any}>
                     <View style={styles.cardContent}>
                         {/* Icon */}
                         <View style={[styles.iconContainer, { backgroundColor: iconConfig.color + '20' }]}>
@@ -175,7 +186,17 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
                                 >
                                     {item.title}
                                 </Text>
-                                {!item.isRead && <View style={styles.unreadDot} />}
+                                <View style={styles.titleRight}>
+                                    {!item.isRead && <View style={styles.unreadDot} />}
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            handleDeleteNotification(item._id);
+                                        }}
+                                        style={styles.deleteButton}
+                                    >
+                                        <Icon name="close" size={16} color={COLORS.textLight} />
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                             <Text style={styles.message} numberOfLines={2}>
                                 {item.message}
@@ -326,6 +347,14 @@ const styles = StyleSheet.create({
         fontWeight: TYPOGRAPHY.fontWeight.medium,
         color: COLORS.textPrimary,
         flex: 1,
+    },
+    titleRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+    },
+    deleteButton: {
+        padding: SPACING.xs,
     },
     unreadTitle: {
         fontWeight: TYPOGRAPHY.fontWeight.bold,

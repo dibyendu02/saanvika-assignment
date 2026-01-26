@@ -3,7 +3,6 @@
  */
 
 // You can change this to your local IP address when testing on physical devices
-// Example: 'http://192.168.1.100:5001/api/v1' 192.168.29.96
 export const API_BASE_URL = 'http://192.168.29.96:5001/api/v1';
 
 export const API_ENDPOINTS = {
@@ -37,16 +36,27 @@ export const API_ENDPOINTS = {
     // Goodies
     GOODIES: '/goodies',
     GOODIE_BY_ID: (id: string) => `/goodies/${id}`,
+    DISTRIBUTIONS: '/goodies/distributions',
+    DISTRIBUTION_BY_ID: (id: string) => `/goodies/distributions/${id}`,
+    RECEIVED_GOODIES: '/goodies/received',
+    RECEIVED_BY_ID: (id: string) => `/goodies/received/${id}`,
+    RECEIVE_GOODIES: '/goodies/receive',
 
     // Locations
-    LOCATIONS: '/locations',
-    LOCATION_REQUESTS: '/locations/requests',
-    APPROVE_LOCATION: (id: string) => `/locations/requests/${id}/approve`,
-    DENY_LOCATION: (id: string) => `/locations/requests/${id}/deny`,
+    LOCATIONS: '/location',
+    LOCATION_BY_ID: (id: string) => `/location/${id}`,
+    LOCATION_SHARE: '/location/share',
+    LOCATION_REQUEST: '/location/request',
+    LOCATION_REQUESTS: '/location/requests',
+    LOCATION_REQUEST_BY_ID: (id: string) => `/location/requests/${id}`,
+    APPROVE_LOCATION: (id: string) => `/location/requests/${id}/approve`,
+    DENY_LOCATION: (id: string) => `/location/requests/${id}/deny`,
 
     // Notifications
     NOTIFICATIONS: '/notifications',
+    NOTIFICATION_BY_ID: (id: string) => `/notifications/${id}`,
     MARK_READ: (id: string) => `/notifications/${id}/read`,
+    MARK_ALL_READ: '/notifications/read-all',
 };
 
 export default {

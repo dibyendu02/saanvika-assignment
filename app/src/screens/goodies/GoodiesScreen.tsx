@@ -18,6 +18,7 @@ import {
     Switch,
     KeyboardAvoidingView,
     Platform,
+    Alert,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { goodiesApi, GoodiesDistribution, ClaimRecord } from '../../api/goodies';
@@ -41,6 +42,7 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
     const [offices, setOffices] = useState<any[]>([]);
     const [filterOfficeId, setFilterOfficeId] = useState('all');
     const [showOfficeFilter, setShowOfficeFilter] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     // Details Modal State
     const [showDetails, setShowDetails] = useState(false);
@@ -143,6 +145,32 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
     const onRefresh = () => {
         setRefreshing(true);
         fetchDistributions();
+    };
+
+    const handleDeleteDistribution = (distribution: GoodiesDistribution) => {
+        Alert.alert(
+            'Delete Distribution',
+            `Are you sure you want to delete the distribution for ${distribution.goodiesType}? this will also delete all associated claim records.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setDeletingId(distribution._id);
+                        try {
+                            await goodiesApi.deleteDistribution(distribution._id);
+                            showToast.success('Success', 'Distribution deleted successfully');
+                            fetchDistributions();
+                        } catch (error: any) {
+                            showToast.error('Error', error.response?.data?.message || 'Failed to delete distribution');
+                        } finally {
+                            setDeletingId(null);
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     const handleClaim = async (distributionId: string) => {
@@ -349,12 +377,25 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
                         </View>
                     </View>
                     {isManagement && (
-                        <TouchableOpacity
-                            style={styles.detailsIconButton}
-                            onPress={() => handleShowDetails(item)}
-                        >
-                            <Icon name="history" size={20} color={COLORS.primary} />
-                        </TouchableOpacity>
+                        <View style={styles.headerActions}>
+                            <TouchableOpacity
+                                style={styles.iconButton}
+                                onPress={() => handleShowDetails(item)}
+                            >
+                                <Icon name="history" size={20} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.iconButton}
+                                onPress={() => handleDeleteDistribution(item)}
+                                disabled={deletingId === item._id}
+                            >
+                                {deletingId === item._id ? (
+                                    <ActivityIndicator size="small" color={COLORS.danger} />
+                                ) : (
+                                    <Icon name="trash-can-outline" size={20} color={COLORS.danger} />
+                                )}
+                            </TouchableOpacity>
+                        </View>
                     )}
                 </View>
 
@@ -1133,6 +1174,14 @@ const styles = StyleSheet.create({
         paddingVertical: SPACING.md,
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+    },
+    iconButton: {
+        padding: SPACING.xs,
     },
     claimUser: {
         flexDirection: 'row',

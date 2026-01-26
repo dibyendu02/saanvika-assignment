@@ -4,6 +4,7 @@
  */
 
 import apiClient from './client';
+import { API_ENDPOINTS } from '../constants/api';
 
 export interface LocationRecord {
     _id: string;
@@ -69,7 +70,7 @@ export const locationApi = {
             queryParams.officeId = params.officeId;
         }
 
-        const response = await apiClient.get('/location', { params: queryParams });
+        const response = await apiClient.get(API_ENDPOINTS.LOCATIONS, { params: queryParams });
         return response.data.data;
     },
 
@@ -77,7 +78,7 @@ export const locationApi = {
      * Get location by ID
      */
     async getLocationById(id: string): Promise<LocationRecord> {
-        const response = await apiClient.get(`/location/${id}`);
+        const response = await apiClient.get(API_ENDPOINTS.LOCATION_BY_ID(id));
         return response.data.data;
     },
 
@@ -85,7 +86,7 @@ export const locationApi = {
      * Share current location
      */
     async shareLocation(payload: ShareLocationPayload): Promise<LocationRecord> {
-        const response = await apiClient.post('/location/share', payload);
+        const response = await apiClient.post(API_ENDPOINTS.LOCATION_SHARE, payload);
         return response.data.data;
     },
 
@@ -97,7 +98,7 @@ export const locationApi = {
         if (officeId && officeId !== 'all') {
             params.officeId = officeId;
         }
-        const response = await apiClient.get('/location/requests', { params });
+        const response = await apiClient.get(API_ENDPOINTS.LOCATION_REQUESTS, { params });
         return response.data.data.requests || [];
     },
 
@@ -105,7 +106,21 @@ export const locationApi = {
      * Deny a location request
      */
     async denyLocationRequest(requestId: string): Promise<void> {
-        await apiClient.patch(`/location/requests/${requestId}/deny`);
+        await apiClient.patch(API_ENDPOINTS.DENY_LOCATION(requestId));
+    },
+
+    /**
+     * Delete a location record (admin only)
+     */
+    async deleteLocation(id: string): Promise<void> {
+        await apiClient.delete(API_ENDPOINTS.LOCATION_BY_ID(id));
+    },
+
+    /**
+     * Delete a location request
+     */
+    async deleteLocationRequest(id: string): Promise<void> {
+        await apiClient.delete(API_ENDPOINTS.LOCATION_REQUEST_BY_ID(id));
     },
 };
 

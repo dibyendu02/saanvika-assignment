@@ -14,6 +14,7 @@ import {
     TouchableOpacity,
 
 } from 'react-native';
+import { useAuth } from '../../context/AuthContext';
 import { employeesApi } from '../../api/employees';
 import { officesApi } from '../../api/offices';
 import { Card } from '../../components/ui/Card';
@@ -25,8 +26,10 @@ import { Dropdown } from '../../components/ui/Dropdown';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES, BORDER_RADIUS } from '../../constants/theme';
 import { User, Office } from '../../types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { Alert, ActivityIndicator } from 'react-native';
 
 export const EmployeeDirectoryScreen: React.FC = () => {
+    const { user } = useAuth();
     const [employees, setEmployees] = useState<User[]>([]);
     const [filteredEmployees, setFilteredEmployees] = useState<User[]>([]);
     const [offices, setOffices] = useState<Office[]>([]);
@@ -36,6 +39,9 @@ export const EmployeeDirectoryScreen: React.FC = () => {
     const [selectedOffice, setSelectedOffice] = useState<string>('all');
     const [showOfficeFilter, setShowOfficeFilter] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
+
+    const isManagement = ['super_admin', 'admin'].includes(user?.role || '');
 
     const fetchData = useCallback(async () => {
         try {
@@ -84,6 +90,32 @@ export const EmployeeDirectoryScreen: React.FC = () => {
         }
 
         setFilteredEmployees(filtered);
+    };
+
+    const handleDeleteEmployee = (employee: User) => {
+        Alert.alert(
+            'Delete Employee',
+            `Are you sure you want to delete ${employee.name}? This action cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setDeletingId(employee._id);
+                        try {
+                            await employeesApi.delete(employee._id);
+                            showToast.success('Success', `${employee.name} deleted successfully`);
+                            fetchData();
+                        } catch (error: any) {
+                            showToast.error('Error', error.response?.data?.message || 'Failed to delete employee');
+                        } finally {
+                            setDeletingId(null);
+                        }
+                    },
+                },
+            ]
+        );
     };
 
     const onRefresh = () => {
@@ -163,10 +195,25 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                                     {employee.employeeId || `#${employee._id.slice(-6).toUpperCase()}`}
                                 </Text>
                             </View>
-                            <Badge
-                                label={employee.status}
-                                variant={employee.status === 'active' ? 'success' : 'default'}
-                            />
+                            <View style={styles.employeeHeaderActions}>
+                                <Badge
+                                    label={employee.status}
+                                    variant={employee.status === 'active' ? 'success' : 'default'}
+                                />
+                                {isManagement && employee._id !== user?._id && (
+                                    <TouchableOpacity
+                                        style={styles.deleteButton}
+                                        onPress={() => handleDeleteEmployee(employee)}
+                                        disabled={deletingId === employee._id}
+                                    >
+                                        {deletingId === employee._id ? (
+                                            <ActivityIndicator size="small" color={COLORS.danger} />
+                                        ) : (
+                                            <Icon name="trash-can-outline" size={ICON_SIZES.sm} color={COLORS.danger} />
+                                        )}
+                                    </TouchableOpacity>
+                                )}
+                            </View>
                         </View>
 
                         <View style={styles.employeeDetails}>
@@ -327,6 +374,15 @@ const styles = StyleSheet.create({
     },
     employeeDetails: {
         gap: SPACING.md,
+    },
+    employeeHeaderActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.sm,
+    },
+    deleteButton: {
+        padding: SPACING.xs,
+        borderRadius: BORDER_RADIUS.sm,
     },
     detailRow: {
         gap: SPACING.xs,

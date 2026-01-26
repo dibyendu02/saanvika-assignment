@@ -33,13 +33,14 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [respondingId, setRespondingId] = useState<string | null>(null);
-    const [respondingAction, setRespondingAction] = useState<'share' | 'deny' | null>(null);
+    const isExternal = user?.role === 'external';
+    const isSuperAdmin = user?.role === 'super_admin';
+    const isManagement = ['super_admin', 'admin'].includes(user?.role || '');
+
+    const [respondingAction, setRespondingAction] = useState<'share' | 'deny' | 'delete' | null>(null);
     const [offices, setOffices] = useState<any[]>([]);
     const [filterOfficeId, setFilterOfficeId] = useState('all');
     const [showOfficeFilter, setShowOfficeFilter] = useState(false);
-
-    const isExternal = user?.role === 'external';
-    const isSuperAdmin = user?.role === 'super_admin';
 
     const fetchRequests = useCallback(async () => {
         try {
@@ -143,6 +144,34 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
         }
     };
 
+    const handleDeleteRequest = async (request: LocationRequest) => {
+        Alert.alert(
+            user?._id === request.requester._id ? 'Cancel Request' : 'Delete Request',
+            'Are you sure you want to perform this action?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Confirm',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setRespondingId(request._id);
+                        setRespondingAction('delete');
+                        try {
+                            await locationApi.deleteLocationRequest(request._id);
+                            showToast.success('Success', 'Request deleted');
+                            fetchRequests();
+                        } catch (error: any) {
+                            showToast.error('Error', error.response?.data?.message || 'Failed to delete request');
+                        } finally {
+                            setRespondingId(null);
+                            setRespondingAction(null);
+                        }
+                    },
+                },
+            ]
+        );
+    };
+
     const getStatusColor = (status: string) => {
         switch (status) {
             case 'pending':
@@ -235,44 +264,70 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
                 </View>
 
                 {/* Actions */}
-                {isExternal && isPending && (
+                {(isExternal || (isManagement && !isPending) || item.requester._id === user?._id) && (
                     <View style={styles.actions}>
-                        <Button
-                            variant="primary"
-                            size="sm"
-                            onPress={() => handleShareLocation(item._id)}
-                            disabled={respondingId === item._id}
-                            style={styles.actionButton}
-                        >
-                            {respondingId === item._id && respondingAction === 'share' ? (
-                                <ActivityIndicator size="small" color={COLORS.textWhite} />
-                            ) : (
-                                <>
-                                    <Icon name="map-marker" size={16} color={COLORS.textWhite} />
-                                    <Text style={styles.buttonText}>Share Location</Text>
-                                </>
-                            )}
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onPress={() => handleDeny(item._id)}
-                            disabled={respondingId === item._id}
-                            style={styles.actionButton}
-                        >
-                            {respondingId === item._id && respondingAction === 'deny' ? (
-                                <ActivityIndicator size="small" color={COLORS.danger} />
-                            ) : (
-                                <>
-                                    <Icon name="close" size={16} color={COLORS.danger} />
-                                    <Text style={[styles.buttonText, { color: COLORS.danger }]}>Deny</Text>
-                                </>
-                            )}
-                        </Button>
+                        {isExternal && isPending && (
+                            <>
+                                <Button
+                                    variant="primary"
+                                    size="sm"
+                                    onPress={() => handleShareLocation(item._id)}
+                                    disabled={respondingId === item._id}
+                                    style={styles.actionButton}
+                                >
+                                    {respondingId === item._id && respondingAction === 'share' ? (
+                                        <ActivityIndicator size="small" color={COLORS.textWhite} />
+                                    ) : (
+                                        <>
+                                            <Icon name="map-marker" size={16} color={COLORS.textWhite} />
+                                            <Text style={styles.buttonText}>Share Location</Text>
+                                        </>
+                                    )}
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onPress={() => handleDeny(item._id)}
+                                    disabled={respondingId === item._id}
+                                    style={styles.actionButton}
+                                >
+                                    {respondingId === item._id && respondingAction === 'deny' ? (
+                                        <ActivityIndicator size="small" color={COLORS.danger} />
+                                    ) : (
+                                        <>
+                                            <Icon name="close" size={16} color={COLORS.danger} />
+                                            <Text style={[styles.buttonText, { color: COLORS.danger }]}>Deny</Text>
+                                        </>
+                                    )}
+                                </Button>
+                            </>
+                        )}
+
+                        {/* Delete/Cancel Button */}
+                        {(isManagement || item.requester._id === user?._id) && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onPress={() => handleDeleteRequest(item)}
+                                disabled={respondingId === item._id}
+                                style={styles.deleteButton}
+                            >
+                                {respondingId === item._id && respondingAction === 'delete' ? (
+                                    <ActivityIndicator size="small" color={COLORS.danger} />
+                                ) : (
+                                    <>
+                                        <Icon name="trash-can-outline" size={16} color={COLORS.danger} />
+                                        <Text style={[styles.buttonText, { color: COLORS.danger }]}>
+                                            {item.requester._id === user?._id ? 'Cancel Request' : 'Delete'}
+                                        </Text>
+                                    </>
+                                )}
+                            </Button>
+                        )}
                     </View>
                 )}
 
-                {!isExternal && isPending && (
+                {!isExternal && isPending && !((isManagement || item.requester._id === user?._id)) && (
                     <View style={styles.waitingBadge}>
                         <Icon name="clock-outline" size={14} color={COLORS.warning} />
                         <Text style={styles.waitingText}>Waiting for response</Text>
@@ -479,6 +534,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: SPACING.xs,
+    },
+    deleteButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: SPACING.xs,
+    },
+    fullWidthButton: {
+        flex: 1,
     },
     buttonText: {
         color: COLORS.textWhite,
