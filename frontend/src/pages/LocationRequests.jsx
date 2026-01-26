@@ -164,7 +164,7 @@ const LocationRequests = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-24">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-gray-900">
@@ -352,7 +352,7 @@ const LocationRequests = () => {
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
+                        <DialogTitle className="flex items-center gap-2 font-semibold">
                             <div className="p-2 rounded-lg bg-red-50">
                                 <Trash2 className="h-5 w-5 text-red-600" />
                             </div>

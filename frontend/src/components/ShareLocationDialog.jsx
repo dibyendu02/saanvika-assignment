@@ -14,7 +14,7 @@ import { Label } from './ui/label';
 import { MapPin, Loader2, AlertCircle } from 'lucide-react';
 import MapView from './MapView';
 
-export default function ShareLocationDialog({ trigger, triggerButton, onSuccess, requestId }) {
+export default function ShareLocationDialog({ trigger, triggerButton, onSuccess, requestId, isFab }) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [gettingLocation, setGettingLocation] = useState(false);
@@ -149,11 +149,20 @@ export default function ShareLocationDialog({ trigger, triggerButton, onSuccess,
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
                 {triggerButton || trigger || (
-                    <Button>
-                        <MapPin className="h-4 w-4 md:mr-2" />
-                        <span className="hidden md:inline">Share Location</span>
-                        <span className="md:hidden">Share</span>
-                    </Button>
+                    isFab ? (
+                        <Button
+                            size="icon"
+                            className="h-16 w-16 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all"
+                        >
+                            <MapPin className="h-8 w-8" />
+                        </Button>
+                    ) : (
+                        <Button>
+                            <MapPin className="h-4 w-4 md:mr-2" />
+                            <span className="hidden md:inline">Share Location</span>
+                            <span className="md:hidden">Share</span>
+                        </Button>
+                    )
                 )}
             </DialogTrigger>
             <DialogContent className="sm:max-w-2xl">

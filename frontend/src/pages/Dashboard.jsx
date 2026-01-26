@@ -140,7 +140,7 @@ const Dashboard = () => {
                                     <AlertCircle className="h-5 w-5 text-gray-600" />
                                 </div>
                                 <div className="space-y-1 md:max-h-[70px] md:overflow-y-auto pr-1">
-                                    <h3 className="font-bold text-gray-900 leading-tight">Internal Notice</h3>
+                                    <h3 className="font-semibold text-gray-900 leading-tight">Internal Notice</h3>
                                     <p className="text-sm text-gray-600 leading-relaxed">
                                         This dashboard provides a high-level overview of the SAANVIKA operations.
                                         Use the sidebar to navigate to specific sections for detailed management.
@@ -208,7 +208,7 @@ const Dashboard = () => {
                                     <AlertCircle className="h-5 w-5 text-gray-600" />
                                 </div>
                                 <div className="space-y-1 md:max-h-[70px] md:overflow-y-auto pr-1">
-                                    <h3 className="font-bold text-gray-900 leading-tight">Internal Notice</h3>
+                                    <h3 className="font-semibold text-gray-900 leading-tight">Internal Notice</h3>
                                     <p className="text-sm text-gray-600 leading-relaxed">
                                         This dashboard provides a high-level overview of the SAANVIKA operations.
                                         Use the sidebar to navigate to specific sections for detailed management.
@@ -227,7 +227,7 @@ const Dashboard = () => {
                                         <Target className="h-4 w-4 text-warning-600" />
                                     </div>
                                     <div>
-                                        <CardTitle className="text-base">External Employee Targets</CardTitle>
+                                        <CardTitle className="text-base font-semibold">External Employee Targets</CardTitle>
                                     </div>
                                 </div>
                             </CardHeader>

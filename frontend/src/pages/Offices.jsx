@@ -127,90 +127,108 @@ const Offices = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 pb-24">
             {/* Page Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+            <div className="flex justify-between items-center w-full">
                 <div>
                     <h2 className="text-xl md:text-2xl font-bold text-gray-900">Offices</h2>
-                    <p className="text-sm text-gray-500 mt-1">Manage office locations and employee targets</p>
+                    <p className="text-sm text-gray-500 mt-1 hidden sm:block">Manage office locations and employee targets</p>
                 </div>
+                <div />
+            </div>
+
+            <div className="hidden md:flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+                <div />
                 {canCreateOffice && (
                     <Dialog open={open} onOpenChange={setOpen}>
                         <DialogTrigger asChild>
-                            <Button className="w-full sm:w-auto">
+                            <Button className="hidden md:flex w-full sm:w-auto shadow-sm">
                                 <Plus className="mr-2 h-4 w-4" /> Add Office
                             </Button>
                         </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
-                            <DialogHeader>
-                                <DialogTitle>Add New Office</DialogTitle>
+                        <DialogContent className="max-w-2xl w-[95vw] md:w-full overflow-hidden flex flex-col max-h-[90vh] p-0">
+                            <DialogHeader className="p-6 pb-0">
+                                <DialogTitle className="text-xl md:text-2xl text-center md:text-left font-semibold">Add New Office</DialogTitle>
                             </DialogHeader>
-                            <form onSubmit={handleCreate} className="space-y-4 px-6 py-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Office Name</Label>
-                                    <Input
-                                        id="name"
-                                        value={newOffice.name}
-                                        onChange={e => setNewOffice({ ...newOffice, name: e.target.value })}
-                                        required
-                                        placeholder="e.g. Headquarters"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="officeId">Office ID</Label>
-                                    <Input
-                                        id="officeId"
-                                        value={newOffice.officeId}
-                                        onChange={e => setNewOffice({ ...newOffice, officeId: e.target.value })}
-                                        required
-                                        placeholder="e.g. BLR001"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="address">Address</Label>
-                                    <Input
-                                        id="address"
-                                        value={newOffice.address}
-                                        onChange={e => setNewOffice({ ...newOffice, address: e.target.value })}
-                                        required
-                                        placeholder="Full address"
-                                    />
-                                </div>
+                            <div className="flex-1 overflow-y-auto px-6 py-4 custom-scrollbar">
+                                <form id="office-form" onSubmit={handleCreate} className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="name" className="text-sm font-semibold">Office Name</Label>
+                                            <Input
+                                                id="name"
+                                                value={newOffice.name}
+                                                onChange={e => setNewOffice({ ...newOffice, name: e.target.value })}
+                                                required
+                                                placeholder="e.g. Headquarters"
+                                                className="h-12 md:h-10"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="officeId" className="text-sm font-semibold">Office ID</Label>
+                                            <Input
+                                                id="officeId"
+                                                value={newOffice.officeId}
+                                                onChange={e => setNewOffice({ ...newOffice, officeId: e.target.value })}
+                                                required
+                                                placeholder="e.g. BLR001"
+                                                className="h-12 md:h-10"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="address" className="text-sm font-semibold">Address</Label>
+                                        <Input
+                                            id="address"
+                                            value={newOffice.address}
+                                            onChange={e => setNewOffice({ ...newOffice, address: e.target.value })}
+                                            required
+                                            placeholder="Full address"
+                                            className="h-12 md:h-10"
+                                        />
+                                    </div>
 
-                                {/* Map Picker */}
-                                <div className="space-y-2">
-                                    <Label>Location</Label>
-                                    <LocationMapPicker
-                                        latitude={parseFloat(newOffice.latitude) || null}
-                                        longitude={parseFloat(newOffice.longitude) || null}
-                                        address={newOffice.address}
-                                        onLocationChange={(lat, lng) => {
-                                            setNewOffice({
-                                                ...newOffice,
-                                                latitude: lat.toString(),
-                                                longitude: lng.toString()
-                                            });
-                                        }}
-                                    />
-                                </div>
+                                    {/* Map Picker */}
+                                    <div className="space-y-2">
+                                        <Label className="text-sm font-semibold">Location Picker</Label>
+                                        <div className="rounded-xl overflow-hidden border border-gray-200 shadow-inner">
+                                            <LocationMapPicker
+                                                latitude={parseFloat(newOffice.latitude) || null}
+                                                longitude={parseFloat(newOffice.longitude) || null}
+                                                address={newOffice.address}
+                                                onLocationChange={(lat, lng) => {
+                                                    setNewOffice({
+                                                        ...newOffice,
+                                                        latitude: lat.toString(),
+                                                        longitude: lng.toString()
+                                                    });
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="targetHeadcount">Target External Employees</Label>
-                                    <Input
-                                        id="targetHeadcount"
-                                        type="number"
-                                        min="0"
-                                        value={newOffice.targetHeadcount}
-                                        onChange={e => setNewOffice({ ...newOffice, targetHeadcount: parseInt(e.target.value) || 0 })}
-                                        placeholder="e.g. 50"
-                                    />
-                                    <p className="text-xs text-gray-500">Target number of external employees for this office</p>
-                                </div>
-                                <Button type="submit" className="w-full mt-4" disabled={creating}>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="targetHeadcount" className="text-sm font-semibold">Target External Employees</Label>
+                                        <Input
+                                            id="targetHeadcount"
+                                            type="number"
+                                            min="0"
+                                            value={newOffice.targetHeadcount}
+                                            onChange={e => setNewOffice({ ...newOffice, targetHeadcount: parseInt(e.target.value) || 0 })}
+                                            placeholder="e.g. 50"
+                                            className="h-12 md:h-10 font-mono"
+                                        />
+                                        <p className="text-[11px] text-gray-500 italic">Target number of external employees for this office</p>
+                                    </div>
+                                </form>
+                            </div>
+                            <DialogFooter className="p-6 pt-2 bg-gray-50 flex-col md:flex-row gap-2">
+                                <Button variant="outline" onClick={() => setOpen(false)} className="w-full md:w-auto h-12 md:h-10 ring-1 ring-gray-200">Cancel</Button>
+                                <Button type="submit" form="office-form" disabled={creating} className="w-full md:w-auto h-12 md:h-10 px-8">
                                     {creating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Create Office
                                 </Button>
-                            </form>
+                            </DialogFooter>
                         </DialogContent>
                     </Dialog>
                 )}
@@ -403,7 +421,7 @@ const Offices = () => {
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
+                        <DialogTitle className="flex items-center gap-2 font-semibold">
                             <div className="p-2 rounded-lg bg-red-50">
                                 <Trash2 className="h-5 w-5 text-red-600" />
                             </div>
@@ -437,6 +455,19 @@ const Offices = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Mobile Floating Action Button */}
+            {canCreateOffice && (
+                <div className="fixed bottom-6 right-6 lg:hidden z-40">
+                    <Button
+                        size="icon"
+                        className="h-16 w-16 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all border-2 border-white"
+                        onClick={() => setOpen(true)}
+                    >
+                        <Plus className="h-8 w-8" />
+                    </Button>
+                </div>
+            )}
         </div >
     );
 };

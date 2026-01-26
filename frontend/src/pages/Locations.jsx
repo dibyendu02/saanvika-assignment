@@ -144,15 +144,34 @@ export default function Locations() {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex justify-between items-center w-full">
                 <div>
-                    <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
-                        Shared Locations
-                    </h1>
-                    <p className="text-gray-600 mt-1">
-                        View location sharing records
-                    </p>
+                    <h1 className="text-xl md:text-3xl font-bold">Shared Locations</h1>
+                    <p className="text-gray-600 mt-1 hidden sm:block">View location sharing records</p>
                 </div>
+                <div className="flex items-center gap-2 md:hidden">
+                    {user?.role === 'super_admin' && (
+                        <div className="relative">
+                            <select
+                                className="h-10 w-10 opacity-0 absolute inset-0 cursor-pointer z-10"
+                                value={filterOfficeId}
+                                onChange={e => setFilterOfficeId(e.target.value)}
+                            >
+                                <option value="all">All</option>
+                                {offices.map((office) => (
+                                    <option key={office._id} value={office._id}>{office.name}</option>
+                                ))}
+                            </select>
+                            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-2">
+                                <Filter className="h-5 w-5" />
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="hidden md:flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div />
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
                     {user?.role === 'super_admin' && offices.length > 0 && (
                         <div className="flex items-center gap-2">
@@ -361,6 +380,13 @@ export default function Locations() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {/* Mobile FAB */}
+            {canShareLocation && (
+                <div className="md:hidden fixed bottom-6 right-6 z-50">
+                    <ShareLocationDialog onSuccess={handleLocationShared} isFab />
+                </div>
+            )}
         </div >
     );
 }
