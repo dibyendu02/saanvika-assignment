@@ -79,19 +79,18 @@ export default function LocationDetail() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
                 <button
                     onClick={() => navigate('/locations')}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
                 >
-                    <ArrowLeft className="h-6 w-6" />
+                    <ArrowLeft className="h-5 w-5 md:h-6 md:w-6 text-gray-600" />
                 </button>
-                <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-
+                <div className="min-w-0">
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-900 truncate">
                         Location Details
                     </h1>
-                    <p className="text-gray-600 mt-1">
+                    <p className="text-sm text-gray-500 mt-0.5 truncate">
                         Shared location on map
                     </p>
                 </div>
@@ -108,7 +107,7 @@ export default function LocationDetail() {
                             employeeName={location.userId?.name || 'Unknown'}
                             timestamp={formatDate(location.sharedAt)}
                             reason={location.reason}
-                            className="h-96"
+                            className="h-72 md:h-[500px] rounded-md overflow-hidden"
                         />
                     </div>
                 </div>

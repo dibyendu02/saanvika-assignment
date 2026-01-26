@@ -100,17 +100,17 @@ const NotificationsPage = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
+                    <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2 text-gray-900">
                         Notifications
                     </h1>
-                    <p className="text-gray-600 mt-1">
+                    <p className="text-sm text-gray-500 mt-1">
                         Stay updated with latest activities
                     </p>
                 </div>
                 {notifications.some(n => !n.isRead) && (
-                    <Button variant="outline" onClick={markAllRead}>
+                    <Button variant="outline" size="sm" onClick={markAllRead} className="w-full md:w-auto">
                         <CheckCircle2 className="mr-2 h-4 w-4" />
                         Mark all as read
                     </Button>
@@ -167,7 +167,7 @@ const NotificationsPage = () => {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="text-gray-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                                            className="text-gray-400 hover:text-red-600 hover:bg-red-50 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleDelete(n._id);

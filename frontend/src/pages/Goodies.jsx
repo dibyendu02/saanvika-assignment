@@ -321,22 +321,22 @@ const Goodies = () => {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div className="space-y-1">
-                    <h2 className="text-3xl font-bold tracking-tight">Goodies Distribution</h2>
+                    <h2 className="text-xl md:text-3xl font-bold tracking-tight">Goodies Distribution</h2>
                     <p className="text-sm text-muted-foreground">
                         Manage and track goodies distribution across offices
                     </p>
                 </div>
                 {isManagement && (
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                         {/* Office Filter - Only for Super Admin */}
                         {offices.length > 0 && (
                             <div className="flex items-center gap-2">
                                 <div className="relative">
                                     <Filter className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                     <select
-                                        className="h-10 w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                        className="h-10 w-full sm:w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
                                         value={filterOfficeId}
                                         onChange={e => setFilterOfficeId(e.target.value)}
                                     >
@@ -350,12 +350,12 @@ const Goodies = () => {
                                 </div>
                             </div>
                         )}
-                        <Button variant="outline" onClick={() => setBulkUploadOpen(true)}>
+                        <Button variant="outline" className="w-full sm:w-auto" onClick={() => setBulkUploadOpen(true)}>
                             <Upload className="mr-2 h-4 w-4" /> Bulk Upload
                         </Button>
                         <Dialog open={open} onOpenChange={handleDialogChange}>
                             <DialogTrigger asChild>
-                                <Button className="shadow-sm"><Gift className="mr-2 h-4 w-4" /> New Distribution</Button>
+                                <Button className="shadow-sm w-full sm:w-auto"><Gift className="mr-2 h-4 w-4" /> New Distribution</Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-2xl">
                                 <DialogHeader>
@@ -785,7 +785,8 @@ const Goodies = () => {
                 </DialogContent>
             </Dialog>
 
-            <Card>
+            {/* Desktop Table View */}
+            <Card className="hidden md:block">
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
@@ -914,6 +915,120 @@ const Goodies = () => {
                 </CardContent>
             </Card>
 
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+                {loading ? (
+                    <div className="p-4 text-center">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400 opacity-50" />
+                    </div>
+                ) : !Array.isArray(distributions) || distributions.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-8 space-y-3 bg-gray-50 rounded-lg border border-dashed">
+                        <Gift className="h-10 w-10 text-gray-300" />
+                        <p className="text-sm text-gray-500 font-medium">No distributions found</p>
+                    </div>
+                ) : (
+                    distributions.map((item, index) => (
+                        <Card key={item._id || index} className="overflow-hidden">
+                            <CardContent className="p-0">
+                                <div className="p-4 space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="font-semibold text-lg text-gray-900 mb-1">{item.goodiesType}</h3>
+                                            <div className="flex items-center text-sm text-gray-500 gap-1.5">
+                                                <Building className="h-3.5 w-3.5" />
+                                                {item.officeId?.name || 'Unknown Office'}
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="font-mono text-sm font-medium">{item.remainingCount}/{item.totalQuantity}</span>
+                                            {item.remainingCount <= 0 ? (
+                                                <Badge variant="destructive" className="h-5 text-[10px] px-1.5">Out of Stock</Badge>
+                                            ) : item.remainingCount <= 5 ? (
+                                                <Badge variant="outline" className="h-5 text-[10px] px-1.5 text-yellow-600 border-yellow-200 bg-yellow-50">Low Stock</Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="h-5 text-[10px] px-1.5 text-green-600 border-green-200 bg-green-50">In Stock</Badge>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                        <div className="space-y-1">
+                                            <span className="text-xs text-gray-500">Target</span>
+                                            <div>
+                                                {item.isForAllEmployees ? (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
+                                                        All Emps
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
+                                                        {item.targetEmployees?.length || 0} Select
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-xs text-gray-500">Date</span>
+                                            <div className="flex items-center gap-1.5 text-gray-700">
+                                                <Calendar className="h-3.5 w-3.5 text-gray-400" />
+                                                {item.distributionDate ? format(new Date(item.distributionDate), 'MMM dd') : '-'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-gray-50/50 p-3 border-t flex flex-wrap gap-2 justify-end">
+                                    {canClaim && (
+                                        <Button
+                                            size="sm"
+                                            variant={item.isReceived ? "secondary" : item.remainingCount <= 0 ? "secondary" : "default"}
+                                            onClick={() => !item.isReceived && item.remainingCount > 0 && initiateClaim(item)}
+                                            disabled={item.isReceived || item.remainingCount <= 0}
+                                            className={`flex-1 h-8 ${item.isReceived ? 'bg-green-100 text-green-700 hover:bg-green-100' : ''}`}
+                                        >
+                                            {item.isReceived ? (
+                                                <><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Claimed</>
+                                            ) : item.remainingCount <= 0 ? (
+                                                <><X className="mr-1.5 h-3.5 w-3.5" /> Out of Stock</>
+                                            ) : (
+                                                <><CheckCircle2 className="mr-1.5 h-3.5 w-3.5" /> Claim</>
+                                            )}
+                                        </Button>
+                                    )}
+                                    {isManagement && (
+                                        <>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 bg-white"
+                                                onClick={() => viewDistributionDetails(item)}
+                                            >
+                                                <Eye className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 bg-white"
+                                                onClick={() => fetchClaimsForDistribution(item)}
+                                            >
+                                                <Users className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                onClick={() => initiateDeleteDistribution(item)}
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
+
             <BulkGoodiesUpload
                 isOpen={bulkUploadOpen}
                 onClose={() => setBulkUploadOpen(false)}
@@ -956,7 +1071,7 @@ const Goodies = () => {
                 </DialogContent>
             </Dialog>
 
-        </div>
+        </div >
     );
 };
 

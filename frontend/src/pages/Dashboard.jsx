@@ -126,14 +126,14 @@ const Dashboard = () => {
                 <div className="grid gap-4 lg:grid-cols-5">
                     {/* Notice Card - 60% width (3/5) */}
                     <Card className="lg:col-span-3 md:max-h-[110px]">
-                        <CardContent className="pt-6 pb-6">
-                            <div className="flex items-start gap-3 md:max-h-[110px]">
-                                <div className="p-2 rounded-lg bg-gray-100 flex-shrink-0">
+                        <CardContent className="p-5 md:p-6">
+                            <div className="flex items-start gap-4">
+                                <div className="p-2.5 rounded-xl bg-gray-100 flex-shrink-0">
                                     <AlertCircle className="h-5 w-5 text-gray-600" />
                                 </div>
-                                <div className="flex-1 overflow-y-auto pr-2">
-                                    <h3 className="font-semibold text-gray-900">Internal Notice</h3>
-                                    <p className="text-sm text-gray-600 mt-1">
+                                <div className="space-y-1 md:max-h-[70px] md:overflow-y-auto pr-1">
+                                    <h3 className="font-bold text-gray-900 leading-tight">Internal Notice</h3>
+                                    <p className="text-sm text-gray-600 leading-relaxed">
                                         This dashboard provides a high-level overview of the SAANVIKA operations.
                                         Use the sidebar to navigate to specific sections for detailed management.
                                     </p>
@@ -193,15 +193,15 @@ const Dashboard = () => {
             {isAdmin && !(canMarkAttendance || canShareLocation) && (
                 <div className="grid gap-4 lg:grid-cols-5">
                     {/* Notice Card - 60% width (3/5) */}
-                    <Card className="lg:col-span-3 max-h-[110px]">
-                        <CardContent className="pt-6 pb-6">
-                            <div className="flex items-start gap-3 max-h-[110px]">
-                                <div className="p-2 rounded-lg bg-gray-100 flex-shrink-0">
+                    <Card className="lg:col-span-3 md:max-h-[110px]">
+                        <CardContent className="p-5 md:p-6">
+                            <div className="flex items-start gap-4">
+                                <div className="p-2.5 rounded-xl bg-gray-100 flex-shrink-0">
                                     <AlertCircle className="h-5 w-5 text-gray-600" />
                                 </div>
-                                <div className="flex-1 overflow-y-auto pr-2">
-                                    <h3 className="font-semibold text-gray-900">Internal Notice</h3>
-                                    <p className="text-sm text-gray-600 mt-1">
+                                <div className="space-y-1 md:max-h-[70px] md:overflow-y-auto pr-1">
+                                    <h3 className="font-bold text-gray-900 leading-tight">Internal Notice</h3>
+                                    <p className="text-sm text-gray-600 leading-relaxed">
                                         This dashboard provides a high-level overview of the SAANVIKA operations.
                                         Use the sidebar to navigate to specific sections for detailed management.
                                     </p>

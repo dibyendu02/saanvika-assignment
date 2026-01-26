@@ -129,15 +129,15 @@ const Offices = () => {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Offices</h2>
-                    <p className="text-gray-500 mt-1">Manage office locations and employee targets</p>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Offices</h2>
+                    <p className="text-sm text-gray-500 mt-1">Manage office locations and employee targets</p>
                 </div>
                 {canCreateOffice && (
                     <Dialog open={open} onOpenChange={setOpen}>
                         <DialogTrigger asChild>
-                            <Button>
+                            <Button className="w-full sm:w-auto">
                                 <Plus className="mr-2 h-4 w-4" /> Add Office
                             </Button>
                         </DialogTrigger>
@@ -217,7 +217,8 @@ const Offices = () => {
             </div>
 
             {/* Offices Table */}
-            <Card className="overflow-hidden">
+            {/* Offices Table (Desktop) */}
+            <Card className="hidden md:block overflow-hidden">
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
@@ -331,6 +332,73 @@ const Offices = () => {
                 </CardContent>
             </Card>
 
+            {/* Offices Cards (Mobile) */}
+            <div className="md:hidden space-y-4">
+                {loading ? (
+                    <div className="flex justify-center p-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                    </div>
+                ) : !Array.isArray(offices) || offices.length === 0 ? (
+                    <Card>
+                        <CardContent className="p-6 text-center text-gray-500">
+                            No offices found.
+                        </CardContent>
+                    </Card>
+                ) : (
+                    offices.map((office, index) => (
+                        <Card key={office._id || index}>
+                            <CardContent className="p-5 space-y-4">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h3 className="font-semibold text-gray-900">{office.name}</h3>
+                                        <p className="text-sm font-mono text-gray-500">{office.officeId}</p>
+                                    </div>
+                                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${office.isActive !== false ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                                        {office.isActive !== false ? 'Active' : 'Inactive'}
+                                    </span>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex items-start text-sm text-gray-600 gap-2">
+                                        <MapPin className="h-4 w-4 mt-0.5 text-gray-400 shrink-0" />
+                                        <span>{office.address || office.location?.address || 'N/A'}</span>
+                                    </div>
+                                    <div className="flex items-center text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded w-fit">
+                                        {office.location?.coordinates ?
+                                            `${office.location.coordinates[1].toFixed(4)}, ${office.location.coordinates[0].toFixed(4)}` :
+                                            '-'}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between border-t pt-3">
+                                    <div className="space-y-1">
+                                        <p className="text-xs text-gray-500">Progress</p>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-1.5">
+                                                <Users className="h-4 w-4 text-blue-500" />
+                                                <span className="font-semibold text-sm">{office.employeesCount || 0}</span>
+                                            </div>
+                                            <span className="text-xs text-gray-400">/ {office.targetHeadcount || 0}</span>
+                                        </div>
+                                    </div>
+                                    {user?.role === 'super_admin' && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 -mr-2"
+                                            onClick={() => initiateDelete(office)}
+                                        >
+                                            <Trash2 className="h-4 w-4 mr-1.5" />
+                                            Delete
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))
+                )}
+            </div>
+
             {/* Delete Confirmation Modal */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">
@@ -369,7 +437,7 @@ const Offices = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 };
 

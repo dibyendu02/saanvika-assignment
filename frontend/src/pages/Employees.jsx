@@ -305,20 +305,20 @@ const Employees = () => {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Employee Management</h2>
-                    <p className="text-gray-500 mt-1">Manage and verify employee accounts</p>
+                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Employee Management</h2>
+                    <p className="text-sm text-gray-500 mt-1">Manage and verify employee accounts</p>
                 </div>
                 {canCreateAny && (
-                    <div className="flex gap-3 items-center">
+                    <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
                         {/* Office Filter - Only for Super Admin */}
                         {isSuperAdmin && offices.length > 0 && (
                             <div className="flex items-center gap-2">
                                 <div className="relative">
                                     <Building className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                     <select
-                                        className="h-10 w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                        className="h-10 w-full sm:w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
                                         value={filterOfficeId}
                                         onChange={(e) => {
                                             setFilterOfficeId(e.target.value);
@@ -339,6 +339,7 @@ const Employees = () => {
                         {/* Bulk Upload Button */}
                         <Button
                             variant="outline"
+                            className="w-full sm:w-auto"
                             onClick={() => setBulkUploadOpen(true)}
                         >
                             <Upload className="mr-2 h-4 w-4" /> Bulk Upload
@@ -347,7 +348,7 @@ const Employees = () => {
                         {/* Add Employee Button */}
                         <Dialog open={open} onOpenChange={setOpen}>
                             <DialogTrigger asChild>
-                                <Button>
+                                <Button className="w-full sm:w-auto">
                                     <UserPlus className="mr-2 h-4 w-4" /> Add Employee
                                 </Button>
                             </DialogTrigger>
@@ -506,7 +507,8 @@ const Employees = () => {
             </div>
 
             {/* Employees Table */}
-            <Card className="overflow-hidden">
+            {/* Employees Table (Desktop) */}
+            <Card className="hidden md:block overflow-hidden">
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
@@ -667,6 +669,158 @@ const Employees = () => {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Employees Cards (Mobile) */}
+            <div className="md:hidden space-y-4">
+                {loading ? (
+                    <div className="flex justify-center p-4">
+                        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                    </div>
+                ) : filteredEmployees.length === 0 ? (
+                    <Card>
+                        <CardContent className="p-6 text-center text-gray-500">
+                            No employees found.
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <>
+                        {filteredEmployees.map((emp) => (
+                            <Card key={emp._id}>
+                                <CardContent className="p-5 space-y-4">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                                                {emp.name?.charAt(0)?.toUpperCase() || 'U'}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900">{emp.name}</h3>
+                                                <p className="text-xs text-gray-500 font-mono">{emp.employeeId || 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                        {roleHierarchy[emp.role] < currentRank && (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="sm" className="-mr-2">
+                                                        <MoreVertical className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    {emp.status === 'pending' && (
+                                                        <>
+                                                            <DropdownMenuItem onClick={() => initiateVerify(emp)}>
+                                                                <ShieldCheck className="mr-2 h-4 w-4" />
+                                                                Verify
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                        </>
+                                                    )}
+                                                    {emp.status === 'active' && (
+                                                        <>
+                                                            <DropdownMenuItem onClick={() => initiateSuspend(emp)}>
+                                                                <UserX className="mr-2 h-4 w-4" />
+                                                                Suspend
+                                                            </DropdownMenuItem>
+                                                            {emp.role === 'external' && currentUser.role !== 'external' && (
+                                                                <DropdownMenuItem onClick={async () => {
+                                                                    try {
+                                                                        await api.post('/location/request', { targetUserId: emp._id });
+                                                                        toast({ title: 'Success', description: 'Location request sent' });
+                                                                    } catch (e) {
+                                                                        toast({ title: 'Error', description: 'Failed to send request', variant: 'destructive' });
+                                                                    }
+                                                                }}>
+                                                                    <MapPin className="mr-2 h-4 w-4" />
+                                                                    Request Location
+                                                                </DropdownMenuItem>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                    {emp.status === 'inactive' && (
+                                                        <>
+                                                            <DropdownMenuItem onClick={() => initiateUnsuspend(emp)}>
+                                                                <UserCheck className="mr-2 h-4 w-4" />
+                                                                Reactivate
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                        </>
+                                                    )}
+                                                    {['super_admin', 'admin'].includes(currentUser?.role) && (
+                                                        <DropdownMenuItem
+                                                            onClick={() => initiateDelete(emp)}
+                                                            className="text-red-600 focus:text-red-600"
+                                                        >
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div className="space-y-1">
+                                            <span className="text-xs text-gray-500">Contact</span>
+                                            <div className="flex items-center text-gray-700">
+                                                <Mail className="h-3.5 w-3.5 mr-2 text-gray-400" />
+                                                <span className="truncate">{emp.email}</span>
+                                            </div>
+                                            <div className="flex items-center text-gray-700">
+                                                <Phone className="h-3.5 w-3.5 mr-2 text-gray-400" />
+                                                <span>{emp.phone}</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-xs text-gray-500">Details</span>
+                                            <div className="flex items-center text-gray-700">
+                                                <Building className="h-3.5 w-3.5 mr-2 text-gray-400" />
+                                                <span className="truncate">{emp.primaryOfficeId?.name || (emp.role.includes('admin') ? 'Global' : 'N/A')}</span>
+                                            </div>
+                                            <div>
+                                                <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 uppercase tracking-wide">
+                                                    {emp.role.replace('_', ' ')}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2 border-t">
+                                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium w-full block text-center ${emp.status === 'active' ? 'bg-emerald-50 text-emerald-700' :
+                                            emp.status === 'pending' ? 'bg-amber-50 text-amber-700' :
+                                                'bg-red-50 text-red-700'
+                                            }`}>
+                                            {emp.status}
+                                        </span>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+
+                        {/* Mobile Pagination */}
+                        <div className="flex justify-between items-center px-4 py-3 bg-white rounded-lg border border-gray-200">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                disabled={page === 1 || loading}
+                            >
+                                Previous
+                            </Button>
+                            <span className="text-sm text-gray-600">
+                                Page {page} of {totalPages}
+                            </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={page >= totalPages || loading}
+                            >
+                                Next
+                            </Button>
+                        </div>
+                    </>
+                )}
+            </div>
 
             {/* Verification Confirmation Modal */}
             <Dialog open={verifyDialogOpen} onOpenChange={setVerifyDialogOpen}>

@@ -144,23 +144,22 @@ export default function Locations() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-
+                    <h1 className="text-xl md:text-3xl font-bold flex items-center gap-2">
                         Shared Locations
                     </h1>
                     <p className="text-gray-600 mt-1">
                         View location sharing records
                     </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
                     {user?.role === 'super_admin' && offices.length > 0 && (
                         <div className="flex items-center gap-2">
                             <div className="relative">
                                 <Filter className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 <select
-                                    className="h-10 w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                    className="h-10 w-full sm:w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
                                     value={filterOfficeId}
                                     onChange={e => setFilterOfficeId(e.target.value)}
                                 >
@@ -188,7 +187,7 @@ export default function Locations() {
                     </div>
                 ) : (
                     <>
-                        <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <div className="bg-white rounded-lg shadow overflow-hidden hidden md:block">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
@@ -257,6 +256,51 @@ export default function Locations() {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Mobile List View */}
+                        <div className="md:hidden space-y-4">
+                            {locations.map((location) => (
+                                <div key={location._id} className="bg-white rounded-lg shadow p-4 space-y-3">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <h3 className="font-semibold text-gray-900">{location.userId?.name || 'Unknown'}</h3>
+                                            <p className="text-xs text-gray-500">{location.userId?.email || ''}</p>
+                                        </div>
+                                        <span className="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                            {location.userId?.role || 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                        <div className="space-y-1">
+                                            <span className="text-xs text-gray-500">Time</span>
+                                            <p className="text-gray-700">{formatDate(location.sharedAt)}</p>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <span className="text-xs text-gray-500">Reason</span>
+                                            <p className="text-gray-700 truncate">{location.reason || '-'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="pt-2 border-t flex justify-end gap-2">
+                                        <button
+                                            onClick={() => handleViewOnMap(location._id)}
+                                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium px-2 py-1"
+                                        >
+                                            <Eye className="h-4 w-4" />
+                                            Map
+                                        </button>
+                                        {user?.role === 'super_admin' && (
+                                            <button
+                                                onClick={() => initiateDelete(location)}
+                                                className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 text-sm font-medium px-2 py-1"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                                Delete
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
 
                         {/* Pagination */}

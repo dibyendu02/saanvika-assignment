@@ -153,7 +153,7 @@ const Notifications = () => {
                                         </p>
                                     </div>
                                     <button
-                                        className="absolute right-2 top-4 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-50 rounded-full text-gray-400 hover:text-red-600 transition-all duration-200"
+                                        className="absolute right-2 top-4 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 hover:bg-red-50 rounded-full text-gray-400 hover:text-red-600 transition-all duration-200"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             handleDelete(n._id);
