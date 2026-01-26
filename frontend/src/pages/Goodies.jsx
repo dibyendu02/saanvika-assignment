@@ -23,7 +23,7 @@ import {
     DialogFooter,
     DialogTrigger
 } from '@/components/ui/dialog';
-import { Loader2, Gift, CheckCircle2, AlertTriangle, Users, History, Mail, Calendar, Building, UserCheck, Filter, X, Eye, Package, User } from 'lucide-react';
+import { Loader2, Gift, CheckCircle2, AlertTriangle, Users, History, Mail, Calendar, Building, UserCheck, Filter, X, Eye, Package, User, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import BulkGoodiesUpload from '../components/BulkGoodiesUpload';
@@ -45,6 +45,11 @@ const Goodies = () => {
     const [fetchingClaims, setFetchingClaims] = useState(false);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+
+    // Delete modal state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingItem, setDeletingItem] = useState(null); // { type, id, name }
+    const [deleting, setDeleting] = useState(false);
 
     // Filter state
     const [filterOfficeId, setFilterOfficeId] = useState('all');
@@ -254,6 +259,47 @@ const Goodies = () => {
         } finally {
             setClaiming(false);
             setSelectedDistribution(null);
+        }
+    };
+
+    // Delete Handlers
+    const initiateDeleteDistribution = (dist) => {
+        setDeletingItem({ type: 'distribution', id: dist._id, name: dist.goodiesType });
+        setDeleteDialogOpen(true);
+    };
+
+    const initiateDeleteClaim = (claim) => {
+        setDeletingItem({ type: 'claim', id: claim._id, name: 'this claim record' });
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingItem) return;
+
+        setDeleting(true);
+        try {
+            if (deletingItem.type === 'distribution') {
+                await api.delete(`/goodies/distributions/${deletingItem.id}`);
+                fetchDistributions();
+                toast({ title: 'Success', description: 'Distribution deleted successfully' });
+            } else if (deletingItem.type === 'claim') {
+                await api.delete(`/goodies/received/${deletingItem.id}`);
+                // Refresh claims list
+                if (selectedDistribution) {
+                    fetchClaimsForDistribution(selectedDistribution);
+                }
+                toast({ title: 'Success', description: 'Claim record deleted successfully' });
+            }
+            setDeleteDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to delete item',
+                variant: 'destructive'
+            });
+        } finally {
+            setDeleting(false);
+            setDeletingItem(null);
         }
     };
 
@@ -706,13 +752,25 @@ const Goodies = () => {
                                                         </p>
                                                     </div>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-xs font-medium text-green-600 flex items-center justify-end gap-1">
-                                                        <CheckCircle2 className="h-3 w-3" /> Claimed
-                                                    </p>
-                                                    <p className="text-[10px] text-muted-foreground flex items-center justify-end gap-1 mt-1">
-                                                        <Calendar className="h-3 w-3" /> {format(new Date(claim.receivedAt), 'MMM dd, HH:mm')}
-                                                    </p>
+                                                <div className="text-right flex flex-col items-end gap-1">
+                                                    <div>
+                                                        <p className="text-xs font-medium text-green-600 flex items-center justify-end gap-1">
+                                                            <CheckCircle2 className="h-3 w-3" /> Claimed
+                                                        </p>
+                                                        <p className="text-[10px] text-muted-foreground flex items-center justify-end gap-1 mt-1">
+                                                            <Calendar className="h-3 w-3" /> {format(new Date(claim.receivedAt), 'MMM dd, HH:mm')}
+                                                        </p>
+                                                    </div>
+                                                    {isManagement && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50 -mr-1"
+                                                            onClick={() => initiateDeleteClaim(claim)}
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -837,6 +895,14 @@ const Goodies = () => {
                                                     >
                                                         <Users className="mr-2 h-4 w-4" /> View Claims
                                                     </Button>
+                                                    <Button
+                                                        size="sm"
+                                                        variant="ghost"
+                                                        className="text-red-500 hover:text-red-700 hover:bg-red-50 h-9 w-9 p-0"
+                                                        onClick={() => initiateDeleteDistribution(item)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
                                                 </>
                                             )}
                                         </TableCell>
@@ -856,6 +922,40 @@ const Goodies = () => {
                     toast({ title: 'Success', description: 'Bulk distribution processed' });
                 }}
             />
+
+            {/* Delete Confirmation Modal */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-red-50">
+                                <Trash2 className="h-5 w-5 text-red-600" />
+                            </div>
+                            Confirm Deletion
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete <strong>{deletingItem?.name}</strong>?
+                            {deletingItem?.type === 'distribution' && " This will remove the distribution record."}
+                            {deletingItem?.type === 'claim' && " This will remove the claim record."}
+                            <br />This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleting}
+                        >
+                            {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     );
 };

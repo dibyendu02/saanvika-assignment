@@ -6,9 +6,18 @@ import { useToast } from '../hooks/use-toast';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, MapPin, Clock, User, CheckCircle, XCircle, Navigation, Filter } from 'lucide-react';
+import { Loader2, MapPin, Clock, User, CheckCircle, XCircle, Navigation, Filter, Trash2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import ShareLocationDialog from '../components/ShareLocationDialog';
+import { deleteLocationRequest } from '../api/location';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter
+} from '@/components/ui/dialog';
 
 const LocationRequests = () => {
     const { user } = useAuth();
@@ -19,6 +28,11 @@ const LocationRequests = () => {
     const [responding, setResponding] = useState(null);
     const [offices, setOffices] = useState([]);
     const [filterOfficeId, setFilterOfficeId] = useState('all');
+
+    // Delete modal state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingRequest, setDeletingRequest] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const isExternal = user?.role === 'external';
     const isSuperAdmin = user?.role === 'super_admin';
@@ -82,6 +96,35 @@ const LocationRequests = () => {
             });
         } finally {
             setResponding(null);
+        }
+    };
+
+    const initiateDelete = (request) => {
+        setDeletingRequest(request);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingRequest) return;
+
+        setDeleting(true);
+        try {
+            await deleteLocationRequest(deletingRequest._id);
+            toast({
+                title: 'Success',
+                description: 'Location request deleted successfully',
+            });
+            fetchRequests();
+            setDeleteDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to delete request',
+                variant: 'destructive',
+            });
+        } finally {
+            setDeleting(false);
+            setDeletingRequest(null);
         }
     };
 
@@ -265,6 +308,18 @@ const LocationRequests = () => {
                                                 Waiting for response
                                             </Badge>
                                         )}
+
+                                        {!isExternal && (request.status === 'pending' || isSuperAdmin || user?.role === 'admin') && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                onClick={() => initiateDelete(request)}
+                                            >
+                                                <Trash2 className="h-4 w-4 mr-2" />
+                                                {request.status === 'pending' ? 'Cancel' : 'Delete'}
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>
@@ -272,6 +327,36 @@ const LocationRequests = () => {
                     ))}
                 </div>
             )}
+            {/* Delete Confirmation Modal */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-red-50">
+                                <Trash2 className="h-5 w-5 text-red-600" />
+                            </div>
+                            Confirm Deletion
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this location request?
+                            <br />This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleting}
+                        >
+                            {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

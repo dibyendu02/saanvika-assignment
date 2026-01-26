@@ -70,3 +70,13 @@ export const getMonthlySummary = async (month, officeId) => {
     });
     return response.data;
 };
+
+/**
+ * Delete attendance record
+ * @param {string} id - Attendance ID
+ * @returns {Promise} - Success response
+ */
+export const deleteAttendance = async (id) => {
+    const response = await api.delete(`/attendance/${id}`);
+    return response.data;
+};

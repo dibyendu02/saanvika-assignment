@@ -13,7 +13,8 @@ import {
     MapPin,
     ChevronRight,
     X,
-    Navigation
+    Navigation,
+    Bell
 } from 'lucide-react';
 import Notifications from './Notifications';
 
@@ -36,6 +37,7 @@ const Layout = ({ children }) => {
         { name: 'Goodies', href: '/goodies', icon: Gift, roles: ['super_admin', 'admin', 'internal', 'external'] },
         { name: 'Locations', href: '/locations', icon: MapPin, roles: ['super_admin', 'admin', 'internal', 'external'] },
         { name: 'Location Requests', href: '/location-requests', icon: Navigation, roles: ['super_admin', 'admin', 'internal', 'external'] },
+        { name: 'Notifications', href: '/notifications', icon: Bell, roles: ['super_admin', 'admin', 'internal', 'external'] },
     ];
 
     const filteredNavigation = navigation.filter(item => item.roles.includes(user?.role));

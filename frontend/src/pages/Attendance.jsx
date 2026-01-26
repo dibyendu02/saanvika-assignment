@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getAttendance, getMonthlySummary } from '../api/attendance';
+import { getAttendance, getMonthlySummary, deleteAttendance } from '../api/attendance';
 import api from '../api/axios';
 import { useToast } from '../hooks/use-toast';
 import {
@@ -13,7 +13,15 @@ import {
 } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Calendar, User, Building, Filter } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter
+} from '@/components/ui/dialog';
+import { Loader2, Calendar, User, Building, Filter, Trash2, AlertTriangle } from 'lucide-react';
 import { format, startOfDay, endOfDay } from 'date-fns';
 
 const Attendance = () => {
@@ -31,6 +39,11 @@ const Attendance = () => {
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const limit = 10;
+
+    // Delete modal state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingRecord, setDeletingRecord] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     // Office filter for super admin
     const [offices, setOffices] = useState([]);
@@ -156,6 +169,32 @@ const Attendance = () => {
         }
     };
 
+    const initiateDelete = (record) => {
+        setDeletingRecord(record);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingRecord) return;
+
+        setDeleting(true);
+        try {
+            await deleteAttendance(deletingRecord._id);
+            toast({ title: 'Success', description: 'Attendance record deleted successfully' });
+            fetchDailyAttendance();
+            setDeleteDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to delete attendance record',
+                variant: 'destructive',
+            });
+        } finally {
+            setDeleting(false);
+            setDeletingRecord(null);
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Page Header */}
@@ -250,10 +289,10 @@ const Attendance = () => {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>Employee</TableHead>
-                                    <TableHead>Office</TableHead>
+                                    <TableHead>Overview</TableHead>
                                     <TableHead>Marked At</TableHead>
                                     <TableHead>Time</TableHead>
+                                    {isSuperAdmin && <TableHead className="text-right">Actions</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -299,6 +338,18 @@ const Attendance = () => {
                                                     {formatTime(record.markedAt)}
                                                 </span>
                                             </TableCell>
+                                            {isSuperAdmin && (
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                        onClick={() => initiateDelete(record)}
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            )}
                                         </TableRow>
                                     ))
                                 )}
@@ -410,6 +461,36 @@ const Attendance = () => {
                     </CardContent>
                 </Card>
             )}
+            {/* Delete Confirmation Modal */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-red-50">
+                                <Trash2 className="h-5 w-5 text-red-600" />
+                            </div>
+                            Confirm Deletion
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this attendance record for <strong className="text-gray-900">{deletingRecord?.userId?.name}</strong>?
+                            <br />This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleting}
+                        >
+                            {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

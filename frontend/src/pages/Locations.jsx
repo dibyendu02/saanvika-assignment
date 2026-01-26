@@ -4,9 +4,19 @@ import { getLocations } from '../api/location';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../hooks/use-toast';
 import { format } from 'date-fns';
-import { MapPin, Eye, Filter } from 'lucide-react';
+import { MapPin, Eye, Filter, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import ShareLocationDialog from '../components/ShareLocationDialog';
 import api from '../api/axios';
+import { deleteLocation } from '../api/location';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export default function Locations() {
     const [locations, setLocations] = useState([]);
@@ -18,6 +28,11 @@ export default function Locations() {
     });
     const [offices, setOffices] = useState([]);
     const [filterOfficeId, setFilterOfficeId] = useState('all');
+
+    // Delete modal state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingLocation, setDeletingLocation] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const { user } = useAuth();
     const { toast } = useToast();
@@ -88,6 +103,32 @@ export default function Locations() {
     const handleLocationShared = () => {
         // Refresh the locations list after sharing
         fetchLocations();
+    };
+
+    const initiateDelete = (location) => {
+        setDeletingLocation(location);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingLocation) return;
+
+        setDeleting(true);
+        try {
+            await deleteLocation(deletingLocation._id);
+            toast({ title: 'Success', description: 'Location record deleted successfully' });
+            fetchLocations();
+            setDeleteDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to delete location record',
+                variant: 'destructive',
+            });
+        } finally {
+            setDeleting(false);
+            setDeletingLocation(null);
+        }
     };
 
     // Check if user can share location (internal or external)
@@ -197,11 +238,20 @@ export default function Locations() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                 <button
                                                     onClick={() => handleViewOnMap(location._id)}
-                                                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium"
+                                                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium mr-4"
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                     View on Map
                                                 </button>
+                                                {user?.role === 'super_admin' && (
+                                                    <button
+                                                        onClick={() => initiateDelete(location)}
+                                                        className="inline-flex items-center gap-1 text-red-600 hover:text-red-800 font-medium"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                        Delete
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -237,6 +287,36 @@ export default function Locations() {
                     </>
                 )
             }
+            {/* Delete Confirmation Modal */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-red-50">
+                                <Trash2 className="h-5 w-5 text-red-600" />
+                            </div>
+                            Confirm Deletion
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this location record for <strong className="text-gray-900">{deletingLocation?.userId?.name}</strong>?
+                            <br />This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleting}
+                        >
+                            {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Delete
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div >
     );
 }

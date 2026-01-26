@@ -12,7 +12,6 @@ import {
   getReceivedGoodies,
   getReceivedById,
   getEligibleEmployees,
-  getEligibleEmployees,
   bulkUploadDistributions,
   deleteDistribution,
   deleteReceivedRecord,

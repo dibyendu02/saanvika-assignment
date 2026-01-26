@@ -18,9 +18,12 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
-    DialogTrigger
+    DialogTrigger,
+    DialogDescription,
+    DialogFooter
 } from '@/components/ui/dialog';
-import { Loader2, MapPin, Plus, Users } from 'lucide-react';
+import { Loader2, MapPin, Plus, Users, Trash2, AlertTriangle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import LocationMapPicker from '../components/LocationMapPicker';
 
 const Offices = () => {
@@ -35,8 +38,16 @@ const Offices = () => {
         latitude: '',
         longitude: '',
         targetHeadcount: 0,
+        targetHeadcount: 0,
         officeId: ''
     });
+
+    const { toast } = useToast();
+
+    // Delete modal state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [deletingOffice, setDeletingOffice] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     // Check if user is admin or super_admin
     const canCreateOffice = ['super_admin', 'admin'].includes(user?.role);
@@ -86,6 +97,32 @@ const Offices = () => {
             // You might want to add a toast notification here
         } finally {
             setCreating(false);
+        }
+    };
+
+    const initiateDelete = (office) => {
+        setDeletingOffice(office);
+        setDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingOffice) return;
+
+        setDeleting(true);
+        try {
+            await api.delete(`/offices/${deletingOffice._id}`);
+            toast({ title: 'Success', description: 'Office deleted successfully' });
+            fetchOffices();
+            setDeleteDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to delete office',
+                variant: 'destructive',
+            });
+        } finally {
+            setDeleting(false);
+            setDeletingOffice(null);
         }
     };
 
@@ -193,6 +230,7 @@ const Offices = () => {
                                 <TableHead>Target</TableHead>
                                 <TableHead>Progress</TableHead>
                                 <TableHead>Status</TableHead>
+                                {user?.role === 'super_admin' && <TableHead className="text-right">Actions</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -273,6 +311,18 @@ const Offices = () => {
                                                 {office.isActive !== false ? 'Active' : 'Inactive'}
                                             </span>
                                         </TableCell>
+                                        {user?.role === 'super_admin' && (
+                                            <TableCell className="text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                    onClick={() => initiateDelete(office)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))
                             )}
@@ -280,6 +330,45 @@ const Offices = () => {
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* Delete Confirmation Modal */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-red-50">
+                                <Trash2 className="h-5 w-5 text-red-600" />
+                            </div>
+                            Confirm Deletion
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete <strong className="text-gray-900">{deletingOffice?.name}</strong>?
+                            This action cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="px-6 py-4">
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                            <p className="text-sm text-red-800 font-medium flex items-start gap-2">
+                                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                                Warning: Associated employees and data may be affected.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={deleting}
+                        >
+                            {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Delete Office
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

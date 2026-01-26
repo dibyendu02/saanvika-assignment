@@ -59,6 +59,21 @@ const Notifications = () => {
         }
     };
 
+    const handleDelete = async (id) => {
+        try {
+            await api.delete(`/notifications/${id}`);
+            setNotifications(prev => {
+                const target = prev.find(n => n._id === id);
+                if (target && !target.isRead) {
+                    setUnreadCount(c => Math.max(0, c - 1));
+                }
+                return prev.filter(n => n._id !== id);
+            });
+        } catch (error) {
+            console.error('Error deleting notification:', error);
+        }
+    };
+
     const handleNotificationClick = (notification) => {
         // Mark as read
         if (!notification.isRead) {
@@ -114,30 +129,50 @@ const Notifications = () => {
                             <p className="text-sm">No notifications yet</p>
                         </div>
                     ) : (
-                        notifications.map((n) => (
-                            <DropdownMenuItem
-                                key={n._id}
-                                className={`p-4 flex flex-start gap-3 cursor-pointer border-b last:border-0 ${!n.isRead ? 'bg-blue-50/50' : ''}`}
-                                onClick={() => handleNotificationClick(n)}
-                            >
-                                <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${!n.isRead ? 'bg-blue-100 ring-2 ring-white' : 'bg-gray-100'}`}>
-                                    {getIcon(n.type)}
-                                </div>
-                                <div className="flex-1 min-w-0 space-y-1">
-                                    <div className="flex justify-between items-start gap-2">
-                                        <p className={`text-sm font-medium leading-none ${!n.isRead ? 'text-gray-900' : 'text-gray-600'}`}>
-                                            {n.title}
-                                        </p>
-                                        <span className="text-[10px] text-gray-400 whitespace-nowrap">
-                                            {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
+                        <>
+                            {notifications.slice(0, 5).map((n) => (
+                                <DropdownMenuItem
+                                    key={n._id}
+                                    className={`p-4 flex flex-start gap-3 cursor-pointer border-b last:border-0 group relative pr-10 ${!n.isRead ? 'bg-blue-50/50' : ''}`}
+                                    onClick={() => handleNotificationClick(n)}
+                                >
+                                    <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${!n.isRead ? 'bg-blue-100 ring-2 ring-white' : 'bg-gray-100'}`}>
+                                        {getIcon(n.type)}
                                     </div>
-                                    <p className="text-xs text-gray-500 line-clamp-2">
-                                        {n.message}
-                                    </p>
-                                </div>
-                            </DropdownMenuItem>
-                        ))
+                                    <div className="flex-1 min-w-0 space-y-1">
+                                        <div className="flex justify-between items-start gap-2">
+                                            <p className={`text-sm font-medium leading-none ${!n.isRead ? 'text-gray-900' : 'text-gray-600'}`}>
+                                                {n.title}
+                                            </p>
+                                            <span className="text-[10px] text-gray-400 whitespace-nowrap">
+                                                {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 line-clamp-2">
+                                            {n.message}
+                                        </p>
+                                    </div>
+                                    <button
+                                        className="absolute right-2 top-4 opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-50 rounded-full text-gray-400 hover:text-red-600 transition-all duration-200"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDelete(n._id);
+                                        }}
+                                        title="Delete notification"
+                                    >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                </DropdownMenuItem>
+                            ))}
+                            {notifications.length > 5 && (
+                                <DropdownMenuItem
+                                    className="p-2 border-t bg-gray-50/50 justify-center cursor-pointer text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 focus:bg-blue-50 focus:text-blue-700 w-full flex items-center outline-none"
+                                    onClick={() => navigate('/notifications')}
+                                >
+                                    See all notifications ({notifications.length})
+                                </DropdownMenuItem>
+                            )}
+                        </>
                     )}
                 </div>
             </DropdownMenuContent>
