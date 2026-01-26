@@ -286,6 +286,76 @@ export const denyLocationRequest = async (user, requestId) => {
   return request;
 };
 
+/**
+ * Delete a location record
+ * @param {Object} requestingUser - The user performing the action
+ * @param {string} locationId - ID of location record to delete
+ * @returns {Promise<void>}
+ */
+export const deleteLocation = async (requestingUser, locationId) => {
+  const location = await Location.findById(locationId);
+
+  if (!location) {
+    throw new AppError('Location record not found', 404);
+  }
+
+  // Access control
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can delete any location record
+  } else if (requestingUser.role === 'admin') {
+    // Admin can only delete locations for their office
+    if (location.officeId?.toString() !== requestingUser.primaryOfficeId?.toString()) {
+      throw new AppError('You are not authorized to delete this location record', 403);
+    }
+  } else {
+    throw new AppError('You are not authorized to delete location records', 403);
+  }
+
+  await Location.findByIdAndDelete(locationId);
+};
+
+/**
+ * Delete a location request
+ * @param {Object} requestingUser - The user performing the action
+ * @param {string} requestId - ID of request to delete
+ * @returns {Promise<void>}
+ */
+export const deleteLocationRequest = async (requestingUser, requestId) => {
+  const request = await LocationRequest.findById(requestId)
+    .populate('requester', 'primaryOfficeId')
+    .populate('targetUser', 'primaryOfficeId');
+
+  if (!request) {
+    throw new AppError('Location request not found', 404);
+  }
+
+  // Access control
+  if (requestingUser.role === 'super_admin') {
+    // Super admin can delete any request
+  } else if (requestingUser.role === 'admin') {
+    // Admin can delete requests where either requester OR target is in their office
+    const requesterOfficeId = request.requester?.primaryOfficeId?.toString();
+    const targetOfficeId = request.targetUser?.primaryOfficeId?.toString();
+    const adminOfficeId = requestingUser.primaryOfficeId?.toString();
+
+    if (requesterOfficeId !== adminOfficeId && targetOfficeId !== adminOfficeId) {
+      throw new AppError('You are not authorized to delete this request', 403);
+    }
+  } else {
+    // Users can delete their OWN sent requests if pending
+    if (request.requester._id.toString() === requestingUser._id.toString()) {
+      if (request.status !== 'pending') {
+        throw new AppError('Cannot delete a request that has already been responded to', 400);
+      }
+    } else {
+      throw new AppError('You are not authorized to delete this request', 403);
+    }
+  }
+
+  await LocationRequest.findByIdAndDelete(requestId);
+};
+
+
 export default {
   shareLocation,
   requestLocation,
@@ -293,4 +363,6 @@ export default {
   getLocationById,
   getLocationRequests,
   denyLocationRequest,
+  deleteLocation,
+  deleteLocationRequest,
 };

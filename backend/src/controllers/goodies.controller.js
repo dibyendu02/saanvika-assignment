@@ -209,6 +209,36 @@ export const bulkUploadDistributions = asyncHandler(async (req, res) => {
   }
 });
 
+/**
+ * @desc    Delete a goodies distribution
+ * @route   DELETE /api/v1/goodies/distributions/:id
+ * @access  Private (admin, super_admin)
+ */
+export const deleteDistribution = asyncHandler(async (req, res) => {
+  await goodiesService.deleteDistribution(req.user, req.params.id);
+
+  res.status(200).json({
+    success: true,
+    data: null,
+    message: 'Distribution deleted successfully',
+  });
+});
+
+/**
+ * @desc    Delete a received goodies record
+ * @route   DELETE /api/v1/goodies/received/:id
+ * @access  Private (admin, super_admin)
+ */
+export const deleteReceivedRecord = asyncHandler(async (req, res) => {
+  await goodiesService.deleteReceivedRecord(req.user, req.params.id);
+
+  res.status(200).json({
+    success: true,
+    data: null,
+    message: 'Received record deleted successfully',
+  });
+});
+
 export default {
   createDistribution,
   getDistributions,
@@ -218,4 +248,6 @@ export default {
   getReceivedById,
   getEligibleEmployees,
   bulkUploadDistributions,
+  deleteDistribution,
+  deleteReceivedRecord,
 };

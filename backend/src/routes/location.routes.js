@@ -11,6 +11,8 @@ import {
   getLocationById,
   getLocationRequests,
   denyLocationRequest,
+  deleteLocation,
+  deleteLocationRequest,
 } from '../controllers/location.controller.js';
 import {
   shareLocationSchema,
@@ -56,11 +58,26 @@ router.patch(
   denyLocationRequest
 );
 
+// Delete location request (admin, super_admin, or requester)
+router.delete(
+  '/requests/:id',
+  authorize('super_admin', 'admin', 'internal', 'external'),
+  deleteLocationRequest
+);
+
 // Get location record by ID (role-based access)
 router.get(
   '/:id',
   validate(idParamSchema, 'params'),
   getLocationById
+);
+
+// Delete location record (admin, super_admin)
+router.delete(
+  '/:id',
+  authorize('super_admin', 'admin'),
+  validate(idParamSchema, 'params'),
+  deleteLocation
 );
 
 export default router;

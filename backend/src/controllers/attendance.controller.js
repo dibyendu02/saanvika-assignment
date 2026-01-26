@@ -88,11 +88,29 @@ export const getMonthlySummary = asyncHandler(async (req, res) => {
     data: result,
     message: 'Monthly attendance summary fetched successfully',
   });
+
+});
+
+/**
+ * @desc    Delete an attendance record
+ * @route   DELETE /api/v1/attendance/:id
+ * @access  Private (admin, super_admin)
+ */
+export const deleteAttendance = asyncHandler(async (req, res) => {
+  await attendanceService.deleteAttendance(req.user, req.params.id);
+
+  res.status(200).json({
+    success: true,
+    data: null,
+    message: 'Attendance record deleted successfully',
+  });
 });
 
 export default {
   markAttendance,
   getAttendance,
   getAttendanceById,
+  getAttendanceById,
   getMonthlySummary,
+  deleteAttendance,
 };

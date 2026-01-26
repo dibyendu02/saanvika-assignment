@@ -96,9 +96,37 @@ export const markAllAsRead = async (userId) => {
     );
 };
 
+
+/**
+ * Delete a notification
+ * @param {string} notificationId - Notification ID
+ * @param {Object} requestingUser - User performing the action
+ * @returns {Promise<void>}
+ */
+export const deleteNotification = async (notificationId, requestingUser) => {
+    const notification = await Notification.findById(notificationId);
+
+    if (!notification) {
+        throw new Error('Notification not found');
+    }
+
+    // Access control: User can only delete their own notifications
+    // Super admin can delete any notification (optional, but good for admin)
+    if (requestingUser.role === 'super_admin') {
+        // Super admin bypass
+    } else {
+        if (notification.recipient.toString() !== requestingUser._id.toString()) {
+            throw new Error('You are not authorized to delete this notification');
+        }
+    }
+
+    await Notification.findByIdAndDelete(notificationId);
+};
+
 export default {
     createNotification,
     getMyNotifications,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
 };

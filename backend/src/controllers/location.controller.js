@@ -113,6 +113,37 @@ export const denyLocationRequest = asyncHandler(async (req, res) => {
     data: { request },
     message: 'Location request denied',
   });
+
+});
+
+/**
+ * @desc    Delete a location record
+ * @route   DELETE /api/v1/location/:id
+ * @access  Private (admin, super_admin)
+ */
+export const deleteLocation = asyncHandler(async (req, res) => {
+  await locationService.deleteLocation(req.user, req.params.id);
+
+  res.status(200).json({
+    success: true,
+    data: null,
+    message: 'Location record deleted successfully',
+  });
+});
+
+/**
+ * @desc    Delete a location request
+ * @route   DELETE /api/v1/location/requests/:id
+ * @access  Private (admin, super_admin, requester)
+ */
+export const deleteLocationRequest = asyncHandler(async (req, res) => {
+  await locationService.deleteLocationRequest(req.user, req.params.id);
+
+  res.status(200).json({
+    success: true,
+    data: null,
+    message: 'Location request deleted successfully',
+  });
 });
 
 export default {
@@ -121,5 +152,8 @@ export default {
   getLocations,
   getLocationById,
   getLocationRequests,
+  getLocationRequests,
   denyLocationRequest,
+  deleteLocation,
+  deleteLocationRequest,
 };

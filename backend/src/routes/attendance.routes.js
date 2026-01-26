@@ -9,6 +9,7 @@ import {
   getAttendance,
   getAttendanceById,
   getMonthlySummary,
+  deleteAttendance,
 } from '../controllers/attendance.controller.js';
 import {
   markAttendanceSchema,
@@ -50,6 +51,14 @@ router.get(
   '/:id',
   validate(attendanceIdSchema, 'params'),
   getAttendanceById
+);
+
+// Delete attendance record - admin and super_admin
+router.delete(
+  '/:id',
+  authorize('admin', 'super_admin'),
+  validate(attendanceIdSchema, 'params'),
+  deleteAttendance
 );
 
 export default router;
