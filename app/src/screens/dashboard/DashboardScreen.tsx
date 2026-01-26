@@ -25,6 +25,7 @@ import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import { DashboardStats } from '../../types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import Geolocation from '@react-native-community/geolocation';
+import { useFocusEffect } from '@react-navigation/native';
 
 export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { user } = useAuth();
@@ -46,9 +47,11 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
         }
     }, []);
 
-    useEffect(() => {
-        fetchStats();
-    }, [fetchStats]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchStats();
+        }, [fetchStats])
+    );
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -176,7 +179,7 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
                     style={styles.statsScroll}
                     contentContainerStyle={styles.statsScrollContent}
                 >
-                    <TouchableOpacity onPress={() => navigation.navigate('Offices')} activeOpacity={0.9}>
+                    <TouchableOpacity onPress={() => navigation.navigate('More', { screen: 'Offices' })} activeOpacity={0.9}>
                         <Card style={styles.statCard}>
                             <View style={[styles.statIconContainer, { backgroundColor: COLORS.secondary + '20' }]}>
                                 <Icon name="office-building" size={ICON_SIZES.md} color={COLORS.secondary} />
@@ -198,7 +201,7 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
                         </Card>
                     </TouchableOpacity>
 
-                    <TouchableOpacity onPress={() => navigation.navigate('More')} activeOpacity={0.9}>
+                    <TouchableOpacity onPress={() => navigation.navigate('More', { screen: 'Goodies' })} activeOpacity={0.9}>
                         <Card style={styles.statCard}>
                             <View style={[styles.statIconContainer, { backgroundColor: COLORS.infoLight }]}>
                                 <Icon name="gift" size={ICON_SIZES.md} color={COLORS.info} />
