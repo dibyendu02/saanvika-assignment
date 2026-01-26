@@ -171,7 +171,7 @@ export default function ShareLocationDialog({ trigger, triggerButton, onSuccess,
                         {gettingLocation ? (
                             <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
                                 <div className="text-center">
-                                    <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-2" />
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary-600 mx-auto mb-2" />
                                     <p className="text-sm text-gray-600">Capturing your location...</p>
                                 </div>
                             </div>
@@ -218,7 +218,7 @@ export default function ShareLocationDialog({ trigger, triggerButton, onSuccess,
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                             placeholder="Why are you sharing your location?"
-                            className="w-full min-h-[80px] px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full min-h-[80px] px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                             maxLength={500}
                             disabled={loading || gettingLocation}
                         />

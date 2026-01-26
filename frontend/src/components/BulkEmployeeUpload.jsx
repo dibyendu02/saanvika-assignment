@@ -97,12 +97,12 @@ const BulkEmployeeUpload = ({ isOpen, onClose, onSuccess }) => {
                 {/* Content */}
                 <div className="p-6 space-y-6">
                     {/* Instructions */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <h3 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                    <div className="bg-primary-50 border border-primary-100 rounded-lg p-4">
+                        <h3 className="font-semibold text-primary-900 mb-2 flex items-center gap-2">
                             <AlertCircle size={20} />
                             Instructions
                         </h3>
-                        <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800">
+                        <ol className="list-decimal list-inside space-y-1 text-sm text-primary-800">
                             <li>Download the Excel template using the button below</li>
                             <li>
                                 Fill in employee details (name, age, gender, employee_id, employee_type, date_of_birth
@@ -129,7 +129,7 @@ const BulkEmployeeUpload = ({ isOpen, onClose, onSuccess }) => {
                             Upload Excel File
                         </label>
                         <div className="flex items-center gap-4">
-                            <label className="flex-1 flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 transition-colors">
+                            <label className="flex-1 flex items-center justify-center px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 transition-colors">
                                 <input
                                     type="file"
                                     accept=".xlsx,.xls"
@@ -236,7 +236,7 @@ const BulkEmployeeUpload = ({ isOpen, onClose, onSuccess }) => {
                         <button
                             onClick={handleUpload}
                             disabled={!file || uploading}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                         >
                             {uploading ? (
                                 <>

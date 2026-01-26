@@ -159,7 +159,7 @@ export default function Locations() {
                             <div className="relative">
                                 <Filter className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 <select
-                                    className="h-10 w-full sm:w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                    className="h-10 w-full sm:w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none appearance-none cursor-pointer"
                                     value={filterOfficeId}
                                     onChange={e => setFilterOfficeId(e.target.value)}
                                 >
@@ -220,7 +220,7 @@ export default function Locations() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-primary-50 text-primary-700">
                                                     {location.userId?.role || 'N/A'}
                                                 </span>
                                             </td>
@@ -237,7 +237,7 @@ export default function Locations() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                 <button
                                                     onClick={() => handleViewOnMap(location._id)}
-                                                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium mr-4"
+                                                    className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-800 font-medium mr-4"
                                                 >
                                                     <Eye className="h-4 w-4" />
                                                     View on Map
@@ -267,7 +267,7 @@ export default function Locations() {
                                             <h3 className="font-semibold text-gray-900">{location.userId?.name || 'Unknown'}</h3>
                                             <p className="text-xs text-gray-500">{location.userId?.email || ''}</p>
                                         </div>
-                                        <span className="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                        <span className="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-primary-50 text-primary-700">
                                             {location.userId?.role || 'N/A'}
                                         </span>
                                     </div>
@@ -284,7 +284,7 @@ export default function Locations() {
                                     <div className="pt-2 border-t flex justify-end gap-2">
                                         <button
                                             onClick={() => handleViewOnMap(location._id)}
-                                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm font-medium px-2 py-1"
+                                            className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-800 text-sm font-medium px-2 py-1"
                                         >
                                             <Eye className="h-4 w-4" />
                                             Map

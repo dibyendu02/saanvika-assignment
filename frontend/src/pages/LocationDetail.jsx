@@ -65,7 +65,7 @@ export default function LocationDetail() {
                 <p className="text-gray-500">Location not found</p>
                 <button
                     onClick={() => navigate('/locations')}
-                    className="mt-4 text-blue-600 hover:text-blue-800"
+                    className="mt-4 text-primary-600 hover:text-primary-800 font-medium"
                 >
                     Back to Locations
                 </button>
@@ -132,7 +132,7 @@ export default function LocationDetail() {
                         {/* Role */}
                         <div className="space-y-2">
                             <p className="text-sm text-gray-500">Role</p>
-                            <span className="px-3 py-1 inline-flex text-sm font-semibold rounded-full bg-blue-100 text-blue-800">
+                            <span className="px-3 py-1 inline-flex text-sm font-semibold rounded-full bg-primary-50 text-primary-700">
                                 {location.userId?.role || 'N/A'}
                             </span>
                         </div>

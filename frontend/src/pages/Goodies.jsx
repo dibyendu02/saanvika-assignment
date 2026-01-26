@@ -336,7 +336,7 @@ const Goodies = () => {
                                 <div className="relative">
                                     <Filter className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                     <select
-                                        className="h-10 w-full sm:w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                        className="h-10 w-full sm:w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none appearance-none cursor-pointer"
                                         value={filterOfficeId}
                                         onChange={e => setFilterOfficeId(e.target.value)}
                                     >
@@ -400,7 +400,7 @@ const Goodies = () => {
                                             <Label htmlFor="office" className="text-sm font-medium text-gray-700">Assign to Office</Label>
                                             <select
                                                 id="office"
-                                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+                                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none"
                                                 value={newItem.officeId}
                                                 onChange={e => handleOfficeChange(e.target.value)}
                                                 required
@@ -474,13 +474,13 @@ const Goodies = () => {
                                                         {employees.map((emp) => (
                                                             <div
                                                                 key={emp._id}
-                                                                className={`flex items-center gap-3 p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors ${selectedEmployees.includes(emp._id) ? 'bg-blue-50' : ''
+                                                                className={`flex items-center gap-3 p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors ${selectedEmployees.includes(emp._id) ? 'bg-primary-50' : ''
                                                                     }`}
                                                                 onClick={() => toggleEmployeeSelection(emp._id)}
                                                             >
                                                                 <input
                                                                     type="checkbox"
-                                                                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                                                    className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary"
                                                                     checked={selectedEmployees.includes(emp._id)}
                                                                     onChange={() => { }}
                                                                     onClick={(e) => e.stopPropagation()}
@@ -524,7 +524,7 @@ const Goodies = () => {
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                            <AlertTriangle className="h-5 w-5 text-warning-500" />
                             Confirm Claim
                         </DialogTitle>
                         <DialogDescription className="py-2">
@@ -537,7 +537,7 @@ const Goodies = () => {
                             Cancel
                         </Button>
                         <Button
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-success-600 hover:bg-success-700 text-white"
                             onClick={handleMarkReceived}
                             disabled={claiming}
                         >
@@ -630,12 +630,12 @@ const Goodies = () => {
                                     <div className="space-y-1">
                                         <p className="text-xs text-muted-foreground font-medium">Target</p>
                                         {selectedDistribution.isForAllEmployees ? (
-                                            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+                                            <Badge variant="secondary" className="bg-primary-50 text-primary-700 border-primary-200">
                                                 <Users className="h-3 w-3 mr-1" />
                                                 All Employees
                                             </Badge>
                                         ) : (
-                                            <Badge variant="secondary" className="bg-purple-50 text-purple-700 border-purple-200">
+                                            <Badge variant="secondary" className="bg-accent text-accent-foreground border-accent">
                                                 <UserCheck className="h-3 w-3 mr-1" />
                                                 {selectedDistribution.targetEmployees?.length || 0} Selected
                                             </Badge>
@@ -754,7 +754,7 @@ const Goodies = () => {
                                                 </div>
                                                 <div className="text-right flex flex-col items-end gap-1">
                                                     <div>
-                                                        <p className="text-xs font-medium text-green-600 flex items-center justify-end gap-1">
+                                                        <p className="text-xs font-medium text-success-600 flex items-center justify-end gap-1">
                                                             <CheckCircle2 className="h-3 w-3" /> Claimed
                                                         </p>
                                                         <p className="text-[10px] text-muted-foreground flex items-center justify-end gap-1 mt-1">

@@ -90,10 +90,10 @@ const Notifications = () => {
 
     const getIcon = (type) => {
         switch (type) {
-            case 'location_request': return <MapPin className="h-4 w-4 text-orange-500" />;
-            case 'location_shared': return <Check className="h-4 w-4 text-green-500" />;
-            case 'goodies_distributed': return <Gift className="h-4 w-4 text-blue-500" />;
-            default: return <Info className="h-4 w-4 text-gray-500" />;
+            case 'location_request': return <MapPin className="h-4 w-4 text-warning-500" />;
+            case 'location_shared': return <Check className="h-4 w-4 text-success-500" />;
+            case 'goodies_distributed': return <Gift className="h-4 w-4 text-primary-500" />;
+            default: return <Info className="h-4 w-4 text-muted-foreground" />;
         }
     };
 
@@ -103,7 +103,7 @@ const Notifications = () => {
                 <Button variant="ghost" size="icon" className="relative">
                     <Bell className="h-5 w-5" />
                     {unreadCount > 0 && (
-                        <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center -translate-y-1 translate-x-1 ring-2 ring-white">
+                        <span className="absolute top-0 right-0 h-4 w-4 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full flex items-center justify-center -translate-y-1 translate-x-1 ring-2 ring-white">
                             {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
                     )}
@@ -113,7 +113,7 @@ const Notifications = () => {
                 <div className="p-4 border-b flex items-center justify-between">
                     <h3 className="font-semibold">Notifications</h3>
                     {unreadCount > 0 && (
-                        <Button variant="ghost" size="sm" className="text-xs h-8 text-blue-600 hover:text-blue-700" onClick={markAllRead}>
+                        <Button variant="ghost" size="sm" className="text-xs h-8 text-primary-600 hover:text-primary-700" onClick={markAllRead}>
                             Mark all as read
                         </Button>
                     )}
@@ -133,10 +133,10 @@ const Notifications = () => {
                             {notifications.slice(0, 5).map((n) => (
                                 <DropdownMenuItem
                                     key={n._id}
-                                    className={`p-4 flex flex-start gap-3 cursor-pointer border-b last:border-0 group relative pr-10 ${!n.isRead ? 'bg-blue-50/50' : ''}`}
+                                    className={`p-4 flex flex-start gap-3 cursor-pointer border-b last:border-0 group relative pr-10 ${!n.isRead ? 'bg-primary-50/50' : ''}`}
                                     onClick={() => handleNotificationClick(n)}
                                 >
-                                    <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${!n.isRead ? 'bg-blue-100 ring-2 ring-white' : 'bg-gray-100'}`}>
+                                    <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${!n.isRead ? 'bg-primary-100 ring-2 ring-white' : 'bg-muted'}`}>
                                         {getIcon(n.type)}
                                     </div>
                                     <div className="flex-1 min-w-0 space-y-1">
@@ -166,7 +166,7 @@ const Notifications = () => {
                             ))}
                             {notifications.length > 5 && (
                                 <DropdownMenuItem
-                                    className="p-2 border-t bg-gray-50/50 justify-center cursor-pointer text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 focus:bg-blue-50 focus:text-blue-700 w-full flex items-center outline-none"
+                                    className="p-2 border-t bg-muted/50 justify-center cursor-pointer text-xs text-primary-600 hover:text-primary-700 hover:bg-primary-50 focus:bg-primary-50 focus:text-primary-700 w-full flex items-center outline-none"
                                     onClick={() => navigate('/notifications')}
                                 >
                                     See all notifications ({notifications.length})

@@ -166,7 +166,7 @@ export default function MarkAttendanceDialog({ trigger, onSuccess }) {
                         {gettingLocation ? (
                             <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
                                 <div className="text-center">
-                                    <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-2" />
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary-600 mx-auto mb-2" />
                                     <p className="text-sm text-gray-600">Capturing your location...</p>
                                 </div>
                             </div>
@@ -207,8 +207,8 @@ export default function MarkAttendanceDialog({ trigger, onSuccess }) {
                     </div>
 
                     {/* Info Message */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <p className="text-sm text-blue-800">
+                    <div className="bg-primary-50 border border-primary-100 rounded-lg p-3">
+                        <p className="text-sm text-primary-800">
                             <strong>Note:</strong> Your attendance will be marked for today with your current location.
                         </p>
                     </div>

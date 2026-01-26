@@ -271,7 +271,7 @@ const Offices = () => {
                                         </TableCell>
                                         <TableCell>
                                             <div className="flex items-center gap-1.5">
-                                                <Users className="h-4 w-4 text-blue-500" />
+                                                <Users className="h-4 w-4 text-primary-500" />
                                                 <span className="font-semibold text-gray-900">{office.employeesCount || 0}</span>
                                             </div>
                                         </TableCell>
@@ -284,8 +284,8 @@ const Offices = () => {
                                                     <div className="w-20 bg-gray-100 rounded-full h-1.5">
                                                         <div
                                                             className={`h-1.5 rounded-full transition-all duration-300 ${(office.employeesCount || 0) >= office.targetHeadcount
-                                                                ? 'bg-emerald-500'
-                                                                : 'bg-amber-500'
+                                                                ? 'bg-success-500'
+                                                                : 'bg-warning-500'
                                                                 }`}
                                                             style={{
                                                                 width: `${Math.min(
@@ -296,8 +296,8 @@ const Offices = () => {
                                                         ></div>
                                                     </div>
                                                     <span className={`text-xs font-medium ${(office.employeesCount || 0) >= office.targetHeadcount
-                                                        ? 'text-emerald-600'
-                                                        : 'text-amber-600'
+                                                        ? 'text-success-600'
+                                                        : 'text-warning-600'
                                                         }`}>
                                                         {Math.round(((office.employeesCount || 0) / office.targetHeadcount) * 100)}%
                                                     </span>
@@ -307,7 +307,7 @@ const Offices = () => {
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${office.isActive !== false ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${office.isActive !== false ? 'bg-success-50 text-success-700' : 'bg-destructive/10 text-destructive'
                                                 }`}>
                                                 {office.isActive !== false ? 'Active' : 'Inactive'}
                                             </span>
@@ -353,7 +353,7 @@ const Offices = () => {
                                         <h3 className="font-semibold text-gray-900">{office.name}</h3>
                                         <p className="text-sm font-mono text-gray-500">{office.officeId}</p>
                                     </div>
-                                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${office.isActive !== false ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${office.isActive !== false ? 'bg-success-50 text-success-700' : 'bg-destructive/10 text-destructive'}`}>
                                         {office.isActive !== false ? 'Active' : 'Inactive'}
                                     </span>
                                 </div>
@@ -375,7 +375,7 @@ const Offices = () => {
                                         <p className="text-xs text-gray-500">Progress</p>
                                         <div className="flex items-center gap-2">
                                             <div className="flex items-center gap-1.5">
-                                                <Users className="h-4 w-4 text-blue-500" />
+                                                <Users className="h-4 w-4 text-primary-500" />
                                                 <span className="font-semibold text-sm">{office.employeesCount || 0}</span>
                                             </div>
                                             <span className="text-xs text-gray-400">/ {office.targetHeadcount || 0}</span>

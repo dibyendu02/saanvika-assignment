@@ -235,7 +235,7 @@ const Attendance = () => {
                             <div className="relative">
                                 <Building className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                 <select
-                                    className="h-10 w-full sm:w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                    className="h-10 w-full sm:w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none appearance-none cursor-pointer"
                                     value={filterOfficeId}
                                     onChange={e => setFilterOfficeId(e.target.value)}
                                 >
@@ -256,7 +256,7 @@ const Attendance = () => {
                             type="date"
                             value={selectedDate}
                             onChange={(e) => setSelectedDate(e.target.value)}
-                            className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                     )}
 
@@ -266,7 +266,7 @@ const Attendance = () => {
                             type="month"
                             value={selectedMonth}
                             onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                     )}
                 </div>
@@ -277,8 +277,8 @@ const Attendance = () => {
                 <Card className="overflow-hidden">
                     <CardHeader>
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-blue-50">
-                                <Calendar className="h-5 w-5 text-blue-600" />
+                            <div className="p-2 rounded-lg bg-primary-50">
+                                <Calendar className="h-5 w-5 text-primary-600" />
                             </div>
                             <div>
                                 <CardTitle>Attendance Records</CardTitle>
@@ -439,8 +439,8 @@ const Attendance = () => {
                     <Card className="overflow-hidden">
                         <CardHeader>
                             <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-emerald-50">
-                                    <Calendar className="h-5 w-5 text-emerald-600" />
+                                <div className="p-2 rounded-lg bg-success-50">
+                                    <Calendar className="h-5 w-5 text-success-600" />
                                 </div>
                                 <div>
                                     <CardTitle>Monthly Summary</CardTitle>
@@ -491,7 +491,7 @@ const Attendance = () => {
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        <span className="px-2 py-1 text-xs font-medium rounded-md bg-blue-50 text-blue-700 uppercase">
+                                                        <span className="px-2 py-1 text-xs font-medium rounded-md bg-primary-50 text-primary-700 uppercase">
                                                             {summary.user?.role || 'N/A'}
                                                         </span>
                                                     </TableCell>
@@ -503,7 +503,7 @@ const Attendance = () => {
                                                     </TableCell>
                                                     <TableCell>
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-xl font-bold text-emerald-600">{summary.count}</span>
+                                                            <span className="text-xl font-bold text-success-600">{summary.count}</span>
                                                             <span className="text-sm text-gray-500">days</span>
                                                         </div>
                                                     </TableCell>
@@ -539,7 +539,7 @@ const Attendance = () => {
                                                         </div>
                                                     </div>
                                                     <div className="flex flex-col items-end">
-                                                        <span className="text-xl font-bold text-emerald-600">{summary.count}</span>
+                                                        <span className="text-xl font-bold text-success-600">{summary.count}</span>
                                                         <span className="text-xs text-gray-500">days</span>
                                                     </div>
                                                 </div>
@@ -548,7 +548,7 @@ const Attendance = () => {
                                                         <Building className="h-3.5 w-3.5 mr-2 text-gray-400" />
                                                         <span className="truncate max-w-[150px]">{summary.office?.name || 'Remote/Unknown'}</span>
                                                     </div>
-                                                    <span className="px-2 py-0.5 text-xs font-medium rounded-md bg-blue-50 text-blue-700 uppercase">
+                                                    <span className="px-2 py-0.5 text-xs font-medium rounded-md bg-primary-50 text-primary-700 uppercase">
                                                         {summary.user?.role || 'N/A'}
                                                     </span>
                                                 </div>

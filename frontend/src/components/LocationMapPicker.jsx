@@ -167,7 +167,7 @@ const LocationMapPicker = ({ latitude, longitude, onLocationChange, address }) =
                     type="button"
                     onClick={getCurrentLocation}
                     disabled={isGettingLocation}
-                    className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    className="px-3 py-1.5 text-xs font-medium bg-primary-600 text-white rounded hover:bg-primary-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                 >
                     {isGettingLocation ? 'Getting Location...' : 'Use My Location'}
                 </button>
@@ -175,7 +175,7 @@ const LocationMapPicker = ({ latitude, longitude, onLocationChange, address }) =
 
             {/* Instructions */}
             <p className="text-xs text-gray-500 flex items-start gap-1">
-                <span className="text-blue-600 font-medium">Tip:</span>
+                <span className="text-primary-600 font-medium">Tip:</span>
                 <span>Click anywhere on the map to set the location, or drag the marker to adjust.</span>
             </p>
         </div>

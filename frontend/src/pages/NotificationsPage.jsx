@@ -91,9 +91,9 @@ const NotificationsPage = () => {
 
     const getIcon = (type) => {
         switch (type) {
-            case 'location_request': return <MapPin className="h-5 w-5 text-orange-500" />;
-            case 'location_shared': return <Check className="h-5 w-5 text-green-500" />;
-            case 'goodies_distributed': return <Gift className="h-5 w-5 text-blue-500" />;
+            case 'location_request': return <MapPin className="h-5 w-5 text-warning-500" />;
+            case 'location_shared': return <Check className="h-5 w-5 text-success-500" />;
+            case 'goodies_distributed': return <Gift className="h-5 w-5 text-primary-500" />;
             default: return <Info className="h-5 w-5 text-gray-500" />;
         }
     };
@@ -143,9 +143,9 @@ const NotificationsPage = () => {
                             {notifications.map((n) => (
                                 <div
                                     key={n._id}
-                                    className={`p-4 sm:p-6 flex gap-4 hover:bg-gray-50 transition-colors group ${!n.isRead ? 'bg-blue-50/30' : ''}`}
+                                    className={`p-4 sm:p-6 flex gap-4 hover:bg-gray-50 transition-colors group ${!n.isRead ? 'bg-primary-50/30' : ''}`}
                                 >
-                                    <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${!n.isRead ? 'bg-blue-100 ring-4 ring-blue-50' : 'bg-gray-100'}`}>
+                                    <div className={`h-10 w-10 rounded-full flex items-center justify-center shrink-0 ${!n.isRead ? 'bg-primary-100 ring-4 ring-primary-50' : 'bg-gray-100'}`}>
                                         {getIcon(n.type)}
                                     </div>
 

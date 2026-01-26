@@ -134,10 +134,10 @@ const LocationRequests = () => {
 
     const getStatusBadge = (status) => {
         const variants = {
-            pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-            shared: 'bg-green-100 text-green-800 border-green-300',
-            denied: 'bg-red-100 text-red-800 border-red-300',
-            expired: 'bg-gray-100 text-gray-800 border-gray-300',
+            pending: 'bg-warning-50 text-warning-700 border-warning-200',
+            shared: 'bg-success-50 text-success-700 border-success-200',
+            denied: 'bg-destructive/10 text-destructive border-destructive/20',
+            expired: 'bg-muted text-muted-foreground border-border',
         };
 
         const icons = {
@@ -181,7 +181,7 @@ const LocationRequests = () => {
                         <div className="relative w-full md:w-auto">
                             <Filter className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                             <select
-                                className="h-10 w-full md:w-[200px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                className="h-10 w-full md:w-[200px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none appearance-none cursor-pointer"
                                 value={filterOfficeId}
                                 onChange={e => setFilterOfficeId(e.target.value)}
                             >
@@ -217,8 +217,8 @@ const LocationRequests = () => {
                                     <div className="flex-1 space-y-3 w-full pr-16 sm:pr-0">
                                         {/* User Info */}
                                         <div className="flex items-center gap-3">
-                                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                                <User className="h-5 w-5 text-blue-600" />
+                                            <div className="h-10 w-10 rounded-full bg-primary-50 flex items-center justify-center flex-shrink-0">
+                                                <User className="h-5 w-5 text-primary-600" />
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="font-semibold text-gray-900 leading-none truncate">
@@ -245,7 +245,7 @@ const LocationRequests = () => {
                                             </div>
                                             {request.respondedAt && (
                                                 <div className="flex items-center gap-1.5">
-                                                    <CheckCircle className="h-4 w-4 text-emerald-500" />
+                                                    <CheckCircle className="h-4 w-4 text-success-500" />
                                                     <span>
                                                         Responded{' '}
                                                         {format(new Date(request.respondedAt), 'MMM dd, yyyy HH:mm')}
@@ -264,7 +264,7 @@ const LocationRequests = () => {
                                             <Button
                                                 size="icon"
                                                 variant="ghost"
-                                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 w-8"
+                                                className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 h-8 w-8"
                                                 onClick={() => handleViewLocation(request.locationId._id || request.locationId)}
                                             >
                                                 <MapPin className="h-4 w-4" />

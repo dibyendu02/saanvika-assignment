@@ -318,7 +318,7 @@ const Employees = () => {
                                 <div className="relative">
                                     <Building className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                                     <select
-                                        className="h-10 w-full sm:w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                        className="h-10 w-full sm:w-[180px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none appearance-none cursor-pointer"
                                         value={filterOfficeId}
                                         onChange={(e) => {
                                             setFilterOfficeId(e.target.value);
@@ -406,7 +406,7 @@ const Employees = () => {
                                             <Label htmlFor="gender" className="text-sm font-medium text-gray-700">Gender</Label>
                                             <select
                                                 id="gender"
-                                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+                                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none"
                                                 value={newEmployee.gender}
                                                 onChange={e => setNewEmployee({ ...newEmployee, gender: e.target.value })}
                                             >
@@ -445,7 +445,7 @@ const Employees = () => {
                                             <Label htmlFor="role" className="text-sm font-medium text-gray-700">Role</Label>
                                             <select
                                                 id="role"
-                                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+                                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none"
                                                 value={newEmployee.role}
                                                 onChange={e => setNewEmployee({ ...newEmployee, role: e.target.value })}
                                                 required
@@ -459,7 +459,7 @@ const Employees = () => {
                                             <Label htmlFor="office" className="text-sm font-medium text-gray-700">Assigned Office</Label>
                                             <select
                                                 id="office"
-                                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:outline-none"
+                                                className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none"
                                                 value={newEmployee.primaryOfficeId}
                                                 onChange={e => setNewEmployee({ ...newEmployee, primaryOfficeId: e.target.value })}
                                                 required={['internal', 'external'].includes(newEmployee.role)}
@@ -566,15 +566,15 @@ const Employees = () => {
                                                 {emp.primaryOfficeId?.name || (emp.role.includes('admin') ? 'Global' : 'Not Assigned')}
                                             </div>
                                             <div className="mt-2">
-                                                <span className="px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 uppercase tracking-wide">
+                                                <span className="px-2 py-1 rounded-md text-xs font-medium bg-primary-100 text-primary-700 uppercase tracking-wide">
                                                     {emp.role.replace('_', ' ')}
                                                 </span>
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${emp.status === 'active' ? 'bg-emerald-50 text-emerald-700' :
-                                                emp.status === 'pending' ? 'bg-amber-50 text-amber-700' :
-                                                    'bg-red-50 text-red-700'
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${emp.status === 'active' ? 'bg-success-50 text-success-700' :
+                                                emp.status === 'pending' ? 'bg-warning-50 text-warning-700' :
+                                                    'bg-destructive/10 text-destructive'
                                                 }`}>
                                                 {emp.status}
                                             </span>
@@ -777,7 +777,7 @@ const Employees = () => {
                                                 <span className="truncate">{emp.primaryOfficeId?.name || (emp.role.includes('admin') ? 'Global' : 'N/A')}</span>
                                             </div>
                                             <div>
-                                                <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 uppercase tracking-wide">
+                                                <span className="px-2 py-0.5 rounded text-xs font-medium bg-primary-100 text-primary-700 uppercase tracking-wide">
                                                     {emp.role.replace('_', ' ')}
                                                 </span>
                                             </div>
@@ -785,9 +785,9 @@ const Employees = () => {
                                     </div>
 
                                     <div className="pt-2 border-t">
-                                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium w-full block text-center ${emp.status === 'active' ? 'bg-emerald-50 text-emerald-700' :
-                                            emp.status === 'pending' ? 'bg-amber-50 text-amber-700' :
-                                                'bg-red-50 text-red-700'
+                                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium w-full block text-center ${emp.status === 'active' ? 'bg-success-50 text-success-700' :
+                                            emp.status === 'pending' ? 'bg-warning-50 text-warning-700' :
+                                                'bg-destructive/10 text-destructive'
                                             }`}>
                                             {emp.status}
                                         </span>

@@ -45,15 +45,22 @@ const Layout = ({ children }) => {
     return (
         <div className="min-h-screen bg-gray-50 flex">
             {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col fixed h-full">
+            <aside className="w-64 bg-primary border-r border-primary-600 hidden md:flex flex-col fixed h-full shadow-lg">
                 {/* Header */}
-                <div className="p-4 border-b border-gray-200">
-                    <h1 className="text-xl font-bold text-gray-900">SAANVIKA</h1>
-                    <p className="text-xs text-gray-500 capitalize mt-0.5">{user?.role?.replace('_', ' ')}</p>
+                <div className="p-6 border-b border-primary-600">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                            <span className="text-primary font-bold text-xl">S</span>
+                        </div>
+                        <h1 className="text-xl font-bold text-white tracking-wider">SAANVIKA</h1>
+                    </div>
+                    <div className="mt-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-secondary/20 text-secondary uppercase tracking-widest border border-secondary/30">
+                        {user?.role?.replace('_', ' ')}
+                    </div>
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+                <nav className="flex-1 py-6 px-3 space-y-1.5 overflow-y-auto custom-scrollbar">
                     {filteredNavigation.map((item) => {
                         const Icon = item.icon;
                         const isActive = location.pathname === item.href;
@@ -61,37 +68,39 @@ const Layout = ({ children }) => {
                             <Link
                                 key={item.name}
                                 to={item.href}
-                                className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group ${isActive
-                                    ? 'bg-blue-50 text-blue-600 border-l-2 border-blue-600'
-                                    : 'text-gray-600 hover:bg-gray-50 hover:translate-x-1'
+                                className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-300 group relative ${isActive
+                                    ? 'bg-secondary text-primary shadow-md shadow-secondary/20'
+                                    : 'text-primary-100 hover:bg-primary-600/50 hover:text-white hover:translate-x-1'
                                     }`}
                             >
-                                <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-600'}`} />
+                                <Icon className={`mr-3 h-5 w-5 transition-colors duration-300 ${isActive ? 'text-primary' : 'text-primary-300 group-hover:text-secondary'}`} />
                                 {item.name}
-                                {isActive && <ChevronRight className="ml-auto h-4 w-4" />}
+                                {isActive && (
+                                    <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />
+                                )}
                             </Link>
                         );
                     })}
                 </nav>
 
                 {/* User Section */}
-                <div className="p-4 border-t border-gray-200">
-                    <div className="flex items-center mb-3 px-2">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-sm font-medium text-gray-600">
+                <div className="p-4 border-t border-primary-600 bg-primary-600/30">
+                    <div className="flex items-center mb-4 px-2">
+                        <div className="w-10 h-10 bg-secondary rounded-full flex items-center justify-center text-sm font-bold text-primary ring-2 ring-secondary/20 shadow-inner">
                             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                         </div>
                         <div className="ml-3 flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{user?.name || 'User'}</p>
-                            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                            <p className="text-sm font-semibold text-white truncate">{user?.name || 'User'}</p>
+                            <p className="text-xs text-primary-300 truncate font-mono">{user?.email}</p>
                         </div>
                     </div>
                     <Button
                         variant="ghost"
-                        className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-950/30 group transition-all duration-200"
                         onClick={handleLogout}
                     >
-                        <LogOut className="mr-3 h-4 w-4" />
-                        Logout
+                        <LogOut className="mr-3 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+                        <span className="font-medium">Logout</span>
                     </Button>
                 </div>
             </aside>
@@ -105,17 +114,19 @@ const Layout = ({ children }) => {
             )}
 
             {/* Mobile sidebar */}
-            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 md:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                    <div>
-                        <h1 className="text-xl font-bold text-gray-900">SAANVIKA</h1>
-                        <p className="text-xs text-gray-500 capitalize">{user?.role?.replace('_', ' ')}</p>
+            <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-primary shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                <div className="p-6 border-b border-primary-600 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                            <span className="text-primary font-bold text-xl">S</span>
+                        </div>
+                        <h1 className="text-xl font-bold text-white tracking-wider">SAANVIKA</h1>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} className="text-primary-200 hover:text-white hover:bg-white/10">
                         <X className="h-5 w-5" />
                     </Button>
                 </div>
-                <nav className="flex-1 py-4 px-3 space-y-1">
+                <nav className="flex-1 py-6 px-3 space-y-1.5">
                     {filteredNavigation.map((item) => {
                         const Icon = item.icon;
                         const isActive = location.pathname === item.href;
@@ -124,21 +135,21 @@ const Layout = ({ children }) => {
                                 key={item.name}
                                 to={item.href}
                                 onClick={() => setMobileMenuOpen(false)}
-                                className={`flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${isActive
-                                    ? 'bg-blue-50 text-blue-600'
-                                    : 'text-gray-600 hover:bg-gray-50'
+                                className={`flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${isActive
+                                    ? 'bg-secondary text-primary shadow-lg shadow-secondary/20 font-semibold'
+                                    : 'text-primary-100 hover:bg-primary-600/50 hover:text-white'
                                     }`}
                             >
-                                <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-blue-600' : 'text-gray-400'}`} />
+                                <Icon className={`mr-3 h-5 w-5 ${isActive ? 'text-primary' : 'text-primary-300'}`} />
                                 {item.name}
                             </Link>
                         );
                     })}
                 </nav>
-                <div className="p-4 border-t border-gray-200">
+                <div className="p-4 border-t border-primary-600 bg-primary-600/30">
                     <Button
                         variant="ghost"
-                        className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-950/30"
                         onClick={handleLogout}
                     >
                         <LogOut className="mr-3 h-4 w-4" />
@@ -150,9 +161,14 @@ const Layout = ({ children }) => {
             {/* Main Content */}
             <main className="flex-1 flex flex-col md:ml-64">
                 {/* Mobile Header */}
-                <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 md:hidden sticky top-0 z-30">
-                    <h1 className="text-xl font-bold text-gray-900">SAANVIKA</h1>
-                    <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(true)}>
+                <header className="h-16 bg-primary border-b border-primary-600 flex items-center justify-between px-6 md:hidden sticky top-0 z-30 shadow-md">
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
+                            <span className="text-primary font-bold text-xl">S</span>
+                        </div>
+                        <h1 className="text-xl font-bold text-white tracking-wider">SAANVIKA</h1>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(true)} className="text-primary-100 hover:text-white hover:bg-white/10">
                         <Menu className="h-6 w-6" />
                     </Button>
                 </header>
