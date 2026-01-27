@@ -21,23 +21,38 @@ export const initializeFirebase = () => {
     }
 
     try {
-        const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
+        let serviceAccount;
 
-        if (!serviceAccountPath) {
-            console.warn('⚠️  Firebase service account path not configured. Push notifications will be disabled.');
-            return;
+        // 1. Try to get service account from environment variable JSON string (Best for Render/Cloud)
+        if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+            try {
+                serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+                console.log('📝 Using Firebase credentials from FIREBASE_SERVICE_ACCOUNT_JSON env var');
+            } catch (parseError) {
+                console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON:', parseError.message);
+            }
         }
 
-        // Resolve path relative to project root
-        const absolutePath = path.resolve(process.cwd(), serviceAccountPath);
+        // 2. Fallback to file path if JSON string isn't provided or failed to parse
+        if (!serviceAccount) {
+            const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
 
-        if (!fs.existsSync(absolutePath)) {
-            console.warn(`⚠️  Firebase service account file not found at: ${absolutePath}`);
-            console.warn('Push notifications will be disabled.');
-            return;
+            if (!serviceAccountPath) {
+                console.warn('⚠️  Firebase credentials not configured (no JSON or Path). Push notifications will be disabled.');
+                return;
+            }
+
+            const absolutePath = path.resolve(process.cwd(), serviceAccountPath);
+
+            if (!fs.existsSync(absolutePath)) {
+                console.warn(`⚠️  Firebase service account file not found at: ${absolutePath}`);
+                console.warn('Push notifications will be disabled.');
+                return;
+            }
+
+            serviceAccount = JSON.parse(fs.readFileSync(absolutePath, 'utf8'));
+            console.log('📝 Using Firebase credentials from file:', serviceAccountPath);
         }
-
-        const serviceAccount = JSON.parse(fs.readFileSync(absolutePath, 'utf8'));
 
         admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
