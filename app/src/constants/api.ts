@@ -3,7 +3,8 @@
  */
 
 // You can change this to your local IP address when testing on physical devices
-export const API_BASE_URL = 'http://192.168.29.96:5001/api/v1';
+// export const API_BASE_URL = 'http://192.168.29.96:5001/api/v1';
+export const API_BASE_URL = 'https://saanvika-assignment.onrender.com/api/v1';
 
 export const API_ENDPOINTS = {
     // Auth

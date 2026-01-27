@@ -483,11 +483,140 @@ const Goodies = () => {
                 </Card>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Desktop View - Table */}
+            <Card className="hidden md:block overflow-hidden border-2 shadow-sm">
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader className="bg-gray-50/50">
+                            <TableRow>
+                                <TableHead className="font-semibold py-4">Goodies Type</TableHead>
+                                <TableHead className="font-semibold py-4">Office</TableHead>
+                                <TableHead className="font-semibold py-4">Inventory</TableHead>
+                                <TableHead className="font-semibold py-4">Claimed</TableHead>
+                                <TableHead className="font-semibold py-4">Date</TableHead>
+                                <TableHead className="font-semibold py-4">Target</TableHead>
+                                <TableHead className="font-semibold py-4">Status</TableHead>
+                                <TableHead className="text-right font-semibold py-4">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="h-32 text-center">
+                                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary/40" />
+                                    </TableCell>
+                                </TableRow>
+                            ) : distributions.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} className="h-64 text-center">
+                                        <div className="flex flex-col items-center justify-center space-y-3">
+                                            <Gift className="h-12 w-12 text-gray-200" />
+                                            <div className="text-gray-500 font-medium">No distributions found</div>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                distributions.map((item) => (
+                                    <TableRow key={item._id} className="hover:bg-gray-50/50 transition-colors">
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-1.5 bg-sky-50 rounded-lg shadow-sm border border-sky-100">
+                                                    <Gift className="h-4 w-4 text-sky-600" />
+                                                </div>
+                                                <span className="font-semibold text-gray-900">{item.goodiesType}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center text-sm text-gray-600">
+                                                <Building className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                                                {item.officeId?.name || 'Global'}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full transition-all duration-300 ${item.remainingCount <= 0 ? 'bg-red-500' : item.remainingCount <= 5 ? 'bg-orange-500' : 'bg-green-500'}`}
+                                                        style={{ width: `${(item.remainingCount / (item.totalQuantity || 1)) * 100}%` }}
+                                                    />
+                                                </div>
+                                                <span className={`text-xs font-bold font-mono ${item.remainingCount <= 0 ? 'text-red-500' : 'text-gray-700'}`}>
+                                                    {item.remainingCount}/{item.totalQuantity}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="text-sm font-semibold text-gray-700">{item.claimedCount || 0}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center text-sm text-gray-600">
+                                                <Calendar className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                                                {format(new Date(item.distributionDate), 'MMM dd, yyyy')}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            {item.isForAllEmployees ? (
+                                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100 text-[10px] font-bold">ALL</Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-100 text-[10px] font-bold">TARGETED</Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            {item.isReceived ? (
+                                                <Badge variant="success" className="text-[10px] font-bold">CLAIMED</Badge>
+                                            ) : item.remainingCount <= 0 ? (
+                                                <Badge variant="destructive" className="text-[10px] font-bold">OUT OF STOCK</Badge>
+                                            ) : (
+                                                <Badge variant="secondary" className="bg-gray-100 text-gray-600 text-[10px] font-bold">AVAILABLE</Badge>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end items-center gap-1">
+                                                {canClaim && !item.isReceived && item.remainingCount > 0 && (
+                                                    <Button
+                                                        size="sm"
+                                                        className="h-8 shadow-sm"
+                                                        onClick={() => initiateClaim(item)}
+                                                    >
+                                                        Claim
+                                                    </Button>
+                                                )}
+                                                {isManagement && (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-gray-400 hover:text-primary hover:bg-primary-50"
+                                                            onClick={() => fetchClaimsForDistribution(item)}
+                                                        >
+                                                            <Users className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                                            onClick={() => initiateDeleteDistribution(item)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+            {/* Mobile View - Cards */}
+            <div className="md:hidden grid grid-cols-1 gap-6">
                 {loading ? (
-                    <div className="col-span-full py-20 text-center"><Loader2 className="h-12 w-12 animate-spin mx-auto text-primary/40" /></div>
+                    <div className="py-20 text-center"><Loader2 className="h-12 w-12 animate-spin mx-auto text-primary/40" /></div>
                 ) : distributions.length === 0 ? (
-                    <div className="col-span-full py-20 text-center">
+                    <div className="py-20 text-center">
                         <Gift className="h-12 w-12 mx-auto text-gray-300 mb-4" />
                         <h3 className="text-lg font-medium text-gray-900">No distributions found</h3>
                         <p className="text-gray-500 mt-1">There are no goodies distributions at the moment.</p>

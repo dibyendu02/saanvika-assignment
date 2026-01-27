@@ -81,6 +81,12 @@ export const BottomTabNavigator: React.FC = () => {
                         <Icon name="dots-horizontal" size={size} color={color} />
                     ),
                 }}
+                listeners={({ navigation }) => ({
+                    tabPress: (e) => {
+                        // Navigate to the 'More' tab and reset to 'MoreMain'
+                        navigation.navigate('More', { screen: 'MoreMain' });
+                    },
+                })}
             />
         </Tab.Navigator>
     );
