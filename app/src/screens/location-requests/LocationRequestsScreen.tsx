@@ -3,12 +3,11 @@
  * Display and manage location requests
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
     StyleSheet,
-    ScrollView,
     RefreshControl,
     TouchableOpacity,
     ActivityIndicator,
@@ -27,10 +26,9 @@ import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LocationService from '../../services/LocationService';
 
-export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const LocationRequestsScreen: React.FC = () => {
     const { user } = useAuth();
     const [requests, setRequests] = useState<LocationRequest[]>([]);
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [respondingId, setRespondingId] = useState<string | null>(null);
     const isExternal = user?.role === 'external';
@@ -52,7 +50,6 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
             console.error('Error fetching requests:', error);
             showToast.error('Error', 'Failed to load location requests');
         } finally {
-            setLoading(false);
             setRefreshing(false);
         }
     }, [filterOfficeId]);
@@ -375,12 +372,7 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
             )}
 
             {/* Content */}
-            {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
-                    <Text style={styles.loadingText}>Loading requests...</Text>
-                </View>
-            ) : requests.length === 0 ? (
+            {requests.length === 0 && !refreshing ? (
                 <View style={styles.emptyContainer}>
                     <Icon name="navigation-outline" size={64} color={COLORS.textLight} />
                     <Text style={styles.emptyTitle}>No Requests Found</Text>

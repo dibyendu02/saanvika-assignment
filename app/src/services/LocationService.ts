@@ -79,7 +79,7 @@ export const LocationService = {
                 },
                 {
                     enableHighAccuracy: highAccuracy,
-                    timeout: 30000, // Increased to 30s
+                    timeout: 30000,
                     maximumAge: 10000,
                 }
             );

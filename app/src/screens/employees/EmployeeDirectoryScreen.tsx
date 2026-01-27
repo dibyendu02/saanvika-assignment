@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     View,
     Text,
@@ -23,6 +24,7 @@ import { Avatar } from '../../components/ui/Avatar';
 import AddEmployeeForm from '../../components/forms/AddEmployeeForm';
 import { showToast } from '../../utils/toast';
 import { Dropdown } from '../../components/ui/Dropdown';
+import { locationApi } from '../../api/location';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES, BORDER_RADIUS } from '../../constants/theme';
 import { User, Office } from '../../types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -33,15 +35,16 @@ export const EmployeeDirectoryScreen: React.FC = () => {
     const [employees, setEmployees] = useState<User[]>([]);
     const [filteredEmployees, setFilteredEmployees] = useState<User[]>([]);
     const [offices, setOffices] = useState<Office[]>([]);
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedOffice, setSelectedOffice] = useState<string>('all');
     const [showOfficeFilter, setShowOfficeFilter] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
-    const isManagement = ['super_admin', 'admin'].includes(user?.role || '');
+    const isManagement = ['super_admin', 'admin', 'internal'].includes(user?.role || '');
+    const isAdmin = ['super_admin', 'admin'].includes(user?.role || '');
 
     const fetchData = useCallback(async () => {
         try {
@@ -56,14 +59,15 @@ export const EmployeeDirectoryScreen: React.FC = () => {
             console.error('Error fetching data:', error);
             showToast.error('Error', 'Failed to load employees');
         } finally {
-            setLoading(false);
             setRefreshing(false);
         }
     }, [searchQuery, selectedOffice]);
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchData();
+        }, [fetchData])
+    );
 
     const applyFilters = (data: User[], search: string, office: string) => {
         let filtered = data;
@@ -92,6 +96,24 @@ export const EmployeeDirectoryScreen: React.FC = () => {
         setFilteredEmployees(filtered);
     };
 
+    const handleSuspendEmployee = async (employee: User) => {
+        setActionLoadingId(employee._id);
+        try {
+            if (employee.status === 'suspended' || employee.status === 'inactive') {
+                await employeesApi.unsuspend(employee._id);
+                showToast.success('Success', `${employee.name} reactivated`);
+            } else {
+                await employeesApi.suspend(employee._id);
+                showToast.success('Success', `${employee.name} suspended`);
+            }
+            fetchData();
+        } catch (error: any) {
+            showToast.error('Error', error.response?.data?.message || 'Action failed');
+        } finally {
+            setActionLoadingId(null);
+        }
+    };
+
     const handleDeleteEmployee = (employee: User) => {
         Alert.alert(
             'Delete Employee',
@@ -116,6 +138,18 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                 },
             ]
         );
+    };
+
+    const handleRequestLocation = async (employeeId: string) => {
+        setActionLoadingId(employeeId);
+        try {
+            await locationApi.requestLocation(employeeId);
+            showToast.success('Success', 'Location request sent');
+        } catch (error: any) {
+            showToast.error('Error', error.response?.data?.message || 'Failed to request location');
+        } finally {
+            setActionLoadingId(null);
+        }
     };
 
     const onRefresh = () => {
@@ -201,17 +235,41 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                                     variant={employee.status === 'active' ? 'success' : 'default'}
                                 />
                                 {isManagement && employee._id !== user?._id && (
-                                    <TouchableOpacity
-                                        style={styles.deleteButton}
-                                        onPress={() => handleDeleteEmployee(employee)}
-                                        disabled={deletingId === employee._id}
-                                    >
-                                        {deletingId === employee._id ? (
-                                            <ActivityIndicator size="small" color={COLORS.danger} />
-                                        ) : (
-                                            <Icon name="trash-can-outline" size={ICON_SIZES.sm} color={COLORS.danger} />
+                                    <View style={styles.employeeHeaderActions}>
+                                        <TouchableOpacity
+                                            style={styles.actionButton}
+                                            onPress={() => handleRequestLocation(employee._id)}
+                                            disabled={!!actionLoadingId}
+                                        >
+                                            <Icon name="map-marker-radius" size={ICON_SIZES.sm} color={COLORS.primary} />
+                                        </TouchableOpacity>
+
+                                        <TouchableOpacity
+                                            style={styles.actionButton}
+                                            onPress={() => handleSuspendEmployee(employee)}
+                                            disabled={!!actionLoadingId}
+                                        >
+                                            <Icon
+                                                name={(employee.status === 'suspended' || employee.status === 'inactive') ? "account-check" : "account-off"}
+                                                size={ICON_SIZES.sm}
+                                                color={(employee.status === 'suspended' || employee.status === 'inactive') ? COLORS.success : COLORS.warning}
+                                            />
+                                        </TouchableOpacity>
+
+                                        {isAdmin && (
+                                            <TouchableOpacity
+                                                style={styles.deleteButton}
+                                                onPress={() => handleDeleteEmployee(employee)}
+                                                disabled={deletingId === employee._id}
+                                            >
+                                                {deletingId === employee._id ? (
+                                                    <ActivityIndicator size="small" color={COLORS.danger} />
+                                                ) : (
+                                                    <Icon name="trash-can-outline" size={ICON_SIZES.sm} color={COLORS.danger} />
+                                                )}
+                                            </TouchableOpacity>
                                         )}
-                                    </TouchableOpacity>
+                                    </View>
                                 )}
                             </View>
                         </View>
@@ -234,10 +292,10 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                                         <Icon name="email" size={ICON_SIZES.xs} color={COLORS.textLight} />
                                         <Text style={styles.contactText}>{employee.email}</Text>
                                     </View>
-                                    {employee.phoneNumber && (
+                                    {employee.phone && (
                                         <View style={styles.contactItem}>
                                             <Icon name="phone" size={ICON_SIZES.xs} color={COLORS.textLight} />
-                                            <Text style={styles.contactText}>{employee.phoneNumber}</Text>
+                                            <Text style={styles.contactText}>{employee.phone}</Text>
                                         </View>
                                     )}
                                 </View>
@@ -381,6 +439,10 @@ const styles = StyleSheet.create({
         gap: SPACING.sm,
     },
     deleteButton: {
+        padding: SPACING.xs,
+        borderRadius: BORDER_RADIUS.sm,
+    },
+    actionButton: {
         padding: SPACING.xs,
         borderRadius: BORDER_RADIUS.sm,
     },

@@ -14,8 +14,10 @@ import {
 } from 'react-native';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { Dropdown } from '../ui/Dropdown';
 import { showToast } from '../../utils/toast';
 import { employeesApi } from '../../api/employees';
+import { useAuth } from '../../context/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../constants/theme';
 import { Office } from '../../types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -33,6 +35,7 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({
     onSuccess,
     offices,
 }) => {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -41,7 +44,7 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({
         employeeId: '',
         role: 'external',
         primaryOfficeId: '',
-        phoneNumber: '',
+        phone: '',
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -77,7 +80,7 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({
                 employeeId: formData.employeeId.trim() || undefined,
                 role: formData.role as any,
                 primaryOfficeId: formData.primaryOfficeId,
-                phoneNumber: formData.phoneNumber.trim() || undefined,
+                phone: formData.phone.trim() || undefined,
             });
 
             showToast.success('Success', 'Employee created successfully');
@@ -99,7 +102,7 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({
             employeeId: '',
             role: 'external',
             primaryOfficeId: '',
-            phoneNumber: '',
+            phone: '',
         });
         setErrors({});
     };
@@ -169,8 +172,8 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({
 
                         <Input
                             label="Phone Number (Optional)"
-                            value={formData.phoneNumber}
-                            onChangeText={(text) => setFormData({ ...formData, phoneNumber: text })}
+                            value={formData.phone}
+                            onChangeText={(text) => setFormData({ ...formData, phone: text })}
                             placeholder="10-15 digits"
                             keyboardType="phone-pad"
                         />
@@ -178,7 +181,7 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({
                         <View style={styles.pickerContainer}>
                             <Text style={styles.label}>Role</Text>
                             <View style={styles.roleButtons}>
-                                {['external', 'internal'].map((role) => (
+                                {(user?.role === 'super_admin' ? ['external', 'internal', 'admin'] : ['external', 'internal']).map((role) => (
                                     <TouchableOpacity
                                         key={role}
                                         style={[
@@ -201,41 +204,17 @@ const AddEmployeeForm: React.FC<AddEmployeeFormProps> = ({
                         </View>
 
                         <View style={styles.pickerContainer}>
-                            <Text style={styles.label}>Assigned Office *</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                <View style={styles.officeButtons}>
-                                    {offices.map((office) => (
-                                        <TouchableOpacity
-                                            key={office._id}
-                                            style={[
-                                                styles.officeButton,
-                                                formData.primaryOfficeId === office._id && styles.officeButtonActive,
-                                            ]}
-                                            onPress={() => {
-                                                setFormData({ ...formData, primaryOfficeId: office._id });
-                                                if (errors.primaryOfficeId) setErrors({ ...errors, primaryOfficeId: '' });
-                                            }}
-                                        >
-                                            <Icon
-                                                name="office-building"
-                                                size={16}
-                                                color={formData.primaryOfficeId === office._id ? COLORS.textWhite : COLORS.textSecondary}
-                                            />
-                                            <Text
-                                                style={[
-                                                    styles.officeButtonText,
-                                                    formData.primaryOfficeId === office._id && styles.officeButtonTextActive,
-                                                ]}
-                                            >
-                                                {office.name}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                            </ScrollView>
-                            {errors.primaryOfficeId && (
-                                <Text style={styles.errorText}>{errors.primaryOfficeId}</Text>
-                            )}
+                            <Dropdown
+                                label="Assigned Office *"
+                                placeholder="Select an office"
+                                options={offices.map(office => ({ label: office.name, value: office._id }))}
+                                value={formData.primaryOfficeId}
+                                onSelect={(value) => {
+                                    setFormData({ ...formData, primaryOfficeId: value });
+                                    if (errors.primaryOfficeId) setErrors({ ...errors, primaryOfficeId: '' });
+                                }}
+                                error={errors.primaryOfficeId}
+                            />
                         </View>
 
                         <View style={styles.buttonContainer}>

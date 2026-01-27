@@ -82,11 +82,16 @@ export const locationApi = {
         return response.data.data;
     },
 
-    /**
-     * Share current location
-     */
     async shareLocation(payload: ShareLocationPayload): Promise<LocationRecord> {
         const response = await apiClient.post(API_ENDPOINTS.LOCATION_SHARE, payload);
+        return response.data.data;
+    },
+
+    /**
+     * Request employee's location
+     */
+    async requestLocation(targetUserId: string): Promise<any> {
+        const response = await apiClient.post(API_ENDPOINTS.LOCATION_REQUEST, { targetUserId });
         return response.data.data;
     },
 

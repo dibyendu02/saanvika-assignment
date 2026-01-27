@@ -75,7 +75,7 @@ export const LoginScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         <Text style={styles.logoPart1}>SAANVIK</Text>
                         <Text style={styles.logoPart2}>A</Text>
                     </View>
-                    <Text style={styles.subtitle}>Investment Management Panel</Text>
+                    <Text style={styles.subtitle}>Employee Management Tool</Text>
                 </View>
 
                 <View style={styles.form}>

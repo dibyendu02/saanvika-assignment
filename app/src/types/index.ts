@@ -13,9 +13,8 @@ export interface User {
     dateOfBirth?: string;
     gender?: string;
     age?: number;
-    phoneNumber?: string;
-    phone?: string;  // Alternative field name
-    status: 'active' | 'inactive' | 'pending';
+    phone?: string;
+    status: 'active' | 'inactive' | 'pending' | 'suspended';
     createdAt: string;
     updatedAt: string;
 }

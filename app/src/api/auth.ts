@@ -4,7 +4,7 @@
 
 import apiClient from './client';
 import { API_ENDPOINTS } from '../constants/api';
-import { AuthResponse, User } from '../types';
+import { AuthResponse } from '../types';
 
 export const authApi = {
     /**

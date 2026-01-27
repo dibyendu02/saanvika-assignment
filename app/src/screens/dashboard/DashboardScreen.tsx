@@ -3,7 +3,7 @@
  * Main dashboard with stats, targets, and quick actions
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -30,7 +30,6 @@ import { useFocusEffect } from '@react-navigation/native';
 export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { user } = useAuth();
     const [stats, setStats] = useState<DashboardStats | null>(null);
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [markingAttendance, setMarkingAttendance] = useState(false);
 
@@ -42,7 +41,6 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
             console.error('Error fetching stats:', error);
             showToast.error('Error', 'Failed to load dashboard data');
         } finally {
-            setLoading(false);
             setRefreshing(false);
         }
     }, []);

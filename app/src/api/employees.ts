@@ -33,9 +33,6 @@ export const employeesApi = {
         return data?.users || data?.employees || (Array.isArray(data) ? data : []);
     },
 
-    /**
-     * Create new employee
-     */
     create: async (userData: {
         name: string;
         email: string;
@@ -43,12 +40,26 @@ export const employeesApi = {
         employeeId?: string;
         role: string;
         primaryOfficeId: string;
-        phoneNumber?: string;
+        phone?: string;
         dateOfBirth?: string;
         gender?: string;
     }): Promise<User> => {
-        const response = await apiClient.post(API_ENDPOINTS.USERS, userData);
+        const response = await apiClient.post(API_ENDPOINTS.CREATE_EMPLOYEE, userData);
         return response.data.data || response.data;
+    },
+
+    /**
+     * Suspend employee
+     */
+    suspend: async (id: string): Promise<void> => {
+        await apiClient.patch(`${API_ENDPOINTS.USER_BY_ID(id)}/suspend`);
+    },
+
+    /**
+     * Unsuspend employee
+     */
+    unsuspend: async (id: string): Promise<void> => {
+        await apiClient.patch(`${API_ENDPOINTS.USER_BY_ID(id)}/unsuspend`);
     },
 
     /**

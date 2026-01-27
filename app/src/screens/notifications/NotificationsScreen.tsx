@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     View,
     Text,
@@ -13,19 +14,19 @@ import {
     ActivityIndicator,
     RefreshControl,
 } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
 import { notificationsApi, Notification } from '../../api/notifications';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { showToast } from '../../utils/toast';
-import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES, BORDER_RADIUS } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { formatDistanceToNow } from 'date-fns';
 
 export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-    const { user } = useAuth();
+    // Actually, looking at the code, navigation is used in handleNotificationTap.
+    // It should be passed as a prop or used via useNavigation.
+    // const { user } = useAuth(); // Unused
     const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [markingAllRead, setMarkingAllRead] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -35,9 +36,6 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
         total: 0,
     });
 
-    useEffect(() => {
-        fetchNotifications();
-    }, [pagination.currentPage]);
 
     const fetchNotifications = useCallback(async () => {
         try {
@@ -56,10 +54,15 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
             console.error('Error fetching notifications:', error);
             showToast.error('Error', 'Failed to load notifications');
         } finally {
-            setLoading(false);
             setRefreshing(false);
         }
     }, [pagination.currentPage]);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchNotifications();
+        }, [fetchNotifications])
+    );
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -167,7 +170,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
                 onPress={() => handleNotificationTap(item)}
                 activeOpacity={0.7}
             >
-                <Card style={[styles.notificationCard, !item.isRead ? styles.unreadCard : null] as any}>
+                <View style={[styles.notificationCard, !item.isRead ? styles.unreadCard : null] as any}>
                     <View style={styles.cardContent}>
                         {/* Icon */}
                         <View style={[styles.iconContainer, { backgroundColor: iconConfig.color + '20' }]}>
@@ -209,7 +212,7 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
                             </View>
                         </View>
                     </View>
-                </Card>
+                </View>
             </TouchableOpacity>
         );
     };
@@ -247,30 +250,29 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
             </View>
 
             {/* Content */}
-            {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
-                    <Text style={styles.loadingText}>Loading notifications...</Text>
-                </View>
-            ) : notifications.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <Icon name="bell-outline" size={64} color={COLORS.textLight} />
-                    <Text style={styles.emptyTitle}>No Notifications</Text>
-                    <Text style={styles.emptyText}>
-                        You're all caught up! Check back later for updates.
-                    </Text>
-                </View>
-            ) : (
-                <FlatList
-                    data={notifications}
-                    renderItem={renderNotificationCard}
-                    keyExtractor={(item) => item._id}
-                    contentContainerStyle={styles.listContent}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                    }
-                />
-            )}
+            <FlatList
+                data={notifications}
+                renderItem={renderNotificationCard}
+                keyExtractor={(item) => item._id}
+                contentContainerStyle={[
+                    styles.listContent,
+                    notifications.length === 0 && { flex: 1, justifyContent: 'center' }
+                ]}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                }
+                ListEmptyComponent={
+                    !refreshing ? (
+                        <View style={styles.emptyContainer}>
+                            <Icon name="bell-outline" size={64} color={COLORS.textLight} />
+                            <Text style={styles.emptyTitle}>No Notifications</Text>
+                            <Text style={styles.emptyText}>
+                                You're all caught up! Check back later for updates.
+                            </Text>
+                        </View>
+                    ) : null
+                }
+            />
         </View>
     );
 };
@@ -316,11 +318,18 @@ const styles = StyleSheet.create({
     notificationCard: {
         marginBottom: SPACING.md,
         padding: SPACING.md,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.background,
+        borderRadius: BORDER_RADIUS.md,
+        // Remove shadow
+        shadowOpacity: 0,
+        elevation: 0,
     },
     unreadCard: {
-        borderLeftWidth: 3,
-        borderLeftColor: COLORS.primary,
-        backgroundColor: COLORS.primaryLight + '10',
+        backgroundColor: '#F1F3F5', // Gray background for unread
+        borderColor: COLORS.primary,
+        borderWidth: 1.5,
     },
     cardContent: {
         flexDirection: 'row',

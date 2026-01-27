@@ -205,7 +205,6 @@ const AddOfficeForm: React.FC<AddOfficeFormProps> = ({
                 ...prev,
                 latitude: selectedMapLocation.lat.toFixed(6),
                 longitude: selectedMapLocation.lng.toFixed(6),
-                address: `Lat: ${selectedMapLocation.lat.toFixed(4)}, Lng: ${selectedMapLocation.lng.toFixed(4)}`
             }));
             setShowMapPicker(false);
             showToast.success('Location Selected', 'Coordinates updated from map');
@@ -215,7 +214,6 @@ const AddOfficeForm: React.FC<AddOfficeFormProps> = ({
                 ...prev,
                 latitude: '12.9716',
                 longitude: '77.5946',
-                address: 'Bangalore, India'
             }));
             setShowMapPicker(false);
         }

@@ -170,7 +170,7 @@ export const RegisterScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
                         <Text style={styles.logoPart1}>SAANVIK</Text>
                         <Text style={styles.logoPart2}>A</Text>
                     </View>
-                    <Text style={styles.subtitle}>Investor Registration</Text>
+                    <Text style={styles.subtitle}>Employee Registration</Text>
                 </View>
 
                 <View style={styles.form}>

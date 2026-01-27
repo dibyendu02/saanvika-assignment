@@ -251,6 +251,16 @@ userSchema.methods.removeFcmToken = async function (deviceId) {
 };
 
 /**
+ * Remove FCM token by its string value
+ * @param {string} token - FCM token to remove
+ * @returns {Promise<void>}
+ */
+userSchema.methods.removeFcmTokenByString = async function (token) {
+  this.fcmTokens = this.fcmTokens.filter((t) => t.token !== token);
+  await this.save();
+};
+
+/**
  * Update last used timestamp for a device token
  * @param {string} deviceId - Unique device identifier
  * @returns {Promise<void>}
