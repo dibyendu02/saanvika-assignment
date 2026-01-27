@@ -19,10 +19,14 @@ export const registerUser = async (userData) => {
     throw new AppError('Email already registered', 409);
   }
 
-  // Check for existing user with same phone
-  const existingPhone = await User.findOne({ phone });
-  if (existingPhone) {
-    throw new AppError('Phone number already registered', 409);
+  // Check for existing user with same phone if provided
+  if (phone) {
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) {
+      throw new AppError('Phone number already registered', 409);
+    }
+  } else {
+    delete userData.phone;
   }
 
   // Create user (status is set by pre-save hook based on role)
@@ -139,10 +143,14 @@ export const createEmployee = async (creatorUser, employeeData) => {
     throw new AppError('Email already registered', 409);
   }
 
-  // Check for existing user with same phone
-  const existingPhone = await User.findOne({ phone });
-  if (existingPhone) {
-    throw new AppError('Phone number already registered', 409);
+  // Check for existing user with same phone if provided
+  if (phone) {
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) {
+      throw new AppError('Phone number already registered', 409);
+    }
+  } else {
+    delete employeeData.phone;
   }
 
   // Set createdBy to auto-activate external employees
