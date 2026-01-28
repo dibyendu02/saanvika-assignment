@@ -26,7 +26,7 @@ const notificationSchema = new mongoose.Schema(
         },
         type: {
             type: String,
-            enum: ['location_request', 'location_shared', 'goodies_distributed', 'general'],
+            enum: ['location_request', 'location_shared', 'location_denied', 'goodies_distributed', 'general'],
             default: 'general',
         },
         relatedId: {

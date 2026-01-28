@@ -21,12 +21,16 @@ export const createNotification = async (data) => {
 
     // Send push notification to all user's devices
     try {
-        const recipientUser = await User.findById(recipient).select('fcmTokens');
+        const recipientUser = await User.findById(recipient).select('fcmTokens email name');
+
+
         if (recipientUser?.fcmTokens && recipientUser.fcmTokens.length > 0) {
             const tokens = recipientUser.getActiveFcmTokens();
 
+
             if (tokens.length > 0) {
-                await sendMulticastNotification(
+
+                const result = await sendMulticastNotification(
                     tokens,
                     { title, body: message },
                     {
@@ -38,7 +42,6 @@ export const createNotification = async (data) => {
             }
         }
     } catch (error) {
-        console.error('Failed to send push notification:', error);
         // Don't fail the whole operation if push notification fails
     }
 
@@ -54,13 +57,14 @@ export const getMyNotifications = async (userId, options = {}) => {
     const { page = 1, limit = 20 } = options;
     const skip = (page - 1) * limit;
 
-    const [notifications, total] = await Promise.all([
+    const [notifications, total, unreadCount] = await Promise.all([
         Notification.find({ recipient: userId })
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
             .populate('sender', 'name'),
         Notification.countDocuments({ recipient: userId }),
+        Notification.countDocuments({ recipient: userId, isRead: false }),
     ]);
 
     return {
@@ -69,6 +73,7 @@ export const getMyNotifications = async (userId, options = {}) => {
         page,
         limit,
         totalPages: Math.ceil(total / limit),
+        unreadCount,
     };
 };
 

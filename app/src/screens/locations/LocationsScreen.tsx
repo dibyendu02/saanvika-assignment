@@ -8,7 +8,6 @@ import {
     View,
     Text,
     StyleSheet,
-    ScrollView,
     RefreshControl,
     TouchableOpacity,
     ActivityIndicator,
@@ -28,8 +27,9 @@ import { showToast } from '../../utils/toast';
 import { Dropdown } from '../../components/ui/Dropdown';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 
-export const LocationsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const LocationsScreen: React.FC = () => {
     const { user } = useAuth();
     const [locations, setLocations] = useState<LocationRecord[]>([]);
     const [loading, setLoading] = useState(true);
@@ -46,13 +46,6 @@ export const LocationsScreen: React.FC<{ navigation: any }> = ({ navigation }) =
 
     const canShareLocation = ['internal', 'external'].includes(user?.role || '');
     const isSuperAdmin = user?.role === 'super_admin';
-
-    useEffect(() => {
-        fetchLocations();
-        if (isSuperAdmin) {
-            fetchOffices();
-        }
-    }, [pagination.currentPage, filterOfficeId]);
 
     const fetchLocations = useCallback(async () => {
         try {
@@ -76,14 +69,23 @@ export const LocationsScreen: React.FC<{ navigation: any }> = ({ navigation }) =
         }
     }, [pagination.currentPage, filterOfficeId]);
 
-    const fetchOffices = async () => {
+    const fetchOffices = useCallback(async () => {
         try {
             const data = await officesApi.getAll();
             setOffices(data);
         } catch (error) {
             console.error('Error fetching offices:', error);
         }
-    };
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchLocations();
+            if (isSuperAdmin) {
+                fetchOffices();
+            }
+        }, [fetchLocations, fetchOffices, isSuperAdmin])
+    );
 
     const onRefresh = () => {
         setRefreshing(true);
@@ -336,81 +338,83 @@ export const LocationsScreen: React.FC<{ navigation: any }> = ({ navigation }) =
             )}
 
             {/* Content */}
-            {loading ? (
+            {loading && !refreshing ? (
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={COLORS.primary} />
                     <Text style={styles.loadingText}>Loading locations...</Text>
                 </View>
-            ) : locations.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <Icon name="map-marker-outline" size={64} color={COLORS.textLight} />
-                    <Text style={styles.emptyTitle}>No Location Records</Text>
-                    <Text style={styles.emptyText}>
-                        {canShareLocation
-                            ? 'Share your location to get started'
-                            : 'No location records found'}
-                    </Text>
-                </View>
             ) : (
-                <>
-                    <FlatList
-                        data={locations}
-                        renderItem={renderLocationCard}
-                        keyExtractor={(item) => item._id}
-                        contentContainerStyle={styles.listContent}
-                        refreshControl={
-                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                        }
-                    />
-
-                    {/* Pagination */}
-                    {pagination.totalPages > 1 && (
-                        <View style={styles.pagination}>
-                            <Text style={styles.paginationText}>
-                                Page {pagination.currentPage} of {pagination.totalPages}
+                <FlatList
+                    data={locations}
+                    renderItem={renderLocationCard}
+                    keyExtractor={(item) => item._id}
+                    contentContainerStyle={[
+                        styles.listContent,
+                        locations.length === 0 && { flex: 1, justifyContent: 'center' }
+                    ]}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Icon name="map-marker-outline" size={64} color={COLORS.textLight} />
+                            <Text style={styles.emptyTitle}>No Location Records</Text>
+                            <Text style={styles.emptyText}>
+                                {canShareLocation
+                                    ? 'Share your location to get started'
+                                    : 'No location records found'}
                             </Text>
-                            <View style={styles.paginationButtons}>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.paginationButton,
-                                        pagination.currentPage === 1 && styles.paginationButtonDisabled,
-                                    ]}
-                                    onPress={() => handlePageChange(pagination.currentPage - 1)}
-                                    disabled={pagination.currentPage === 1}
-                                >
-                                    <Icon
-                                        name="chevron-left"
-                                        size={20}
-                                        color={
-                                            pagination.currentPage === 1
-                                                ? COLORS.textLight
-                                                : COLORS.primary
-                                        }
-                                    />
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.paginationButton,
-                                        pagination.currentPage === pagination.totalPages &&
-                                        styles.paginationButtonDisabled,
-                                    ]}
-                                    onPress={() => handlePageChange(pagination.currentPage + 1)}
-                                    disabled={pagination.currentPage === pagination.totalPages}
-                                >
-                                    <Icon
-                                        name="chevron-right"
-                                        size={20}
-                                        color={
-                                            pagination.currentPage === pagination.totalPages
-                                                ? COLORS.textLight
-                                                : COLORS.primary
-                                        }
-                                    />
-                                </TouchableOpacity>
-                            </View>
                         </View>
-                    )}
-                </>
+                    }
+                    ListFooterComponent={
+                        pagination.totalPages > 1 ? (
+                            <View style={styles.pagination}>
+                                <Text style={styles.paginationText}>
+                                    Page {pagination.currentPage} of {pagination.totalPages}
+                                </Text>
+                                <View style={styles.paginationButtons}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.paginationButton,
+                                            pagination.currentPage === 1 && styles.paginationButtonDisabled,
+                                        ]}
+                                        onPress={() => handlePageChange(pagination.currentPage - 1)}
+                                        disabled={pagination.currentPage === 1}
+                                    >
+                                        <Icon
+                                            name="chevron-left"
+                                            size={20}
+                                            color={
+                                                pagination.currentPage === 1
+                                                    ? COLORS.textLight
+                                                    : COLORS.primary
+                                            }
+                                        />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.paginationButton,
+                                            pagination.currentPage === pagination.totalPages &&
+                                            styles.paginationButtonDisabled,
+                                        ]}
+                                        onPress={() => handlePageChange(pagination.currentPage + 1)}
+                                        disabled={pagination.currentPage === pagination.totalPages}
+                                    >
+                                        <Icon
+                                            name="chevron-right"
+                                            size={20}
+                                            color={
+                                                pagination.currentPage === pagination.totalPages
+                                                    ? COLORS.textLight
+                                                    : COLORS.primary
+                                            }
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ) : null
+                    }
+                />
             )}
         </View>
     );

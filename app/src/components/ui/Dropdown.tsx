@@ -6,7 +6,6 @@ import {
     Modal,
     FlatList,
     StyleSheet,
-    Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, TYPOGRAPHY, SPACING } from '../../constants/theme';

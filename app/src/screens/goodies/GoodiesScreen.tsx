@@ -32,11 +32,11 @@ import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { pick, types, DocumentPickerResponse } from '@react-native-documents/picker';
+import { useFocusEffect } from '@react-navigation/native';
 
-export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const GoodiesScreen: React.FC = () => {
     const { user } = useAuth();
     const [distributions, setDistributions] = useState<GoodiesDistribution[]>([]);
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [claiming, setClaiming] = useState<string | null>(null);
     const [offices, setOffices] = useState<any[]>([]);
@@ -78,12 +78,6 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
     const [showClaimConfirm, setShowClaimConfirm] = useState(false);
     const [selectedClaimDistribution, setSelectedClaimDistribution] = useState<GoodiesDistribution | null>(null);
 
-    useEffect(() => {
-        fetchDistributions();
-        if (isSuperAdmin) {
-            fetchOffices();
-        }
-    }, [filterOfficeId]);
 
 
 
@@ -128,24 +122,32 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
             console.error('Error fetching distributions:', error);
             showToast.error('Error', 'Failed to load goodies distributions');
         } finally {
-            setLoading(false);
             setRefreshing(false);
         }
     }, [filterOfficeId]);
 
-    const fetchOffices = async () => {
+    const fetchOffices = useCallback(async () => {
         try {
             const data = await officesApi.getAll();
             setOffices(data);
         } catch (error) {
             console.error('Error fetching offices:', error);
         }
-    };
+    }, []);
 
     const onRefresh = () => {
         setRefreshing(true);
         fetchDistributions();
     };
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchDistributions();
+            if (isSuperAdmin) {
+                fetchOffices();
+            }
+        }, [fetchDistributions, fetchOffices, isSuperAdmin])
+    );
 
     const handleDeleteDistribution = (distribution: GoodiesDistribution) => {
         Alert.alert(
@@ -514,32 +516,31 @@ export const GoodiesScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
             )}
 
             {/* Content */}
-            {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={COLORS.primary} />
-                    <Text style={styles.loadingText}>Loading distributions...</Text>
-                </View>
-            ) : distributions.length === 0 ? (
-                <View style={styles.emptyContainer}>
-                    <Icon name="gift-outline" size={64} color={COLORS.textLight} />
-                    <Text style={styles.emptyTitle}>No Goodies Found</Text>
-                    <Text style={styles.emptyText}>
-                        {isManagement
-                            ? 'Create a new distribution to get started'
-                            : 'No goodies available at the moment'}
-                    </Text>
-                </View>
-            ) : (
-                <FlatList
-                    data={distributions}
-                    renderItem={renderDistributionCard}
-                    keyExtractor={(item) => item._id}
-                    contentContainerStyle={styles.listContent}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                    }
-                />
-            )}
+            <FlatList
+                data={distributions}
+                renderItem={renderDistributionCard}
+                keyExtractor={(item) => item._id}
+                contentContainerStyle={[
+                    styles.listContent,
+                    distributions.length === 0 && { flex: 1, justifyContent: 'center' }
+                ]}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                }
+                ListEmptyComponent={
+                    !refreshing ? (
+                        <View style={styles.emptyContainer}>
+                            <Icon name="gift-outline" size={64} color={COLORS.textLight} />
+                            <Text style={styles.emptyTitle}>No Goodies Found</Text>
+                            <Text style={styles.emptyText}>
+                                {isManagement
+                                    ? 'Create a new distribution to get started'
+                                    : 'No goodies available at the moment'}
+                            </Text>
+                        </View>
+                    ) : null
+                }
+            />
 
             {/* Details Modal */}
             <Modal

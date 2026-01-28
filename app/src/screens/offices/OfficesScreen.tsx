@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
     View,
     Text,
@@ -28,7 +29,6 @@ import { Alert, ActivityIndicator } from 'react-native';
 export const OfficesScreen: React.FC = () => {
     const { user } = useAuth();
     const [offices, setOffices] = useState<Office[]>([]);
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -43,14 +43,15 @@ export const OfficesScreen: React.FC = () => {
             console.error('Error fetching offices:', error);
             showToast.error('Error', 'Failed to load offices');
         } finally {
-            setLoading(false);
             setRefreshing(false);
         }
     }, []);
 
-    useEffect(() => {
-        fetchOffices();
-    }, [fetchOffices]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchOffices();
+        }, [fetchOffices])
+    );
 
     const handleDeleteOffice = (office: Office) => {
         Alert.alert(

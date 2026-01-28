@@ -2,6 +2,7 @@
  * Firebase Admin Service
  * Handles Firebase Cloud Messaging for push notifications
  */
+
 import admin from 'firebase-admin';
 import fs from 'fs';
 import path from 'path';
@@ -21,37 +22,42 @@ export const initializeFirebase = () => {
     }
 
     try {
-        let serviceAccount;
+        let serviceAccount = null;
 
-        // 1. Try to get service account from environment variable JSON string (Best for Render/Cloud)
+        // Attempt to load credentials from environment variable (recommended for cloud platforms)
         if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
             try {
                 serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
-                console.log('📝 Using Firebase credentials from FIREBASE_SERVICE_ACCOUNT_JSON env var');
-            } catch (parseError) {
-                console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON:', parseError.message);
+
+                if (serviceAccount.private_key) {
+                    serviceAccount.private_key =
+                        serviceAccount.private_key.replace(/\\n/g, '\n');
+                }
+            } catch (error) {
+                console.error('Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON:', error.message);
             }
         }
 
-        // 2. Fallback to file path if JSON string isn't provided or failed to parse
+        // Fallback to loading credentials from file
         if (!serviceAccount) {
             const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH;
 
             if (!serviceAccountPath) {
-                console.warn('⚠️  Firebase credentials not configured (no JSON or Path). Push notifications will be disabled.');
+                console.warn('Firebase credentials not configured. Push notifications disabled.');
                 return;
             }
 
             const absolutePath = path.resolve(process.cwd(), serviceAccountPath);
 
             if (!fs.existsSync(absolutePath)) {
-                console.warn(`⚠️  Firebase service account file not found at: ${absolutePath}`);
-                console.warn('Push notifications will be disabled.');
+                console.warn(`Firebase service account file not found at ${absolutePath}`);
+                console.warn('Push notifications disabled.');
                 return;
             }
 
-            serviceAccount = JSON.parse(fs.readFileSync(absolutePath, 'utf8'));
-            console.log('📝 Using Firebase credentials from file:', serviceAccountPath);
+            serviceAccount = JSON.parse(
+                fs.readFileSync(absolutePath, 'utf8')
+            );
         }
 
         admin.initializeApp({
@@ -59,22 +65,18 @@ export const initializeFirebase = () => {
         });
 
         firebaseInitialized = true;
-        console.log('✅ Firebase Admin SDK initialized successfully');
+        console.log('Firebase Admin SDK initialized successfully');
     } catch (error) {
-        console.error('❌ Failed to initialize Firebase Admin SDK:', error.message);
-        console.warn('Push notifications will be disabled.');
+        console.error('Failed to initialize Firebase Admin SDK:', error.message);
+        console.warn('Push notifications disabled.');
     }
 };
 
 /**
  * Send push notification to a single device
- * @param {string} fcmToken - FCM token of the device
- * @param {Object} notification - Notification payload
- * @param {Object} data - Optional data payload
  */
 export const sendPushNotification = async (fcmToken, notification, data = {}) => {
     if (!firebaseInitialized) {
-        console.warn('Firebase not initialized. Skipping push notification.');
         return { success: false, error: 'Firebase not initialized' };
     }
 
@@ -117,27 +119,26 @@ export const sendPushNotification = async (fcmToken, notification, data = {}) =>
         };
 
         const response = await admin.messaging().send(message);
-        console.log('✅ Push notification sent successfully:', response);
         return { success: true, messageId: response };
     } catch (error) {
-        console.error('❌ Failed to send push notification:', error.message);
-        return { success: false, error: error.message };
+        return {
+            success: false,
+            error: error.message,
+            isUnregistered:
+                error.code === 'messaging/registration-token-not-registered',
+        };
     }
 };
 
 /**
  * Send push notification to multiple devices
- * @param {Array<string>} fcmTokens - Array of FCM tokens
- * @param {Object} notification - Notification payload
- * @param {Object} data - Optional data payload
  */
 export const sendMulticastNotification = async (fcmTokens, notification, data = {}) => {
     if (!firebaseInitialized) {
-        console.warn('Firebase not initialized. Skipping push notification.');
         return { success: false, error: 'Firebase not initialized' };
     }
 
-    if (!fcmTokens || fcmTokens.length === 0) {
+    if (!Array.isArray(fcmTokens) || fcmTokens.length === 0) {
         return { success: false, error: 'No FCM tokens provided' };
     }
 
@@ -176,12 +177,22 @@ export const sendMulticastNotification = async (fcmTokens, notification, data = 
         };
 
         const response = await admin.messaging().sendEachForMulticast(message);
-        console.log(`✅ Sent ${response.successCount}/${fcmTokens.length} notifications`);
+
+        const unregisteredTokens = [];
+        const otherFailedTokens = [];
 
         if (response.failureCount > 0) {
             response.responses.forEach((resp, idx) => {
                 if (!resp.success) {
-                    console.error(`Failed to send to token ${idx}:`, resp.error);
+                    const err = resp.error;
+                    if (err?.code === 'messaging/registration-token-not-registered') {
+                        unregisteredTokens.push(fcmTokens[idx]);
+                    } else {
+                        otherFailedTokens.push({
+                            token: fcmTokens[idx],
+                            error: err?.message || 'Unknown error',
+                        });
+                    }
                 }
             });
         }
@@ -190,17 +201,16 @@ export const sendMulticastNotification = async (fcmTokens, notification, data = 
             success: true,
             successCount: response.successCount,
             failureCount: response.failureCount,
+            unregisteredTokens,
+            otherFailedTokens,
         };
     } catch (error) {
-        console.error('❌ Failed to send multicast notification:', error.message);
         return { success: false, error: error.message };
     }
 };
 
 /**
  * Subscribe tokens to a topic
- * @param {Array<string>} fcmTokens - Array of FCM tokens
- * @param {string} topic - Topic name
  */
 export const subscribeToTopic = async (fcmTokens, topic) => {
     if (!firebaseInitialized) {
@@ -209,19 +219,14 @@ export const subscribeToTopic = async (fcmTokens, topic) => {
 
     try {
         const response = await admin.messaging().subscribeToTopic(fcmTokens, topic);
-        console.log(`✅ Subscribed ${response.successCount} tokens to topic: ${topic}`);
         return { success: true, successCount: response.successCount };
     } catch (error) {
-        console.error('❌ Failed to subscribe to topic:', error.message);
         return { success: false, error: error.message };
     }
 };
 
 /**
  * Send notification to a topic
- * @param {string} topic - Topic name
- * @param {Object} notification - Notification payload
- * @param {Object} data - Optional data payload
  */
 export const sendTopicNotification = async (topic, notification, data = {}) => {
     if (!firebaseInitialized) {
@@ -239,10 +244,8 @@ export const sendTopicNotification = async (topic, notification, data = {}) => {
         };
 
         const response = await admin.messaging().send(message);
-        console.log(`✅ Sent notification to topic ${topic}:`, response);
         return { success: true, messageId: response };
     } catch (error) {
-        console.error('❌ Failed to send topic notification:', error.message);
         return { success: false, error: error.message };
     }
 };

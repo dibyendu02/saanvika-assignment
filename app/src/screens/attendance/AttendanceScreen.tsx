@@ -18,12 +18,12 @@ import { Dropdown } from '../../components/ui/Dropdown';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import { Attendance } from '../../types';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
 import { format } from 'date-fns';
 
 export const AttendanceScreen: React.FC = () => {
     const { user } = useAuth();
     const [attendance, setAttendance] = useState<Attendance[]>([]);
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [offices, setOffices] = useState<any[]>([]);
     const [selectedOffice, setSelectedOffice] = useState<string>('all');
@@ -56,14 +56,15 @@ export const AttendanceScreen: React.FC = () => {
             showToast.error('Error', 'Failed to load attendance records');
             setAttendance([]); // Set empty array on error
         } finally {
-            setLoading(false);
             setRefreshing(false);
         }
     }, [isSuperAdmin]);
 
-    useEffect(() => {
-        fetchAttendance();
-    }, [fetchAttendance]);
+    useFocusEffect(
+        useCallback(() => {
+            fetchAttendance();
+        }, [fetchAttendance])
+    );
 
     useEffect(() => {
         applyFilters(attendance, selectedOffice);

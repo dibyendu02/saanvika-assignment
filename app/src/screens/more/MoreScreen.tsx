@@ -3,7 +3,7 @@
  * Settings, profile, and logout
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
     View,
     Text,
@@ -18,11 +18,28 @@ import { Avatar } from '../../components/ui/Avatar';
 import { showToast } from '../../utils/toast';
 import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useFocusEffect } from '@react-navigation/native';
+import { notificationsApi } from '../../api/notifications';
+import { Badge } from '../../components/ui/Badge';
 
 export const MoreScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { user, logout } = useAuth();
+    const [unreadCount, setUnreadCount] = React.useState(0);
 
-    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const fetchUnreadCount = React.useCallback(async () => {
+        try {
+            const data = await notificationsApi.getNotifications({ page: 1, limit: 1 });
+            setUnreadCount(data.unreadCount || 0);
+        } catch (error) {
+            console.error('Error fetching unread count:', error);
+        }
+    }, []);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            fetchUnreadCount();
+        }, [fetchUnreadCount])
+    );
 
     const handleLogout = async () => {
         try {
@@ -41,10 +58,8 @@ export const MoreScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     };
 
     // Role-based access control
-    const isSuperAdmin = user?.role === 'super_admin';
-    const isAdmin = user?.role === 'admin';
-    const isInternal = user?.role === 'internal';
-    const isExternal = user?.role === 'external';
+    // const isAdmin = user?.role === 'admin'; // Unused
+    // const isSuperAdmin = user?.role === 'super_admin'; // Unused (wait, checking usage...)
 
     const menuItems = [
         {
@@ -116,6 +131,11 @@ export const MoreScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                             <View style={styles.menuItemLeft}>
                                 <Icon name={item.icon} size={ICON_SIZES.md} color={COLORS.secondary} />
                                 <Text style={styles.menuItemText}>{item.label}</Text>
+                                {item.label === 'Notifications' && unreadCount > 0 && (
+                                    <View style={styles.badgeContainer}>
+                                        <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
+                                    </View>
+                                )}
                             </View>
                             <Icon name="chevron-right" size={ICON_SIZES.md} color={COLORS.textLight} />
                         </TouchableOpacity>
@@ -226,6 +246,21 @@ const styles = StyleSheet.create({
         fontSize: TYPOGRAPHY.fontSize.xs,
         color: COLORS.textLight,
         marginBottom: SPACING.xs,
+    },
+    badgeContainer: {
+        backgroundColor: COLORS.danger,
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 6,
+        marginLeft: SPACING.sm,
+    },
+    badgeText: {
+        color: COLORS.textWhite,
+        fontSize: 10,
+        fontWeight: 'bold',
     },
 });
 

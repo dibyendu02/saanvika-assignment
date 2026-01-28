@@ -15,7 +15,7 @@ export interface Notification {
     };
     title: string;
     message: string;
-    type: 'location_request' | 'location_shared' | 'goodies_distributed' | 'general';
+    type: 'location_request' | 'location_shared' | 'location_denied' | 'goodies_distributed' | 'general';
     relatedId?: string;
     isRead: boolean;
     createdAt: string;

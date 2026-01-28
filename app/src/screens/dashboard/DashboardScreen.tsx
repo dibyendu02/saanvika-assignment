@@ -3,7 +3,7 @@
  * Main dashboard with stats, targets, and quick actions
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -17,6 +17,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { dashboardApi } from '../../api/dashboard';
 import attendanceApi from '../../api/attendance';
+import { notificationsApi } from '../../api/notifications';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { ProgressBar } from '../../components/ui/ProgressBar';
@@ -30,9 +31,9 @@ import { useFocusEffect } from '@react-navigation/native';
 export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { user } = useAuth();
     const [stats, setStats] = useState<DashboardStats | null>(null);
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [markingAttendance, setMarkingAttendance] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
 
     const fetchStats = useCallback(async () => {
         try {
@@ -42,20 +43,34 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
             console.error('Error fetching stats:', error);
             showToast.error('Error', 'Failed to load dashboard data');
         } finally {
-            setLoading(false);
             setRefreshing(false);
+        }
+    }, []);
+
+    const fetchUnreadCount = useCallback(async () => {
+        try {
+            const data = await notificationsApi.getNotifications({ page: 1, limit: 1 });
+            setUnreadCount(data.unreadCount || 0);
+        } catch (error) {
+            console.error('Error fetching unread count:', error);
         }
     }, []);
 
     useFocusEffect(
         useCallback(() => {
             fetchStats();
-        }, [fetchStats])
+            fetchUnreadCount();
+
+            // Periodically check for new notifications every 30 seconds while screen is focused
+            const interval = setInterval(fetchUnreadCount, 30000);
+            return () => clearInterval(interval);
+        }, [fetchStats, fetchUnreadCount])
     );
 
     const onRefresh = () => {
         setRefreshing(true);
         fetchStats();
+        fetchUnreadCount();
     };
 
     const getRoleDisplay = (role: string): string => {
@@ -162,7 +177,16 @@ export const DashboardScreen: React.FC<{ navigation: any }> = ({ navigation }) =
                     style={styles.notificationButton}
                     onPress={() => navigation.navigate('More', { screen: 'Notifications' })}
                 >
-                    <Icon name="bell-outline" size={ICON_SIZES.md} color={COLORS.textPrimary} />
+                    <View>
+                        <Icon name="bell-outline" size={ICON_SIZES.md} color={COLORS.textPrimary} />
+                        {unreadCount > 0 && (
+                            <View style={styles.badgeContainer}>
+                                <Text style={styles.badgeText}>
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
                 </TouchableOpacity>
             </View>
 
@@ -344,6 +368,26 @@ const styles = StyleSheet.create({
     },
     notificationButton: {
         padding: SPACING.sm,
+    },
+    badgeContainer: {
+        position: 'absolute',
+        right: -4,
+        top: -4,
+        backgroundColor: COLORS.danger,
+        borderRadius: 9,
+        minWidth: 18,
+        height: 18,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+        borderWidth: 1.5,
+        borderColor: COLORS.backgroundLight,
+    },
+    badgeText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: 'bold',
+        textAlign: 'center',
     },
     content: {
         flex: 1,

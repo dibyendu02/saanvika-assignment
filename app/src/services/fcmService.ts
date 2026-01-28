@@ -3,7 +3,7 @@
  * Handles Firebase Cloud Messaging functionality
  */
 
-import { Platform } from 'react-native';
+import { Platform, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import { fcmApi } from '../api/fcm';
@@ -38,6 +38,17 @@ export const fcmService = {
      */
     async initialize(): Promise<boolean> {
         try {
+            if (Platform.OS === 'android' && Platform.Version >= 33) {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                );
+                if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+                    console.log('✅ Android 13+ Notification permission granted');
+                } else {
+                    console.log('❌ Android 13+ Notification permission denied');
+                }
+            }
+
             // Request Firebase permission
             const authStatus = await messaging().requestPermission();
             const enabled =
@@ -158,7 +169,10 @@ export const fcmService = {
         console.log('Processing notification data for navigation:', data);
 
         // Check for specific navigation targets
-        if (data.screen === 'location_request' || data.type === 'location_request') {
+        if (
+            data.screen === 'location_request' ||
+            ['location_request', 'location_shared', 'location_denied'].includes(data.type)
+        ) {
             console.log('🚀 Navigating to Location Requests');
 
             // Navigate through the nested structure
