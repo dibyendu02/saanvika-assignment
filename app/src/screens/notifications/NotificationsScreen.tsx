@@ -121,13 +121,10 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
         // Navigate based on notification type
         switch (notification.type) {
             case 'location_request':
+            case 'location_shared':
+            case 'location_denied':
                 navigation.navigate('More', {
                     screen: 'LocationRequests',
-                });
-                break;
-            case 'location_shared':
-                navigation.navigate('More', {
-                    screen: 'Locations',
                 });
                 break;
             case 'goodies_distributed':
@@ -147,6 +144,8 @@ export const NotificationsScreen: React.FC<{ navigation: any }> = ({ navigation 
                 return { name: 'map-marker-question', color: COLORS.warning };
             case 'location_shared':
                 return { name: 'map-marker-check', color: COLORS.success };
+            case 'location_denied':
+                return { name: 'map-marker-off', color: COLORS.danger };
             case 'goodies_distributed':
                 return { name: 'gift', color: COLORS.info };
             default:

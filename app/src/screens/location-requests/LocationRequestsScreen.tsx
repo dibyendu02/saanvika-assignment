@@ -13,6 +13,8 @@ import {
     ActivityIndicator,
     FlatList,
     Alert,
+    Linking,
+    Platform,
 } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useFocusEffect } from '@react-navigation/native';
@@ -26,7 +28,7 @@ import { COLORS, TYPOGRAPHY, SPACING, ICON_SIZES } from '../../constants/theme';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import LocationService from '../../services/LocationService';
 
-export const LocationRequestsScreen: React.FC = () => {
+export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const { user } = useAuth();
     const [requests, setRequests] = useState<LocationRequest[]>([]);
     const [refreshing, setRefreshing] = useState(false);
@@ -261,68 +263,105 @@ export const LocationRequestsScreen: React.FC = () => {
                 </View>
 
                 {/* Actions */}
-                {(isExternal || (isManagement && !isPending) || item.requester._id === user?._id) && (
-                    <View style={styles.actions}>
-                        {isExternal && isPending && (
-                            <>
-                                <Button
-                                    variant="primary"
-                                    size="sm"
-                                    onPress={() => handleShareLocation(item._id)}
-                                    disabled={respondingId === item._id}
-                                    style={styles.actionButton}
-                                >
-                                    {respondingId === item._id && respondingAction === 'share' ? (
-                                        <ActivityIndicator size="small" color={COLORS.textWhite} />
-                                    ) : (
-                                        <>
-                                            <Icon name="map-marker" size={16} color={COLORS.textWhite} />
-                                            <Text style={styles.buttonText}>Share Location</Text>
-                                        </>
-                                    )}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onPress={() => handleDeny(item._id)}
-                                    disabled={respondingId === item._id}
-                                    style={styles.actionButton}
-                                >
-                                    {respondingId === item._id && respondingAction === 'deny' ? (
-                                        <ActivityIndicator size="small" color={COLORS.danger} />
-                                    ) : (
-                                        <>
-                                            <Icon name="close" size={16} color={COLORS.danger} />
-                                            <Text style={[styles.buttonText, { color: COLORS.danger }]}>Deny</Text>
-                                        </>
-                                    )}
-                                </Button>
-                            </>
-                        )}
-
-                        {/* Delete/Cancel Button */}
-                        {(isManagement || item.requester._id === user?._id) && (
+                <View style={styles.actions}>
+                    {/* External: Share/Deny for Pending */}
+                    {isExternal && isPending && (
+                        <>
                             <Button
-                                variant="outline"
+                                variant="primary"
                                 size="sm"
-                                onPress={() => handleDeleteRequest(item)}
+                                onPress={() => handleShareLocation(item._id)}
                                 disabled={respondingId === item._id}
-                                style={styles.deleteButton}
+                                style={styles.actionButton}
                             >
-                                {respondingId === item._id && respondingAction === 'delete' ? (
-                                    <ActivityIndicator size="small" color={COLORS.danger} />
+                                {respondingId === item._id && respondingAction === 'share' ? (
+                                    <ActivityIndicator size="small" color={COLORS.textWhite} />
                                 ) : (
                                     <>
-                                        <Icon name="trash-can-outline" size={16} color={COLORS.danger} />
-                                        <Text style={[styles.buttonText, { color: COLORS.danger }]}>
-                                            {item.requester._id === user?._id ? 'Cancel Request' : 'Delete'}
-                                        </Text>
+                                        <Icon name="map-marker" size={16} color={COLORS.textWhite} />
+                                        <Text style={styles.buttonText}>Share Location</Text>
                                     </>
                                 )}
                             </Button>
-                        )}
-                    </View>
-                )}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onPress={() => handleDeny(item._id)}
+                                disabled={respondingId === item._id}
+                                style={styles.actionButton}
+                            >
+                                {respondingId === item._id && respondingAction === 'deny' ? (
+                                    <ActivityIndicator size="small" color={COLORS.danger} />
+                                ) : (
+                                    <>
+                                        <Icon name="close" size={16} color={COLORS.danger} />
+                                        <Text style={[styles.buttonText, { color: COLORS.danger }]}>Deny</Text>
+                                    </>
+                                )}
+                            </Button>
+                        </>
+                    )}
+
+                    {/* Non-External: View Location for Shared */}
+                    {!isExternal && item.status === 'shared' && item.locationId && (
+                        <Button
+                            variant="primary"
+                            size="sm"
+                            onPress={() => {
+                                // Extract location data from populated field
+                                const locationRecord = item.locationId as any;
+                                const coordinates = locationRecord?.location?.coordinates;
+
+                                if (coordinates && coordinates.length === 2) {
+                                    const [longitude, latitude] = coordinates;
+
+                                    const scheme = Platform.select({ ios: 'maps:0,0?q=', android: 'geo:0,0?q=' });
+                                    const latLng = `${latitude},${longitude}`;
+                                    const label = item.targetUser?.name || 'User Location';
+                                    const url = Platform.select({
+                                        ios: `${scheme}${label}@${latLng}`,
+                                        android: `${scheme}${latLng}(${label})`,
+                                    });
+
+                                    if (url) {
+                                        Linking.openURL(url).catch((err) => {
+                                            console.error('Error opening map:', err);
+                                            showToast.error('Error', 'Could not open map');
+                                        });
+                                    }
+                                } else {
+                                    showToast.error('Error', 'Location coordinates not available');
+                                }
+                            }}
+                            style={styles.actionButton}
+                        >
+                            <Icon name="map-marker-radius" size={16} color={COLORS.textWhite} />
+                            <Text style={styles.buttonText}>View Location</Text>
+                        </Button>
+                    )}
+
+                    {/* Delete/Cancel Button */}
+                    {(isManagement || item.requester._id === user?._id) && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onPress={() => handleDeleteRequest(item)}
+                            disabled={respondingId === item._id}
+                            style={styles.deleteButton}
+                        >
+                            {respondingId === item._id && respondingAction === 'delete' ? (
+                                <ActivityIndicator size="small" color={COLORS.danger} />
+                            ) : (
+                                <>
+                                    <Icon name="trash-can-outline" size={16} color={COLORS.danger} />
+                                    <Text style={[styles.buttonText, { color: COLORS.danger }]}>
+                                        {item.status === 'pending' && item.requester._id === user?._id ? 'Cancel Request' : 'Delete'}
+                                    </Text>
+                                </>
+                            )}
+                        </Button>
+                    )}
+                </View>
 
                 {!isExternal && isPending && !((isManagement || item.requester._id === user?._id)) && (
                     <View style={styles.waitingBadge}>
