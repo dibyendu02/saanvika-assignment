@@ -112,16 +112,13 @@ const BulkEmployeeUpload = ({ isOpen, onClose, onSuccess }) => {
                             <li>Upload the completed file</li>
                             <li>Review the results and fix any errors if needed</li>
                         </ol>
+                        <button
+                            onClick={handleDownloadTemplate}
+                            className="mt-3 flex items-center text-primary-700 hover:text-primary-800 text-sm font-medium transition-colors"
+                        >
+                            <Download size={16} className="mr-1.5" /> Download Excel Template
+                        </button>
                     </div>
-
-                    {/* Download Template Button */}
-                    <button
-                        onClick={handleDownloadTemplate}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                        <Download size={20} />
-                        Download Excel Template
-                    </button>
 
                     {/* File Upload */}
                     <div className="space-y-2">

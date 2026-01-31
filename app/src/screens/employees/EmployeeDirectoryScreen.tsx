@@ -22,6 +22,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Avatar } from '../../components/ui/Avatar';
 import AddEmployeeForm from '../../components/forms/AddEmployeeForm';
+import EditEmployeeForm from '../../components/forms/EditEmployeeForm';
 import { showToast } from '../../utils/toast';
 import { Dropdown } from '../../components/ui/Dropdown';
 import { locationApi } from '../../api/location';
@@ -40,11 +41,19 @@ export const EmployeeDirectoryScreen: React.FC = () => {
     const [selectedOffice, setSelectedOffice] = useState<string>('all');
     const [showOfficeFilter, setShowOfficeFilter] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
+    const [showEditForm, setShowEditForm] = useState(false);
+    const [editingEmployee, setEditingEmployee] = useState<User | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
-    const isManagement = ['super_admin', 'admin', 'internal'].includes(user?.role || '');
+    // Role helpers for location request logic
     const isAdmin = ['super_admin', 'admin'].includes(user?.role || '');
+    const canRequestLocation = (target: User) => {
+        if (!user || user._id === target._id) return false;
+        if (target.role === 'external' && ['internal', 'admin', 'super_admin'].includes(user.role)) return true;
+        if (target.role === 'internal' && ['admin', 'super_admin'].includes(user.role)) return true;
+        return false;
+    };
 
     const fetchData = useCallback(async () => {
         try {
@@ -152,6 +161,11 @@ export const EmployeeDirectoryScreen: React.FC = () => {
         }
     };
 
+    const handleEditEmployee = (employee: User) => {
+        setEditingEmployee(employee);
+        setShowEditForm(true);
+    };
+
     const onRefresh = () => {
         setRefreshing(true);
         fetchData();
@@ -234,42 +248,50 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                                     label={employee.status}
                                     variant={employee.status === 'active' ? 'success' : 'default'}
                                 />
-                                {isManagement && employee._id !== user?._id && (
-                                    <View style={styles.employeeHeaderActions}>
+                                {/* Request Location logic: */}
+                                {canRequestLocation(employee) && (
+                                    <TouchableOpacity
+                                        style={styles.actionButton}
+                                        onPress={() => handleRequestLocation(employee._id)}
+                                        disabled={!!actionLoadingId}
+                                    >
+                                        <Icon name="map-marker-radius" size={ICON_SIZES.sm} color={COLORS.primary} />
+                                    </TouchableOpacity>
+                                )}
+
+                                <TouchableOpacity
+                                    style={styles.actionButton}
+                                    onPress={() => handleSuspendEmployee(employee)}
+                                    disabled={!!actionLoadingId}
+                                >
+                                    <Icon
+                                        name={(employee.status === 'suspended' || employee.status === 'inactive') ? "account-check" : "account-off"}
+                                        size={ICON_SIZES.sm}
+                                        color={(employee.status === 'suspended' || employee.status === 'inactive') ? COLORS.success : COLORS.warning}
+                                    />
+                                </TouchableOpacity>
+
+                                {isAdmin && (
+                                    <>
                                         <TouchableOpacity
                                             style={styles.actionButton}
-                                            onPress={() => handleRequestLocation(employee._id)}
+                                            onPress={() => handleEditEmployee(employee)}
                                             disabled={!!actionLoadingId}
                                         >
-                                            <Icon name="map-marker-radius" size={ICON_SIZES.sm} color={COLORS.primary} />
+                                            <Icon name="pencil" size={ICON_SIZES.sm} color={COLORS.primary} />
                                         </TouchableOpacity>
-
                                         <TouchableOpacity
-                                            style={styles.actionButton}
-                                            onPress={() => handleSuspendEmployee(employee)}
-                                            disabled={!!actionLoadingId}
+                                            style={styles.deleteButton}
+                                            onPress={() => handleDeleteEmployee(employee)}
+                                            disabled={deletingId === employee._id}
                                         >
-                                            <Icon
-                                                name={(employee.status === 'suspended' || employee.status === 'inactive') ? "account-check" : "account-off"}
-                                                size={ICON_SIZES.sm}
-                                                color={(employee.status === 'suspended' || employee.status === 'inactive') ? COLORS.success : COLORS.warning}
-                                            />
+                                            {deletingId === employee._id ? (
+                                                <ActivityIndicator size="small" color={COLORS.danger} />
+                                            ) : (
+                                                <Icon name="trash-can-outline" size={ICON_SIZES.sm} color={COLORS.danger} />
+                                            )}
                                         </TouchableOpacity>
-
-                                        {isAdmin && (
-                                            <TouchableOpacity
-                                                style={styles.deleteButton}
-                                                onPress={() => handleDeleteEmployee(employee)}
-                                                disabled={deletingId === employee._id}
-                                            >
-                                                {deletingId === employee._id ? (
-                                                    <ActivityIndicator size="small" color={COLORS.danger} />
-                                                ) : (
-                                                    <Icon name="trash-can-outline" size={ICON_SIZES.sm} color={COLORS.danger} />
-                                                )}
-                                            </TouchableOpacity>
-                                        )}
-                                    </View>
+                                    </>
                                 )}
                             </View>
                         </View>
@@ -323,6 +345,17 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                 onClose={() => setShowAddForm(false)}
                 onSuccess={fetchData}
                 offices={offices}
+            />
+
+            {/* Edit Employee Form */}
+            <EditEmployeeForm
+                isVisible={showEditForm}
+                onClose={() => {
+                    setShowEditForm(false);
+                    setEditingEmployee(null);
+                }}
+                onSuccess={fetchData}
+                employee={editingEmployee}
             />
         </View>
     );

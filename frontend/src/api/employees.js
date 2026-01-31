@@ -82,10 +82,22 @@ export const deleteEmployee = async (id) => {
     return response.data;
 };
 
+/**
+ * Update an employee's details
+ * @param {string} id - Employee ID
+ * @param {Object} data - Update data (e.g., { employeeId: 'NEW123' })
+ * @returns {Promise} - Updated employee
+ */
+export const updateEmployee = async (id, data) => {
+    const response = await api.patch(`/users/${id}`, data);
+    return response.data;
+};
+
 export default {
     uploadEmployeesExcel,
     downloadEmployeeTemplate,
     getEmployees,
     getEmployeesByOffice,
     deleteEmployee,
+    updateEmployee,
 };

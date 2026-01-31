@@ -29,7 +29,7 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
-import { Loader2, UserPlus, ShieldCheck, UserCog, Mail, Phone, Building, Eye, EyeOff, AlertTriangle, Upload, MoreVertical, UserX, UserCheck, Trash2, MapPin, Filter, X, Plus } from 'lucide-react';
+import { Loader2, UserPlus, ShieldCheck, UserCog, Mail, Phone, Building, Eye, EyeOff, AlertTriangle, Upload, MoreVertical, UserX, UserCheck, Trash2, MapPin, Filter, X, Plus, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import BulkEmployeeUpload from '../components/BulkEmployeeUpload';
 
@@ -67,6 +67,12 @@ const Employees = () => {
     const [deleting, setDeleting] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [showActions, setShowActions] = useState(false);
+
+    // Edit modal state
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editingEmployee, setEditingEmployee] = useState(null);
+    const [editing, setEditing] = useState(false);
+    const [editEmployeeId, setEditEmployeeId] = useState('');
 
     // Pagination state
     const [page, setPage] = useState(1);
@@ -297,6 +303,35 @@ const Employees = () => {
         } finally {
             setDeleting(false);
             setDeletingEmployee(null);
+        }
+    };
+
+    // Edit handlers
+    const initiateEdit = (employee) => {
+        setEditingEmployee(employee);
+        setEditEmployeeId(employee.employeeId || '');
+        setEditDialogOpen(true);
+    };
+
+    const confirmEdit = async () => {
+        if (!editingEmployee) return;
+
+        setEditing(true);
+        try {
+            await api.patch(`/users/${editingEmployee._id}`, { employeeId: editEmployeeId });
+            toast({ title: 'Success', description: 'Employee ID updated successfully' });
+            fetchEmployees();
+            setEditDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.message || 'Failed to update employee',
+                variant: 'destructive'
+            });
+        } finally {
+            setEditing(false);
+            setEditingEmployee(null);
+            setEditEmployeeId('');
         }
     };
 
@@ -617,15 +652,19 @@ const Employees = () => {
                                                         {emp.status === 'active' && (
                                                             <>
                                                                 <DropdownMenuItem onClick={() => initiateSuspend(emp)}><UserX className="mr-2 h-4 w-4" /> Suspend</DropdownMenuItem>
-                                                                {emp.role === 'external' && currentUser.role !== 'external' && (
-                                                                    <DropdownMenuItem onClick={async () => {
-                                                                        try {
-                                                                            await api.post('/location/request', { targetUserId: emp._id });
-                                                                            toast({ title: 'Success', description: 'Location request sent' });
-                                                                        } catch (e) {
-                                                                            toast({ title: 'Error', description: 'Failed to send request', variant: 'destructive' });
-                                                                        }
-                                                                    }}><MapPin className="mr-2 h-4 w-4" /> Request Location</DropdownMenuItem>
+                                                                {/* Request Location logic: */}
+                                                                {emp._id !== currentUser._id && (
+                                                                    ((emp.role === 'external' && ['internal', 'admin', 'super_admin'].includes(currentUser.role)) ||
+                                                                     (emp.role === 'internal' && ['admin', 'super_admin'].includes(currentUser.role))) && (
+                                                                        <DropdownMenuItem onClick={async () => {
+                                                                            try {
+                                                                                await api.post('/location/request', { targetUserId: emp._id });
+                                                                                toast({ title: 'Success', description: 'Location request sent' });
+                                                                            } catch (e) {
+                                                                                toast({ title: 'Error', description: 'Failed to send request', variant: 'destructive' });
+                                                                            }
+                                                                        }}><MapPin className="mr-2 h-4 w-4" /> Request Location</DropdownMenuItem>
+                                                                    )
                                                                 )}
                                                             </>
                                                         )}
@@ -633,7 +672,11 @@ const Employees = () => {
                                                             <DropdownMenuItem onClick={() => initiateUnsuspend(emp)}><UserCheck className="mr-2 h-4 w-4" /> Reactivate</DropdownMenuItem>
                                                         )}
                                                         {['super_admin', 'admin'].includes(currentUser?.role) && (
-                                                            <DropdownMenuItem onClick={() => initiateDelete(emp)} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                                            <>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem onClick={() => initiateEdit(emp)}><Pencil className="mr-2 h-4 w-4" /> Edit Employee ID</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => initiateDelete(emp)} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                                            </>
                                                         )}
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
@@ -697,7 +740,13 @@ const Employees = () => {
                                                             </>
                                                         )}
                                                         {emp.status === 'inactive' && <DropdownMenuItem onClick={() => initiateUnsuspend(emp)}><UserCheck className="mr-2 h-4 w-4" /> Reactivate</DropdownMenuItem>}
-                                                        {['super_admin', 'admin'].includes(currentUser?.role) && <DropdownMenuItem onClick={() => initiateDelete(emp)} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>}
+                                                        {['super_admin', 'admin'].includes(currentUser?.role) && (
+                                                            <>
+                                                                <DropdownMenuSeparator />
+                                                                <DropdownMenuItem onClick={() => initiateEdit(emp)}><Pencil className="mr-2 h-4 w-4" /> Edit Employee ID</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => initiateDelete(emp)} className="text-red-600"><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                                            </>
+                                                        )}
                                                     </DropdownMenuContent>
                                                 </DropdownMenu>
                                             )}
@@ -776,6 +825,41 @@ const Employees = () => {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
                         <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>{deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Delete Permanently</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <div className="p-2 rounded-lg bg-primary-50">
+                                <Pencil className="h-5 w-5 text-primary" />
+                            </div>
+                            Edit Employee ID
+                        </DialogTitle>
+                        <DialogDescription>
+                            Update the Employee ID for <strong>{editingEmployee?.name}</strong>
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 px-6">
+                        <Label htmlFor="editEmployeeId" className="text-sm font-semibold text-gray-700">
+                            Employee ID
+                        </Label>
+                        <Input
+                            id="editEmployeeId"
+                            value={editEmployeeId}
+                            onChange={(e) => setEditEmployeeId(e.target.value)}
+                            placeholder="e.g., EMP001"
+                            className="mt-2"
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={confirmEdit} disabled={editing}>
+                            {editing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Save Changes
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

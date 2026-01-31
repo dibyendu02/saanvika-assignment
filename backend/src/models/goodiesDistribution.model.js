@@ -42,8 +42,8 @@ const goodiesDistributionSchema = new mongoose.Schema(
       default: [],
       validate: {
         validator: function (value) {
-          // If not for all employees, targetEmployees must not be empty
-          if (this.isForAllEmployees === false && (!value || value.length === 0)) {
+          // If not for all employees, targetEmployees must not be empty (unless unregisteredRecipients has items)
+          if (this.isForAllEmployees === false && (!value || value.length === 0) && (!this.unregisteredRecipients || this.unregisteredRecipients.length === 0)) {
             return false;
           }
           // If for all employees, targetEmployees should be empty
@@ -52,9 +52,19 @@ const goodiesDistributionSchema = new mongoose.Schema(
           }
           return true;
         },
-        message: 'targetEmployees must be specified when isForAllEmployees is false, and must be empty when isForAllEmployees is true',
+        message: 'At least one recipient (registered or unregistered) must be specified when isForAllEmployees is false',
       },
     },
+    unregisteredRecipients: [
+      {
+        name: { type: String, required: true },
+        officeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Office' },
+        employeeId: { type: String }, // Optional ID if provided in sheet but not in system
+        isClaimed: { type: Boolean, default: false },
+        claimedAt: { type: Date },
+        handedOverBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      }
+    ],
   },
   {
     timestamps: true,

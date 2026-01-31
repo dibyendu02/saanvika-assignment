@@ -51,10 +51,10 @@ router.get(
 // Get location requests (sent or received) - MUST be before /:id
 router.get('/requests', getLocationRequests);
 
-// Deny location request (external employees only) - MUST be before /:id
+// Deny location request (external and internal employees) - MUST be before /:id
 router.patch(
   '/requests/:id/deny',
-  authorize('external'),
+  authorize('external', 'internal'),
   denyLocationRequest
 );
 

@@ -63,10 +63,10 @@ export const employeesApi = {
     },
 
     /**
-     * Update employee
+     * Update employee (admin edit operations)
      */
     update: async (id: string, userData: Partial<User>): Promise<User> => {
-        const response = await apiClient.put(API_ENDPOINTS.USER_BY_ID(id), userData);
+        const response = await apiClient.patch(API_ENDPOINTS.USER_BY_ID(id), userData);
         return response.data.data || response.data;
     },
 

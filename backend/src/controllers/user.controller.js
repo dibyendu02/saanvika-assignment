@@ -206,6 +206,21 @@ export const deleteUser = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Update an employee by ID (admin action)
+ * @route   PATCH /api/v1/users/:id
+ * @access  Private (admin, super_admin - hierarchy based)
+ */
+export const updateEmployeeById = asyncHandler(async (req, res) => {
+  const targetUserId = req.params.id;
+  const updatedUser = await userService.updateEmployeeById(req.user, targetUserId, req.body);
+
+  res.status(200).json({
+    success: true,
+    data: { user: updatedUser },
+    message: 'Employee updated successfully',
+  });
+});
 
 export default {
   getProfile,
@@ -218,5 +233,6 @@ export default {
   suspendUser,
   unsuspendUser,
   deleteUser,
+  updateEmployeeById,
 };
 

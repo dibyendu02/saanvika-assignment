@@ -135,6 +135,60 @@ export const getEligibleEmployees = asyncHandler(async (req, res) => {
 });
 
 /**
+ * @desc    Download goodies Excel template
+ * @route   GET /api/v1/goodies/template
+ * @access  Private (admin, super_admin)
+ */
+export const downloadTemplate = asyncHandler(async (req, res) => {
+  const excelService = await import('../services/excel.service.js');
+
+  const buffer = excelService.generateExcelTemplate(req.user, 'goodies');
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename=goodies-template.xlsx');
+  res.send(buffer);
+});
+
+/**
+ * @desc    Parse goodies Excel file for import preview
+ * @route   POST /api/v1/goodies/import-preview
+ * @access  Private (admin, super_admin)
+ */
+export const parseGoodiesImport = asyncHandler(async (req, res) => {
+  const fs = await import('fs');
+  const excelService = await import('../services/excel.service.js');
+
+  if (!req.file) {
+    throw new AppError('Please upload an Excel file', 400);
+  }
+
+  try {
+    const { registeredUsers, unregisteredRecipients, errors } = await excelService.parseGoodiesExcel(req.file.path, req.user);
+
+    // Clean up uploaded file
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        registeredUsers,
+        unregisteredRecipients,
+        errors,
+        totalValid: registeredUsers.length + unregisteredRecipients.length
+      },
+      message: 'File parsed successfully',
+    });
+  } catch (error) {
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    throw error;
+  }
+});
+
+/**
  * @desc    Bulk upload distributions from Excel
  * @route   POST /api/v1/goodies/bulk-upload
  * @access  Private (admin, super_admin)
@@ -156,14 +210,15 @@ export const bulkUploadDistributions = asyncHandler(async (req, res) => {
   let filePath = req.file.path;
 
   try {
-    const { items, errors: parseErrors } = await excelService.parseGoodiesExcel(filePath, req.user);
+    const { registeredUsers, unregisteredRecipients, errors: parseErrors } = await excelService.parseGoodiesExcel(filePath, req.user);
 
-    if (items.length === 0 && parseErrors.length === 0) {
+    if (registeredUsers.length === 0 && unregisteredRecipients.length === 0 && parseErrors.length === 0) {
       throw new AppError('No valid employees found in the Excel file', 400);
     }
 
     const results = await goodiesService.bulkCreateDistribution(req.user, {
-      items,
+      registeredUsers,
+      unregisteredRecipients,
       goodiesType,
       distributionDate,
       totalQuantityPerEmployee: parseInt(totalQuantityPerEmployee)
@@ -189,7 +244,7 @@ export const bulkUploadDistributions = asyncHandler(async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        totalProcessed: items.length,
+        totalProcessed: (registeredUsers.length + unregisteredRecipients.length),
         successCount: results.success.length,
         failedCount: results.failed.length + parseErrors.length,
         successRecords: results.success,
@@ -239,6 +294,31 @@ export const deleteReceivedRecord = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Manually mark a claim for an employee
+ * @route   POST /api/v1/goodies/distributions/:id/mark-claim
+ * @access  Private (admin, super_admin)
+ */
+export const markClaimForEmployee = asyncHandler(async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    throw new AppError('User ID is required', 400);
+  }
+
+  const receipt = await goodiesService.markClaimForEmployee(
+    req.user,
+    req.params.id,
+    userId
+  );
+
+  res.status(201).json({
+    success: true,
+    data: { receipt },
+    message: 'Claim marked successfully',
+  });
+});
+
 export default {
   createDistribution,
   getDistributions,
@@ -250,4 +330,7 @@ export default {
   bulkUploadDistributions,
   deleteDistribution,
   deleteReceivedRecord,
+  markClaimForEmployee,
+  downloadTemplate,
+  parseGoodiesImport,
 };

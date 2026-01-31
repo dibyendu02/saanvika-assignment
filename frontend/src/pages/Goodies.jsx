@@ -43,14 +43,23 @@ const Goodies = () => {
     const [claimsOpen, setClaimsOpen] = useState(false);
     const [selectedDistribution, setSelectedDistribution] = useState(null);
     const [distributionClaims, setDistributionClaims] = useState([]);
+    const [eligibleEmployees, setEligibleEmployees] = useState([]);
+    const [claimSearchQuery, setClaimSearchQuery] = useState('');
     const [fetchingClaims, setFetchingClaims] = useState(false);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+    const [unregisteredRecipients, setUnregisteredRecipients] = useState([]);
+    const [uploadingRecipients, setUploadingRecipients] = useState(false);
 
     // Delete modal state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [deletingItem, setDeletingItem] = useState(null); // { type, id, name }
     const [deleting, setDeleting] = useState(false);
+
+    // Manual claim modal state
+    const [manualClaimOpen, setManualClaimOpen] = useState(false);
+    const [manualClaimEmployee, setManualClaimEmployee] = useState(null);
+    const [markingClaim, setMarkingClaim] = useState(false);
 
     // Employee selection state for targeted distribution
     const [employees, setEmployees] = useState([]);
@@ -128,11 +137,21 @@ const Goodies = () => {
         setSelectedDistribution(dist);
         setClaimsOpen(true);
         setFetchingClaims(true);
+        setClaimSearchQuery('');
         try {
-            const response = await api.get(`/goodies/received?distributionId=${dist._id}&limit=100`);
-            const data = response.data.data;
-            const records = data.records || (Array.isArray(data) ? data : []);
+            // Fetch both claims and eligible employees in parallel
+            const [claimsResponse, eligibleResponse] = await Promise.all([
+                api.get(`/goodies/received?distributionId=${dist._id}&limit=100`),
+                api.get(`/goodies/distributions/${dist._id}/eligible-employees`)
+            ]);
+
+            const claimsData = claimsResponse.data.data;
+            const records = claimsData.records || (Array.isArray(claimsData) ? claimsData : []);
             setDistributionClaims(records);
+
+            const eligibleData = eligibleResponse.data.data;
+            const eligible = eligibleData.employees || (Array.isArray(eligibleData) ? eligibleData : []);
+            setEligibleEmployees(eligible);
         } catch (error) {
             console.error('Error fetching claims:', error);
             toast({ title: 'Error', description: 'Failed to fetch claim history', variant: 'destructive' });
@@ -144,6 +163,7 @@ const Goodies = () => {
     const handleOfficeChange = (officeId) => {
         setNewItem({ ...newItem, officeId });
         setSelectedEmployees([]);
+        setUnregisteredRecipients([]);
         if (!newItem.isForAllEmployees) {
             fetchEmployeesByOffice(officeId);
         }
@@ -152,6 +172,7 @@ const Goodies = () => {
     const handleTargetTypeChange = (isForAll) => {
         setNewItem({ ...newItem, isForAllEmployees: isForAll });
         setSelectedEmployees([]);
+        setUnregisteredRecipients([]);
         if (!isForAll && newItem.officeId) {
             fetchEmployeesByOffice(newItem.officeId);
         }
@@ -173,6 +194,76 @@ const Goodies = () => {
         }
     };
 
+    const handleDownloadTemplate = async () => {
+        try {
+            const response = await api.get('/goodies/template', {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'goodies-template.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to download template', variant: 'destructive' });
+        }
+    };
+
+    const handleRecipientUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!newItem.officeId) {
+            toast({ title: 'Error', description: 'Please select an office first', variant: 'destructive' });
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setUploadingRecipients(true);
+        try {
+            const response = await api.post('/goodies/import-preview', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            const { registeredUsers, unregisteredRecipients: unregistered, errors } = response.data.data;
+
+            // Filter for selected office
+            const validRegistered = registeredUsers.filter(u => u.officeId.toString() === newItem.officeId);
+            const validUnregistered = unregistered.filter(u => u.officeId.toString() === newItem.officeId);
+
+            // Add registered users to selection (merge with existing)
+            const newSelectedIds = validRegistered.map(u => u.userId);
+            setSelectedEmployees(prev => [...new Set([...prev, ...newSelectedIds])]);
+
+            // Add unregistered to state (merge?)
+            setUnregisteredRecipients(prev => [...prev, ...validUnregistered]);
+
+            const skippedCount = (registeredUsers.length - validRegistered.length) + (unregistered.length - validUnregistered.length);
+
+            toast({
+                title: 'Import Successful',
+                description: `Added ${validRegistered.length} employees and ${validUnregistered.length} unregistered recipients.${skippedCount > 0 ? ` Skipped ${skippedCount} from other offices.` : ''}`
+            });
+
+            if (errors && errors.length > 0) {
+                toast({
+                    title: 'Warning',
+                    description: `${errors.length} rows had errors and were skipped.`,
+                    variant: 'warning'
+                });
+            }
+
+        } catch (error) {
+            toast({ title: 'Error', description: error.response?.data?.message || 'Failed to parse file', variant: 'destructive' });
+        } finally {
+            setUploadingRecipients(false);
+            e.target.value = null; // Reset input
+        }
+    };
+
     const handleCreate = async (e) => {
         e.preventDefault();
 
@@ -181,8 +272,8 @@ const Goodies = () => {
             return;
         }
 
-        if (!newItem.isForAllEmployees && selectedEmployees.length === 0) {
-            toast({ title: 'Error', description: 'Please select at least one employee', variant: 'destructive' });
+        if (!newItem.isForAllEmployees && selectedEmployees.length === 0 && unregisteredRecipients.length === 0) {
+            toast({ title: 'Error', description: 'Please select at least one employee or add unregistered recipients', variant: 'destructive' });
             return;
         }
 
@@ -190,7 +281,8 @@ const Goodies = () => {
         try {
             const payload = {
                 ...newItem,
-                targetEmployees: newItem.isForAllEmployees ? [] : selectedEmployees
+                targetEmployees: newItem.isForAllEmployees ? [] : selectedEmployees,
+                unregisteredRecipients: newItem.isForAllEmployees ? [] : unregisteredRecipients
             };
             await api.post('/goodies/distributions', payload);
             toast({ title: 'Success', description: 'Goodie distribution created' });
@@ -246,7 +338,9 @@ const Goodies = () => {
                 toast({ title: 'Success', description: 'Distribution deleted successfully' });
             } else if (deletingItem.type === 'claim') {
                 await api.delete(`/goodies/received/${deletingItem.id}`);
+                // Refresh both the claims dialog and the main distributions list
                 if (selectedDistribution) fetchClaimsForDistribution(selectedDistribution);
+                fetchDistributions(); // Refresh to update inventory and claimed counts
                 toast({ title: 'Success', description: 'Claim record deleted successfully' });
             }
             setDeleteDialogOpen(false);
@@ -255,6 +349,33 @@ const Goodies = () => {
         } finally {
             setDeleting(false);
             setDeletingItem(null);
+        }
+    };
+
+    // Manual claim functions
+    const initiateManualClaim = (employee) => {
+        setManualClaimEmployee(employee);
+        setManualClaimOpen(true);
+    };
+
+    const confirmManualClaim = async () => {
+        if (!manualClaimEmployee || !selectedDistribution) return;
+
+        setMarkingClaim(true);
+        try {
+            await api.post(`/goodies/distributions/${selectedDistribution._id}/mark-claim`, {
+                userId: manualClaimEmployee._id
+            });
+            toast({ title: 'Success', description: `Marked ${manualClaimEmployee.name} as claimed` });
+            // Refresh claims list and distributions
+            fetchClaimsForDistribution(selectedDistribution);
+            fetchDistributions();
+            setManualClaimOpen(false);
+        } catch (error) {
+            toast({ title: 'Error', description: error.response?.data?.message || 'Failed to mark claim', variant: 'destructive' });
+        } finally {
+            setMarkingClaim(false);
+            setManualClaimEmployee(null);
         }
     };
 
@@ -401,12 +522,64 @@ const Goodies = () => {
                                         <div className="space-y-3">
                                             <div className="flex items-center justify-between">
                                                 <Label className="text-sm font-medium text-gray-700">Select Employees</Label>
-                                                {employees.length > 0 && (
-                                                    <Button type="button" variant="ghost" size="sm" onClick={toggleAllEmployees}>
-                                                        {selectedEmployees.length === employees.length ? 'Deselect All' : 'Select All'}
+                                                <div className="flex gap-2">
+                                                    <Button type="button" variant="outline" size="sm" onClick={handleDownloadTemplate} title="Download Template">
+                                                        <Download className="h-4 w-4 mr-1" /> Template
                                                     </Button>
-                                                )}
+                                                    <div className="relative">
+                                                        <input
+                                                            type="file"
+                                                            id="recipient-upload"
+                                                            className="hidden"
+                                                            accept=".xlsx,.xls"
+                                                            onChange={handleRecipientUpload}
+                                                            disabled={!newItem.officeId}
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => document.getElementById('recipient-upload').click()}
+                                                            disabled={!newItem.officeId}
+                                                            title={!newItem.officeId ? "Select an office first" : "Upload Recipient List"}
+                                                        >
+                                                            {uploadingRecipients ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+                                                            Upload List
+                                                        </Button>
+                                                    </div>
+                                                    {employees.length > 0 && (
+                                                        <Button type="button" variant="ghost" size="sm" onClick={toggleAllEmployees}>
+                                                            {selectedEmployees.length === employees.length ? 'Deselect All' : 'Select All'}
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
+
+                                            {unregisteredRecipients.length > 0 && (
+                                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 mb-2">
+                                                    <div className="font-semibold flex items-center gap-2">
+                                                        <AlertTriangle className="h-4 w-4" />
+                                                        {unregisteredRecipients.length} Unregistered Recipients
+                                                    </div>
+                                                    <div className="mt-1 text-xs max-h-20 overflow-y-auto">
+                                                        {unregisteredRecipients.map((u, i) => (
+                                                            <span key={i} className="inline-block bg-white border border-amber-100 rounded px-1.5 py-0.5 mr-1 mb-1 shadow-sm">
+                                                                {u.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 text-xs text-amber-700 hover:text-amber-900 mt-1 p-0"
+                                                        onClick={() => setUnregisteredRecipients([])}
+                                                    >
+                                                        Clear Unregistered
+                                                    </Button>
+                                                </div>
+                                            )}
+
                                             {!newItem.officeId ? (
                                                 <div className="text-sm text-gray-500 p-4 border rounded-lg bg-gray-50 text-center">Please select an office first</div>
                                             ) : loadingEmployees ? (
@@ -729,47 +902,168 @@ const Goodies = () => {
             </div>
 
             {/* Modals for Claim History and Confirms */}
-            <Dialog open={claimsOpen} onOpenChange={setClaimsOpen}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Claim History: {selectedDistribution?.goodiesType}</DialogTitle>
+            <Dialog open={claimsOpen} onOpenChange={(open) => {
+                setClaimsOpen(open);
+                if (!open) {
+                    setClaimSearchQuery('');
+                    setEligibleEmployees([]);
+                    setDistributionClaims([]);
+                }
+            }}>
+                <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6">
+                    <DialogHeader className="pb-2">
+                        <DialogTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5 text-primary" />
+                            <span className="truncate">Eligible Employees: {selectedDistribution?.goodiesType}</span>
+                        </DialogTitle>
+                        <DialogDescription>
+                            {eligibleEmployees.length} eligible employees • {distributionClaims.length} claimed
+                        </DialogDescription>
                     </DialogHeader>
-                    <div className="max-h-[60vh] overflow-y-auto">
-                        {fetchingClaims ? (
-                            <div className="py-10 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div>
-                        ) : distributionClaims.length === 0 ? (
-                            <div className="py-10 text-center text-gray-500">No claims recorded yet.</div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Employee</TableHead>
-                                        <TableHead>Email</TableHead>
-                                        <TableHead>Received At</TableHead>
-                                        {isManagement && <TableHead className="text-right">Actions</TableHead>}
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {distributionClaims.map((claim) => (
-                                        <TableRow key={claim._id}>
-                                            <TableCell className="font-medium">{claim.userId?.name}</TableCell>
-                                            <TableCell>{claim.userId?.email}</TableCell>
-                                            <TableCell>{format(new Date(claim.receivedAt), 'MMM dd, HH:mm')}</TableCell>
-                                            {isManagement && (
-                                                <TableCell className="text-right">
-                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => initiateDeleteClaim(claim)}>
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            )}
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
+
+                    <div className="flex-1 overflow-hidden flex flex-col space-y-4 pt-2 px-1">
+                        {/* Search Input */}
+                        <div className="relative">
+                            <User className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <Input
+                                placeholder="Search by name or employee ID..."
+                                value={claimSearchQuery}
+                                onChange={(e) => setClaimSearchQuery(e.target.value)}
+                                className="pl-9"
+                            />
+                            {claimSearchQuery && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 absolute right-2 top-1/2 -translate-y-1/2"
+                                    onClick={() => setClaimSearchQuery('')}
+                                >
+                                    <X className="h-3 w-3" />
+                                </Button>
+                            )}
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto">
+                            {fetchingClaims ? (
+                                <div className="py-10 text-center"><Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" /></div>
+                            ) : eligibleEmployees.length === 0 ? (
+                                <div className="py-10 text-center text-gray-500">No eligible employees found.</div>
+                            ) : (() => {
+                                // Create a map of user IDs who have claimed
+                                const claimedMap = new Map();
+                                distributionClaims.forEach(claim => {
+                                    if (claim.userId?._id) {
+                                        claimedMap.set(claim.userId._id, claim);
+                                    }
+                                });
+
+                                // Merge eligible employees with claim data
+                                const mergedList = eligibleEmployees.map(emp => ({
+                                    ...emp,
+                                    hasClaimed: claimedMap.has(emp._id),
+                                    claimData: claimedMap.get(emp._id) || null
+                                }));
+
+                                // Filter by search query
+                                const query = claimSearchQuery.toLowerCase().trim();
+                                const filteredList = query
+                                    ? mergedList.filter(emp =>
+                                        emp.name?.toLowerCase().includes(query) ||
+                                        emp.email?.toLowerCase().includes(query) ||
+                                        emp.employeeId?.toLowerCase().includes(query)
+                                    )
+                                    : mergedList;
+
+                                // Sort: claimed first, then alphabetically
+                                const sortedList = [...filteredList].sort((a, b) => {
+                                    if (a.hasClaimed && !b.hasClaimed) return -1;
+                                    if (!a.hasClaimed && b.hasClaimed) return 1;
+                                    return (a.name || '').localeCompare(b.name || '');
+                                });
+
+                                if (sortedList.length === 0) {
+                                    return <div className="py-10 text-center text-gray-500">No employees match your search.</div>;
+                                }
+
+                                return (
+                                    <div className="space-y-2">
+                                        {sortedList.map((emp) => (
+                                            <div
+                                                key={emp._id}
+                                                className={`p-3 rounded-lg border ${emp.hasClaimed ? 'bg-green-50/50 border-green-200' : 'bg-white border-gray-200'} ${isManagement && !emp.hasClaimed ? 'cursor-pointer hover:bg-gray-50 hover:border-gray-300' : ''}`}
+                                                onClick={() => {
+                                                    if (isManagement && !emp.hasClaimed) {
+                                                        initiateManualClaim(emp);
+                                                    }
+                                                }}
+                                            >
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                        {emp.hasClaimed ? (
+                                                            <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                                                        ) : (
+                                                            <div className="h-5 w-5 rounded-full border-2 border-gray-300 flex-shrink-0" />
+                                                        )}
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="font-medium text-sm truncate">{emp.name}</p>
+                                                                <span className="text-xs font-mono text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{emp.employeeId || '-'}</span>
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 truncate">{emp.email}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                                        <Badge variant="secondary" className="text-[10px] capitalize hidden sm:inline-flex">
+                                                            {emp.role}
+                                                        </Badge>
+                                                        {emp.claimData?.receivedAt && (
+                                                            <span className="text-xs text-gray-500 hidden md:block">
+                                                                {format(new Date(emp.claimData.receivedAt), 'MMM dd, HH:mm')}
+                                                            </span>
+                                                        )}
+                                                        {isManagement && emp.hasClaimed && emp.claimData && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    initiateDeleteClaim(emp.claimData);
+                                                                }}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        {/* Summary Footer */}
+                        {!fetchingClaims && eligibleEmployees.length > 0 && (
+                            <div className="flex items-center justify-between pt-4 border-t">
+                                <div className="flex items-center gap-4 text-sm">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="h-3 w-3 rounded-full bg-green-500"></div>
+                                        <span className="text-gray-600">Claimed: <strong>{distributionClaims.length}</strong></span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="h-3 w-3 rounded-full bg-gray-300"></div>
+                                        <span className="text-gray-600">Pending: <strong>{eligibleEmployees.length - distributionClaims.length}</strong></span>
+                                    </div>
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                    {Math.round((distributionClaims.length / eligibleEmployees.length) * 100)}% claimed
+                                </div>
+                            </div>
                         )}
                     </div>
-                </DialogContent>
-            </Dialog>
+                </DialogContent >
+            </Dialog >
 
             <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
                 <DialogContent>
@@ -797,28 +1091,49 @@ const Goodies = () => {
                 </DialogContent>
             </Dialog>
 
+            {/* Manual Claim Confirmation Dialog */}
+            <Dialog open={manualClaimOpen} onOpenChange={setManualClaimOpen}>
+                <DialogContent className="gap-2">
+                    <DialogHeader>
+                        <DialogTitle>Mark as Claimed</DialogTitle>
+                        <DialogDescription>
+                            Mark <strong>{manualClaimEmployee?.name}</strong> as having claimed their goodies?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="pt-2">
+                        <Button variant="outline" onClick={() => setManualClaimOpen(false)}>Cancel</Button>
+                        <Button onClick={confirmManualClaim} disabled={markingClaim}>
+                            {markingClaim && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Mark as Claimed
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
             {/* Mobile Floating Action Button */}
-            {isManagement && (
-                <div className="fixed bottom-6 right-6 flex flex-col gap-3 lg:hidden z-40">
-                    <Button
-                        size="icon"
-                        className="h-14 w-14 rounded-full shadow-2xl bg-white text-primary border-2 border-primary/10 hover:bg-gray-50 active:scale-95 transition-all"
-                        onClick={() => setBulkUploadOpen(true)}
-                    >
-                        <Upload className="h-6 w-6" />
-                    </Button>
-                    <Dialog open={open} onOpenChange={handleDialogChange}>
-                        <DialogTrigger asChild>
-                            <Button
-                                size="icon"
-                                className="h-16 w-16 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all"
-                            >
-                                <Plus className="h-8 w-8" />
-                            </Button>
-                        </DialogTrigger>
-                    </Dialog>
-                </div>
-            )}
+            {
+                isManagement && (
+                    <div className="fixed bottom-6 right-6 flex flex-col gap-3 lg:hidden z-40">
+                        <Button
+                            size="icon"
+                            className="h-14 w-14 rounded-full shadow-2xl bg-white text-primary border-2 border-primary/10 hover:bg-gray-50 active:scale-95 transition-all"
+                            onClick={() => setBulkUploadOpen(true)}
+                        >
+                            <Upload className="h-6 w-6" />
+                        </Button>
+                        <Dialog open={open} onOpenChange={handleDialogChange}>
+                            <DialogTrigger asChild>
+                                <Button
+                                    size="icon"
+                                    className="h-16 w-16 rounded-full shadow-2xl bg-primary text-white hover:bg-primary/90 active:scale-95 transition-all"
+                                >
+                                    <Plus className="h-8 w-8" />
+                                </Button>
+                            </DialogTrigger>
+                        </Dialog>
+                    </div>
+                )
+            }
 
             <BulkGoodiesUpload
                 isOpen={bulkUploadOpen}
@@ -828,7 +1143,7 @@ const Goodies = () => {
                     toast({ title: 'Success', description: 'Bulk distribution processed' });
                 }}
             />
-        </div>
+        </div >
     );
 };
 
