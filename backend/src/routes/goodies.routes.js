@@ -16,6 +16,8 @@ import {
   deleteDistribution,
   deleteReceivedRecord,
   markClaimForEmployee,
+  downloadTemplate,
+  parseGoodiesImport,
 } from '../controllers/goodies.controller.js';
 import { uploadSingleFile, handleUploadError } from '../middlewares/upload.middleware.js';
 import {
@@ -47,6 +49,20 @@ router.post(
   uploadSingleFile,
   handleUploadError,
   bulkUploadDistributions
+);
+
+router.get(
+  '/template',
+  authorize('admin', 'super_admin'),
+  downloadTemplate
+);
+
+router.post(
+  '/import-preview',
+  authorize('admin', 'super_admin'),
+  uploadSingleFile,
+  handleUploadError,
+  parseGoodiesImport
 );
 
 router.get(

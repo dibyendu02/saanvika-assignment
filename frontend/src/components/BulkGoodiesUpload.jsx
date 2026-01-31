@@ -96,6 +96,25 @@ const BulkGoodiesUpload = ({ isOpen, onClose, onSuccess }) => {
                             {isSuperAdmin && <li>Super admins must include <strong>office_id</strong> column.</li>}
                             {!isSuperAdmin && <li>Employees must belong to your office ({user?.primaryOfficeId?.name || 'Assigned Office'}).</li>}
                         </ul>
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const response = await api.get('/goodies/template', { responseType: 'blob' });
+                                    const url = window.URL.createObjectURL(new Blob([response.data]));
+                                    const link = document.createElement('a');
+                                    link.href = url;
+                                    link.setAttribute('download', 'goodies-template.xlsx');
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    link.parentNode.removeChild(link);
+                                } catch (error) {
+                                    console.error('Download error:', error);
+                                }
+                            }}
+                            className="mt-3 flex items-center text-primary-700 hover:text-primary-800 text-sm font-medium transition-colors"
+                        >
+                            <Download size={16} className="mr-1.5" /> Download Excel Template
+                        </button>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">

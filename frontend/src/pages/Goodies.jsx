@@ -48,6 +48,8 @@ const Goodies = () => {
     const [fetchingClaims, setFetchingClaims] = useState(false);
     const [detailsOpen, setDetailsOpen] = useState(false);
     const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+    const [unregisteredRecipients, setUnregisteredRecipients] = useState([]);
+    const [uploadingRecipients, setUploadingRecipients] = useState(false);
 
     // Delete modal state
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -161,6 +163,7 @@ const Goodies = () => {
     const handleOfficeChange = (officeId) => {
         setNewItem({ ...newItem, officeId });
         setSelectedEmployees([]);
+        setUnregisteredRecipients([]);
         if (!newItem.isForAllEmployees) {
             fetchEmployeesByOffice(officeId);
         }
@@ -169,6 +172,7 @@ const Goodies = () => {
     const handleTargetTypeChange = (isForAll) => {
         setNewItem({ ...newItem, isForAllEmployees: isForAll });
         setSelectedEmployees([]);
+        setUnregisteredRecipients([]);
         if (!isForAll && newItem.officeId) {
             fetchEmployeesByOffice(newItem.officeId);
         }
@@ -190,6 +194,76 @@ const Goodies = () => {
         }
     };
 
+    const handleDownloadTemplate = async () => {
+        try {
+            const response = await api.get('/goodies/template', {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'goodies-template.xlsx');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to download template', variant: 'destructive' });
+        }
+    };
+
+    const handleRecipientUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!newItem.officeId) {
+            toast({ title: 'Error', description: 'Please select an office first', variant: 'destructive' });
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        setUploadingRecipients(true);
+        try {
+            const response = await api.post('/goodies/import-preview', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            const { registeredUsers, unregisteredRecipients: unregistered, errors } = response.data.data;
+
+            // Filter for selected office
+            const validRegistered = registeredUsers.filter(u => u.officeId.toString() === newItem.officeId);
+            const validUnregistered = unregistered.filter(u => u.officeId.toString() === newItem.officeId);
+
+            // Add registered users to selection (merge with existing)
+            const newSelectedIds = validRegistered.map(u => u.userId);
+            setSelectedEmployees(prev => [...new Set([...prev, ...newSelectedIds])]);
+
+            // Add unregistered to state (merge?)
+            setUnregisteredRecipients(prev => [...prev, ...validUnregistered]);
+
+            const skippedCount = (registeredUsers.length - validRegistered.length) + (unregistered.length - validUnregistered.length);
+
+            toast({
+                title: 'Import Successful',
+                description: `Added ${validRegistered.length} employees and ${validUnregistered.length} unregistered recipients.${skippedCount > 0 ? ` Skipped ${skippedCount} from other offices.` : ''}`
+            });
+
+            if (errors && errors.length > 0) {
+                toast({
+                    title: 'Warning',
+                    description: `${errors.length} rows had errors and were skipped.`,
+                    variant: 'warning'
+                });
+            }
+
+        } catch (error) {
+            toast({ title: 'Error', description: error.response?.data?.message || 'Failed to parse file', variant: 'destructive' });
+        } finally {
+            setUploadingRecipients(false);
+            e.target.value = null; // Reset input
+        }
+    };
+
     const handleCreate = async (e) => {
         e.preventDefault();
 
@@ -198,8 +272,8 @@ const Goodies = () => {
             return;
         }
 
-        if (!newItem.isForAllEmployees && selectedEmployees.length === 0) {
-            toast({ title: 'Error', description: 'Please select at least one employee', variant: 'destructive' });
+        if (!newItem.isForAllEmployees && selectedEmployees.length === 0 && unregisteredRecipients.length === 0) {
+            toast({ title: 'Error', description: 'Please select at least one employee or add unregistered recipients', variant: 'destructive' });
             return;
         }
 
@@ -207,7 +281,8 @@ const Goodies = () => {
         try {
             const payload = {
                 ...newItem,
-                targetEmployees: newItem.isForAllEmployees ? [] : selectedEmployees
+                targetEmployees: newItem.isForAllEmployees ? [] : selectedEmployees,
+                unregisteredRecipients: newItem.isForAllEmployees ? [] : unregisteredRecipients
             };
             await api.post('/goodies/distributions', payload);
             toast({ title: 'Success', description: 'Goodie distribution created' });
@@ -447,12 +522,64 @@ const Goodies = () => {
                                         <div className="space-y-3">
                                             <div className="flex items-center justify-between">
                                                 <Label className="text-sm font-medium text-gray-700">Select Employees</Label>
-                                                {employees.length > 0 && (
-                                                    <Button type="button" variant="ghost" size="sm" onClick={toggleAllEmployees}>
-                                                        {selectedEmployees.length === employees.length ? 'Deselect All' : 'Select All'}
+                                                <div className="flex gap-2">
+                                                    <Button type="button" variant="outline" size="sm" onClick={handleDownloadTemplate} title="Download Template">
+                                                        <Download className="h-4 w-4 mr-1" /> Template
                                                     </Button>
-                                                )}
+                                                    <div className="relative">
+                                                        <input
+                                                            type="file"
+                                                            id="recipient-upload"
+                                                            className="hidden"
+                                                            accept=".xlsx,.xls"
+                                                            onChange={handleRecipientUpload}
+                                                            disabled={!newItem.officeId}
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => document.getElementById('recipient-upload').click()}
+                                                            disabled={!newItem.officeId}
+                                                            title={!newItem.officeId ? "Select an office first" : "Upload Recipient List"}
+                                                        >
+                                                            {uploadingRecipients ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Upload className="h-4 w-4 mr-1" />}
+                                                            Upload List
+                                                        </Button>
+                                                    </div>
+                                                    {employees.length > 0 && (
+                                                        <Button type="button" variant="ghost" size="sm" onClick={toggleAllEmployees}>
+                                                            {selectedEmployees.length === employees.length ? 'Deselect All' : 'Select All'}
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </div>
+
+                                            {unregisteredRecipients.length > 0 && (
+                                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800 mb-2">
+                                                    <div className="font-semibold flex items-center gap-2">
+                                                        <AlertTriangle className="h-4 w-4" />
+                                                        {unregisteredRecipients.length} Unregistered Recipients
+                                                    </div>
+                                                    <div className="mt-1 text-xs max-h-20 overflow-y-auto">
+                                                        {unregisteredRecipients.map((u, i) => (
+                                                            <span key={i} className="inline-block bg-white border border-amber-100 rounded px-1.5 py-0.5 mr-1 mb-1 shadow-sm">
+                                                                {u.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 text-xs text-amber-700 hover:text-amber-900 mt-1 p-0"
+                                                        onClick={() => setUnregisteredRecipients([])}
+                                                    >
+                                                        Clear Unregistered
+                                                    </Button>
+                                                </div>
+                                            )}
+
                                             {!newItem.officeId ? (
                                                 <div className="text-sm text-gray-500 p-4 border rounded-lg bg-gray-50 text-center">Please select an office first</div>
                                             ) : loadingEmployees ? (

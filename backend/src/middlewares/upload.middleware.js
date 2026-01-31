@@ -9,12 +9,17 @@ import AppError from '../utils/AppError.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+import fs from 'fs';
 
 // Configure storage
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        // Store in temp directory
-        cb(null, path.join(__dirname, '../../temp/uploads'));
+        const uploadPath = path.join(__dirname, '../../temp/uploads');
+        // Ensure directory exists
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
         // Generate unique filename

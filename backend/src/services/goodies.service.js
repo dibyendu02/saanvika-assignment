@@ -21,7 +21,7 @@ import {
  * @returns {Promise<Object>} - Created distribution
  */
 export const createDistribution = async (requestingUser, distributionData) => {
-  const { officeId, goodiesType, distributionDate, totalQuantity, isForAllEmployees, targetEmployees } = distributionData;
+  const { officeId, goodiesType, distributionDate, totalQuantity, isForAllEmployees, targetEmployees, unregisteredRecipients } = distributionData;
 
   // Validate office exists
   const office = await Office.findById(officeId);
@@ -30,16 +30,18 @@ export const createDistribution = async (requestingUser, distributionData) => {
   }
 
   // If targeted distribution, validate target employees
-  if (isForAllEmployees === false && targetEmployees && targetEmployees.length > 0) {
-    // Validate all target employees exist and belong to the office
-    const employees = await User.find({
-      _id: { $in: targetEmployees },
-      primaryOfficeId: officeId,
-      status: 'active',
-    });
+  if (isForAllEmployees === false) {
+    // Validate target employees if provided
+    if (targetEmployees && targetEmployees.length > 0) {
+      const employees = await User.find({
+        _id: { $in: targetEmployees },
+        primaryOfficeId: officeId,
+        status: 'active',
+      });
 
-    if (employees.length !== targetEmployees.length) {
-      throw new AppError('Some target employees are invalid or do not belong to this office', 400);
+      if (employees.length !== targetEmployees.length) {
+        throw new AppError('Some target employees are invalid or do not belong to this office', 400);
+      }
     }
   }
 
@@ -51,7 +53,8 @@ export const createDistribution = async (requestingUser, distributionData) => {
       totalQuantity,
       distributedBy: requestingUser._id,
       isForAllEmployees: isForAllEmployees !== undefined ? isForAllEmployees : true,
-      targetEmployees: isForAllEmployees === false ? targetEmployees : [],
+      targetEmployees: isForAllEmployees === false ? (targetEmployees || []) : [],
+      unregisteredRecipients: isForAllEmployees === false ? (unregisteredRecipients || []) : [],
     });
 
     // Populate targetEmployees for response
@@ -330,10 +333,53 @@ export const getReceivedGoodies = async (requestingUser, filters = {}) => {
     GoodiesReceived.countDocuments(query),
   ]);
 
-  const pagination = buildPaginationMeta(total, page, limit);
+  let allRecords = records;
+  let allTotal = total;
+
+  // If specific distribution is requested, include unregistered claims
+  if (distributionId) {
+    const distribution = await GoodiesDistribution.findById(distributionId)
+      .populate('officeId', 'name')
+      .select('unregisteredRecipients goodiesType distributionDate officeId');
+
+    if (distribution && distribution.unregisteredRecipients) {
+      const unregisteredClaims = distribution.unregisteredRecipients
+        .filter(r => r.isClaimed)
+        .map(r => ({
+          _id: r._id, // Use recipient ID as record ID
+          goodiesDistributionId: {
+            _id: distribution._id,
+            goodiesType: distribution.goodiesType,
+            distributionDate: distribution.distributionDate,
+            officeId: distribution.officeId
+          },
+          userId: {
+            _id: r._id,
+            name: r.name,
+            email: null, // No email for unregistered
+            role: 'unregistered'
+          },
+          receivedAt: r.claimedAt,
+          receivedAtOfficeId: distribution.officeId,
+          handedOverBy: r.handedOverBy,
+          isUnregistered: true
+        }));
+
+      if (unregisteredClaims.length > 0) {
+        // Merge and sort
+        allRecords = [...records, ...unregisteredClaims].sort((a, b) =>
+          new Date(b.receivedAt) - new Date(a.receivedAt)
+        );
+        // Adjust total only if we are taking all (ignoring pagination for merged list for now as typically limit is high enough for modal)
+        allTotal += unregisteredClaims.length;
+      }
+    }
+  }
+
+  const pagination = buildPaginationMeta(allTotal, page, limit);
 
   return {
-    records,
+    records: allRecords,
     ...pagination,
   };
 };
@@ -420,7 +466,21 @@ export const getEligibleEmployees = async (requestingUser, distributionId) => {
   }
 
   // If targeted, return the target employees
-  return distribution.targetEmployees;
+  // Also include unregisteredRecipients if any (converting them to similar format)
+  let result = [...distribution.targetEmployees];
+  if (distribution.unregisteredRecipients && distribution.unregisteredRecipients.length > 0) {
+    const unregistered = distribution.unregisteredRecipients.map(u => ({
+      _id: u._id,
+      name: u.name,
+      email: 'N/A',
+      role: 'unregistered',
+      employeeId: u.employeeId || 'N/A',
+      isClaimed: u.isClaimed
+    }));
+    result = [...result, ...unregistered];
+  }
+
+  return result;
 };
 
 /**
@@ -430,47 +490,83 @@ export const getEligibleEmployees = async (requestingUser, distributionId) => {
  * @returns {Promise<Object>} - Results of creation
  */
 export const bulkCreateDistribution = async (requestingUser, bulkData) => {
-  const { items, goodiesType, distributionDate, totalQuantityPerEmployee } = bulkData;
+  const { registeredUsers, unregisteredRecipients, goodiesType, distributionDate, totalQuantityPerEmployee } = bulkData;
 
   const results = {
-    totalProcessed: items.length,
+    totalProcessed: (registeredUsers?.length || 0) + (unregisteredRecipients?.length || 0),
     success: [],
     failed: []
   };
 
-  // Create a distribution for each office involved, or group items by office
-  const itemsByOffice = items.reduce((acc, item) => {
-    const officeId = item.office._id.toString();
-    if (!acc[officeId]) {
-      acc[officeId] = {
-        office: item.office,
-        employees: []
-      };
-    }
-    acc[officeId].employees.push(item.user._id);
-    return acc;
-  }, {});
+  // Group items by office
+  const officeGroups = {};
 
-  for (const officeId in itemsByOffice) {
-    const { office, employees } = itemsByOffice[officeId];
+  // Process registered users
+  if (registeredUsers) {
+    registeredUsers.forEach(item => {
+      const officeId = item.officeId.toString();
+      if (!officeGroups[officeId]) {
+        officeGroups[officeId] = {
+          registered: [],
+          unregistered: []
+        };
+      }
+      officeGroups[officeId].registered.push(item.userId);
+    });
+  }
+
+  // Process unregistered recipients
+  if (unregisteredRecipients) {
+    unregisteredRecipients.forEach(item => {
+      const officeId = item.officeId.toString();
+      if (!officeGroups[officeId]) {
+        officeGroups[officeId] = {
+          registered: [],
+          unregistered: []
+        };
+      }
+      officeGroups[officeId].unregistered.push({
+        name: item.name,
+        employeeId: item.employeeId,
+        officeId: item.officeId
+      });
+    });
+  }
+
+  for (const officeId in officeGroups) {
+    const { registered, unregistered } = officeGroups[officeId];
 
     try {
+      // Fetch office name for response
+      const office = await Office.findById(officeId);
+      const officeName = office ? office.name : 'Unknown Office';
+
       const distribution = await createDistribution(requestingUser, {
         officeId,
         goodiesType,
         distributionDate,
-        totalQuantity: employees.length * totalQuantityPerEmployee,
+        totalQuantity: (registered.length + unregistered.length) * totalQuantityPerEmployee,
         isForAllEmployees: false,
-        targetEmployees: employees
+        targetEmployees: registered,
+        unregisteredRecipients: unregistered
       });
+
       results.success.push({
-        office: office.name,
-        employeeCount: employees.length,
+        office: officeName,
+        registeredCount: registered.length,
+        unregisteredCount: unregistered.length,
         distributionId: distribution._id
       });
     } catch (error) {
+      // Need office name if possible for failure report
+      let officeName = 'Unknown';
+      try {
+        const office = await Office.findById(officeId);
+        if (office) officeName = office.name;
+      } catch (e) { }
+
       results.failed.push({
-        office: office.name,
+        office: officeName,
         error: error.message
       });
     }
@@ -575,22 +671,40 @@ export const markClaimForEmployee = async (requestingUser, distributionId, targe
     }
   }
 
-  // Validate target user exists and is eligible
-  const targetUser = await User.findById(targetUserId);
+  // Validate target user exists (either registered or unregistered)
+  let targetUser = await User.findById(targetUserId);
+  let isUnregistered = false;
+  let unregisteredRecipient = null;
+
   if (!targetUser) {
-    throw new AppError('Target user not found', 404);
+    // Check if it's an unregistered recipient in this distribution
+    unregisteredRecipient = distribution.unregisteredRecipients?.find(
+      r => r._id.toString() === targetUserId
+    );
+
+    if (unregisteredRecipient) {
+      isUnregistered = true;
+      // Mock targetUser object for subsequent checks if needed, or handle separately
+    } else {
+      throw new AppError('Target user not found', 404);
+    }
   }
 
-  // Check if target user's office matches distribution office
-  if (distribution.officeId.toString() !== targetUser.primaryOfficeId?.toString()) {
+  // Check if target user's office matches distribution office (only for registered)
+  if (!isUnregistered && distribution.officeId.toString() !== targetUser.primaryOfficeId?.toString()) {
     throw new AppError('Target user does not belong to the distribution office', 400);
   }
 
   // Check if distribution is targeted and user is eligible
   if (!distribution.isForAllEmployees) {
-    const isEligible = distribution.targetEmployees.some(
-      empId => empId.toString() === targetUserId
-    );
+    let isEligible = false;
+    if (!isUnregistered) {
+      isEligible = distribution.targetEmployees.some(
+        empId => empId.toString() === targetUserId
+      );
+    } else {
+      isEligible = true; // If they are in unregisteredRecipients, they are eligible by definition
+    }
 
     if (!isEligible) {
       throw new AppError('Target user is not eligible for this distribution', 400);
@@ -602,20 +716,52 @@ export const markClaimForEmployee = async (requestingUser, distributionId, targe
     goodiesDistributionId: distributionId,
   });
 
-  if (claimedCount >= distribution.totalQuantity) {
+  // Calculate claimed count including unregistered
+  const unregisteredClaimedCount = distribution.unregisteredRecipients?.filter(r => r.isClaimed).length || 0;
+  const totalClaimed = claimedCount + unregisteredClaimedCount;
+
+  if (totalClaimed >= distribution.totalQuantity) {
     throw new AppError('No goodies remaining in this distribution', 400);
   }
 
   try {
-    const receipt = await GoodiesReceived.create({
-      goodiesDistributionId: distributionId,
-      userId: targetUserId,
-      receivedAt: new Date(),
-      receivedAtOfficeId: distribution.officeId,
-      handedOverBy: requestingUser._id, // Admin who marked the claim
-    });
+    if (isUnregistered) {
+      // Handle unregistered claim
+      if (unregisteredRecipient.isClaimed) {
+        throw new AppError('This employee has already claimed these goodies', 400);
+      }
 
-    return receipt;
+      // Update distribution document
+      await GoodiesDistribution.updateOne(
+        { _id: distributionId, "unregisteredRecipients._id": targetUserId },
+        {
+          $set: {
+            "unregisteredRecipients.$.isClaimed": true,
+            "unregisteredRecipients.$.claimedAt": new Date(),
+            "unregisteredRecipients.$.handedOverBy": requestingUser._id
+          }
+        }
+      );
+
+      return {
+        _id: targetUserId,
+        userId: null,
+        employeeName: unregisteredRecipient.name,
+        status: 'claimed',
+        receivedAt: new Date()
+      };
+    } else {
+      // Handle registered claim
+      const receipt = await GoodiesReceived.create({
+        goodiesDistributionId: distributionId,
+        userId: targetUserId,
+        receivedAt: new Date(),
+        receivedAtOfficeId: distribution.officeId,
+        handedOverBy: requestingUser._id, // Admin who marked the claim
+      });
+
+      return receipt;
+    }
   } catch (error) {
     // Handle duplicate key error (already received)
     if (error.code === 11000) {
