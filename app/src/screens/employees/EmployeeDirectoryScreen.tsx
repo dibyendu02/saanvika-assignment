@@ -22,6 +22,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Avatar } from '../../components/ui/Avatar';
 import AddEmployeeForm from '../../components/forms/AddEmployeeForm';
+import EditEmployeeForm from '../../components/forms/EditEmployeeForm';
 import { showToast } from '../../utils/toast';
 import { Dropdown } from '../../components/ui/Dropdown';
 import { locationApi } from '../../api/location';
@@ -40,6 +41,8 @@ export const EmployeeDirectoryScreen: React.FC = () => {
     const [selectedOffice, setSelectedOffice] = useState<string>('all');
     const [showOfficeFilter, setShowOfficeFilter] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
+    const [showEditForm, setShowEditForm] = useState(false);
+    const [editingEmployee, setEditingEmployee] = useState<User | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
@@ -152,6 +155,11 @@ export const EmployeeDirectoryScreen: React.FC = () => {
         }
     };
 
+    const handleEditEmployee = (employee: User) => {
+        setEditingEmployee(employee);
+        setShowEditForm(true);
+    };
+
     const onRefresh = () => {
         setRefreshing(true);
         fetchData();
@@ -257,17 +265,26 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                                         </TouchableOpacity>
 
                                         {isAdmin && (
-                                            <TouchableOpacity
-                                                style={styles.deleteButton}
-                                                onPress={() => handleDeleteEmployee(employee)}
-                                                disabled={deletingId === employee._id}
-                                            >
-                                                {deletingId === employee._id ? (
-                                                    <ActivityIndicator size="small" color={COLORS.danger} />
-                                                ) : (
-                                                    <Icon name="trash-can-outline" size={ICON_SIZES.sm} color={COLORS.danger} />
-                                                )}
-                                            </TouchableOpacity>
+                                            <>
+                                                <TouchableOpacity
+                                                    style={styles.actionButton}
+                                                    onPress={() => handleEditEmployee(employee)}
+                                                    disabled={!!actionLoadingId}
+                                                >
+                                                    <Icon name="pencil" size={ICON_SIZES.sm} color={COLORS.primary} />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={styles.deleteButton}
+                                                    onPress={() => handleDeleteEmployee(employee)}
+                                                    disabled={deletingId === employee._id}
+                                                >
+                                                    {deletingId === employee._id ? (
+                                                        <ActivityIndicator size="small" color={COLORS.danger} />
+                                                    ) : (
+                                                        <Icon name="trash-can-outline" size={ICON_SIZES.sm} color={COLORS.danger} />
+                                                    )}
+                                                </TouchableOpacity>
+                                            </>
                                         )}
                                     </View>
                                 )}
@@ -323,6 +340,17 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                 onClose={() => setShowAddForm(false)}
                 onSuccess={fetchData}
                 offices={offices}
+            />
+
+            {/* Edit Employee Form */}
+            <EditEmployeeForm
+                isVisible={showEditForm}
+                onClose={() => {
+                    setShowEditForm(false);
+                    setEditingEmployee(null);
+                }}
+                onSuccess={fetchData}
+                employee={editingEmployee}
             />
         </View>
     );

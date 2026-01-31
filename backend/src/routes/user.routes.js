@@ -17,6 +17,7 @@ import {
   suspendUser,
   unsuspendUser,
   deleteUser,
+  updateEmployeeById,
 } from '../controllers/user.controller.js';
 import { updateFCMToken, removeFCMToken, getUserDevices } from '../controllers/fcm.controller.js';
 
@@ -46,6 +47,7 @@ router.get('/:id', getUserById);
 // User management routes (hierarchy-based access control)
 router.patch('/:id/suspend', suspendUser);
 router.patch('/:id/unsuspend', unsuspendUser);
+router.patch('/:id', requireAdminOrSuperAdmin, updateEmployeeById);
 router.delete('/:id', requireAdminOrSuperAdmin, deleteUser);
 
 export default router;

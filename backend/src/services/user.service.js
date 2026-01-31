@@ -435,6 +435,77 @@ export const deleteUser = async (requestingUser, targetUserId) => {
   await User.findByIdAndDelete(targetUserId);
 };
 
+/**
+ * Update employee by ID (admin action)
+ * @param {Object} requestingUser - The user performing the action
+ * @param {string} targetUserId - ID of user to update
+ * @param {Object} updateData - Data to update
+ * @returns {Promise<Object>} - Updated user
+ */
+export const updateEmployeeById = async (requestingUser, targetUserId, updateData) => {
+  // Only super_admin and admin can update other users
+  if (!['super_admin', 'admin'].includes(requestingUser.role)) {
+    throw new AppError('Only super admins and admins can update employees', 403);
+  }
+
+  // Role hierarchy for access control
+  const roleHierarchy = {
+    'super_admin': 4,
+    'admin': 3,
+    'internal': 2,
+    'external': 1
+  };
+
+  const requestingRank = roleHierarchy[requestingUser.role] || 0;
+
+  // Get target user
+  const targetUser = await User.findById(targetUserId);
+  if (!targetUser) {
+    throw new AppError('User not found', 404);
+  }
+
+  const targetRank = roleHierarchy[targetUser.role] || 0;
+
+  // Check hierarchy: can only update users with lower rank
+  if (targetRank >= requestingRank) {
+    throw new AppError('You can only update employees with a lower rank than yours', 403);
+  }
+
+  // Only allow updating employeeId field (can be extended later)
+  const allowedFields = ['employeeId'];
+  const filteredData = {};
+
+  for (const field of allowedFields) {
+    if (updateData[field] !== undefined) {
+      filteredData[field] = updateData[field];
+    }
+  }
+
+  if (Object.keys(filteredData).length === 0) {
+    throw new AppError('No valid fields to update', 400);
+  }
+
+  // Check for employeeId uniqueness if being updated
+  if (filteredData.employeeId) {
+    const existingUser = await User.findOne({
+      employeeId: filteredData.employeeId,
+      _id: { $ne: targetUserId }
+    });
+    if (existingUser) {
+      throw new AppError('Employee ID already exists', 400);
+    }
+  }
+
+  // Update the user
+  const updatedUser = await User.findByIdAndUpdate(
+    targetUserId,
+    filteredData,
+    { new: true, runValidators: true }
+  ).select('-password')
+   .populate('primaryOfficeId', 'name address');
+
+  return updatedUser;
+};
 
 export default {
   getUsersByRole,
@@ -446,5 +517,6 @@ export default {
   suspendUser,
   unsuspendUser,
   deleteUser,
+  updateEmployeeById,
 };
 
