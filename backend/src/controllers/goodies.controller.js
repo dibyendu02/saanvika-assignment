@@ -239,6 +239,31 @@ export const deleteReceivedRecord = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * @desc    Manually mark a claim for an employee
+ * @route   POST /api/v1/goodies/distributions/:id/mark-claim
+ * @access  Private (admin, super_admin)
+ */
+export const markClaimForEmployee = asyncHandler(async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    throw new AppError('User ID is required', 400);
+  }
+
+  const receipt = await goodiesService.markClaimForEmployee(
+    req.user,
+    req.params.id,
+    userId
+  );
+
+  res.status(201).json({
+    success: true,
+    data: { receipt },
+    message: 'Claim marked successfully',
+  });
+});
+
 export default {
   createDistribution,
   getDistributions,
@@ -250,4 +275,5 @@ export default {
   bulkUploadDistributions,
   deleteDistribution,
   deleteReceivedRecord,
+  markClaimForEmployee,
 };

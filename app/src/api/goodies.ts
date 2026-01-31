@@ -114,6 +114,13 @@ export const goodiesApi = {
     },
 
     /**
+     * Manually mark a claim for an employee (admin only)
+     */
+    async markClaimForEmployee(distributionId: string, userId: string): Promise<void> {
+        await apiClient.post(`${API_ENDPOINTS.DISTRIBUTION_BY_ID(distributionId)}/mark-claim`, { userId });
+    },
+
+    /**
      * Delete a received goodies record (admin only)
      */
     async deleteReceivedRecord(id: string): Promise<void> {

@@ -159,6 +159,19 @@ export const idParamSchema = Joi.object({
 });
 
 /**
+ * Mark claim validation schema
+ */
+export const markClaimSchema = Joi.object({
+  userId: Joi.string()
+    .pattern(objectIdPattern)
+    .required()
+    .messages({
+      'string.pattern.base': 'Invalid user ID format',
+      'any.required': 'User ID is required',
+    }),
+});
+
+/**
  * Validation middleware factory
  * @param {Joi.Schema} schema - Joi validation schema
  * @param {string} source - Request property to validate ('body', 'params', 'query')
@@ -189,5 +202,6 @@ export default {
   getDistributionsQuerySchema,
   getReceivedQuerySchema,
   idParamSchema,
+  markClaimSchema,
   validate,
 };

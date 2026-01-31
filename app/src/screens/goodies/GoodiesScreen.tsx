@@ -49,6 +49,13 @@ export const GoodiesScreen: React.FC = () => {
     const [selectedDistribution, setSelectedDistribution] = useState<GoodiesDistribution | null>(null);
     const [claims, setClaims] = useState<ClaimRecord[]>([]);
     const [loadingClaims, setLoadingClaims] = useState(false);
+    const [eligibleEmployees, setEligibleEmployees] = useState<any[]>([]);
+    const [detailsSearchQuery, setDetailsSearchQuery] = useState('');
+
+    // Manual Claim Modal State
+    const [showManualClaimConfirm, setShowManualClaimConfirm] = useState(false);
+    const [manualClaimEmployee, setManualClaimEmployee] = useState<any>(null);
+    const [markingClaim, setMarkingClaim] = useState(false);
 
     // Create Modal State
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -199,13 +206,20 @@ export const GoodiesScreen: React.FC = () => {
         setSelectedDistribution(distribution);
         setShowDetails(true);
         setLoadingClaims(true);
-        setClaims([]); // Clear previous claims
+        setClaims([]);
+        setEligibleEmployees([]);
+        setDetailsSearchQuery('');
         try {
-            const data = await goodiesApi.getDistributionClaims(distribution._id);
-            setClaims(data);
+            // Fetch both claims and eligible employees in parallel
+            const [claimsData, employeesData] = await Promise.all([
+                goodiesApi.getDistributionClaims(distribution._id),
+                goodiesApi.getEligibleEmployees(distribution._id)
+            ]);
+            setClaims(claimsData);
+            setEligibleEmployees(employeesData);
         } catch (error) {
-            console.error('Error fetching claims:', error);
-            showToast.error('Error', 'Failed to load claim details');
+            console.error('Error fetching details:', error);
+            showToast.error('Error', 'Failed to load details');
         } finally {
             setLoadingClaims(false);
         }
@@ -215,9 +229,62 @@ export const GoodiesScreen: React.FC = () => {
         setShowDetails(false);
         setSelectedDistribution(null);
         setClaims([]);
+        setEligibleEmployees([]);
+        setDetailsSearchQuery('');
     };
 
+    const handleInitiateManualClaim = (employee: any) => {
+        setManualClaimEmployee(employee);
+        setShowManualClaimConfirm(true);
+    };
 
+    const handleConfirmManualClaim = async () => {
+        if (!manualClaimEmployee || !selectedDistribution) return;
+
+        setMarkingClaim(true);
+        try {
+            await goodiesApi.markClaimForEmployee(selectedDistribution._id, manualClaimEmployee._id);
+            showToast.success('Success', `Marked ${manualClaimEmployee.name} as claimed`);
+            setShowManualClaimConfirm(false);
+            setManualClaimEmployee(null);
+            // Refresh the details modal and distributions
+            handleShowDetails(selectedDistribution);
+            fetchDistributions();
+        } catch (error: any) {
+            showToast.error('Error', error.response?.data?.message || 'Failed to mark claim');
+        } finally {
+            setMarkingClaim(false);
+        }
+    };
+
+    // Delete Claim State
+    const [showDeleteClaimConfirm, setShowDeleteClaimConfirm] = useState(false);
+    const [deleteClaimData, setDeleteClaimData] = useState<any>(null);
+    const [deletingClaim, setDeletingClaim] = useState(false);
+
+    const handleInitiateDeleteClaim = (claimData: any, employee: any) => {
+        setDeleteClaimData({ ...claimData, employeeName: employee.name });
+        setShowDeleteClaimConfirm(true);
+    };
+
+    const handleConfirmDeleteClaim = async () => {
+        if (!deleteClaimData || !selectedDistribution) return;
+
+        setDeletingClaim(true);
+        try {
+            await goodiesApi.deleteReceivedRecord(deleteClaimData._id);
+            showToast.success('Success', 'Claim deleted successfully');
+            setShowDeleteClaimConfirm(false);
+            setDeleteClaimData(null);
+            // Refresh the details modal and distributions
+            handleShowDetails(selectedDistribution);
+            fetchDistributions();
+        } catch (error: any) {
+            showToast.error('Error', error.response?.data?.message || 'Failed to delete claim');
+        } finally {
+            setDeletingClaim(false);
+        }
+    };
 
     const handleDateChange = (event: any, selectedDate?: Date) => {
         setShowDatePicker(false);
@@ -542,7 +609,7 @@ export const GoodiesScreen: React.FC = () => {
                 }
             />
 
-            {/* Details Modal */}
+            {/* Details Modal - Eligible Employees */}
             <Modal
                 visible={showDetails}
                 animationType="slide"
@@ -550,62 +617,220 @@ export const GoodiesScreen: React.FC = () => {
                 onRequestClose={handleCloseDetails}
             >
                 <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+                    <View style={[styles.modalContent, { maxHeight: '90%' }]}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Distribution Details</Text>
+                            <View style={{ flex: 1 }}>
+                                <Text style={styles.modalTitle} numberOfLines={1}>
+                                    {selectedDistribution?.goodiesType}
+                                </Text>
+                                <Text style={styles.modalSubtitleSmall}>
+                                    {eligibleEmployees.length} eligible • {claims.length} claimed
+                                </Text>
+                            </View>
                             <TouchableOpacity onPress={handleCloseDetails} style={styles.closeButton}>
                                 <Icon name="close" size={24} color={COLORS.textSecondary} />
                             </TouchableOpacity>
                         </View>
 
-                        {selectedDistribution && (
-                            <View style={styles.modalBody}>
-                                <Text style={styles.modalSubtitle}>{selectedDistribution.goodiesType}</Text>
-                                <View style={styles.modalStats}>
-                                    <Text style={styles.modalStatText}>
-                                        Total: <Text style={styles.bold}>{selectedDistribution.totalQuantity}</Text>
-                                    </Text>
-                                    <Text style={styles.modalStatText}>
-                                        Rest: <Text style={[styles.bold, { color: getStockColor(selectedDistribution.remainingCount) }]}>
-                                            {selectedDistribution.remainingCount}
-                                        </Text>
-                                    </Text>
-                                </View>
-                            </View>
-                        )}
-
-                        <View style={styles.claimsListHeader}>
-                            <Text style={styles.claimsListTitle}>Claim History</Text>
+                        {/* Search Input */}
+                        <View style={styles.searchContainer}>
+                            <Icon name="magnify" size={20} color={COLORS.textSecondary} style={{ marginRight: 8 }} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search by name or email..."
+                                placeholderTextColor={COLORS.textLight}
+                                value={detailsSearchQuery}
+                                onChangeText={setDetailsSearchQuery}
+                            />
+                            {detailsSearchQuery !== '' && (
+                                <TouchableOpacity onPress={() => setDetailsSearchQuery('')}>
+                                    <Icon name="close-circle" size={18} color={COLORS.textSecondary} />
+                                </TouchableOpacity>
+                            )}
                         </View>
 
                         {loadingClaims ? (
                             <View style={styles.modalLoading}>
                                 <ActivityIndicator size="small" color={COLORS.primary} />
-                                <Text>Loading claims...</Text>
+                                <Text>Loading...</Text>
                             </View>
-                        ) : claims.length === 0 ? (
+                        ) : eligibleEmployees.length === 0 ? (
                             <View style={styles.modalEmpty}>
-                                <Text style={styles.modalEmptyText}>No claims yet.</Text>
+                                <Text style={styles.modalEmptyText}>No eligible employees found.</Text>
                             </View>
                         ) : (
                             <FlatList
-                                data={claims}
+                                data={(() => {
+                                    // Create claimed map
+                                    const claimedMap = new Map();
+                                    claims.forEach(claim => {
+                                        if (claim.userId?._id) {
+                                            claimedMap.set(claim.userId._id, claim);
+                                        }
+                                    });
+
+                                    // Merge and filter
+                                    const query = detailsSearchQuery.toLowerCase().trim();
+                                    const merged = eligibleEmployees.map(emp => ({
+                                        ...emp,
+                                        hasClaimed: claimedMap.has(emp._id),
+                                        claimData: claimedMap.get(emp._id) || null
+                                    }));
+
+                                    const filtered = query
+                                        ? merged.filter(emp =>
+                                            emp.name?.toLowerCase().includes(query) ||
+                                            emp.email?.toLowerCase().includes(query) ||
+                                            emp.employeeId?.toLowerCase().includes(query)
+                                        )
+                                        : merged;
+
+                                    // Sort: claimed first, then alphabetically
+                                    return [...filtered].sort((a, b) => {
+                                        if (a.hasClaimed && !b.hasClaimed) return -1;
+                                        if (!a.hasClaimed && b.hasClaimed) return 1;
+                                        return (a.name || '').localeCompare(b.name || '');
+                                    });
+                                })()}
                                 keyExtractor={(item) => item._id}
                                 renderItem={({ item }) => (
-                                    <View style={styles.claimItem}>
-                                        <View style={styles.claimUser}>
-                                            <Icon name="account-circle-outline" size={24} color={COLORS.textSecondary} />
-                                            <View style={styles.claimUserInfo}>
-                                                <Text style={styles.claimUserName}>{item.userId?.name || 'Unknown'}</Text>
-                                                <Text style={styles.claimUserEmail}>{item.userId?.email}</Text>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.employeeListItem,
+                                            item.hasClaimed && styles.employeeListItemClaimed,
+                                            isManagement && !item.hasClaimed && styles.employeeListItemClickable
+                                        ]}
+                                        onPress={() => {
+                                            if (isManagement && !item.hasClaimed) {
+                                                handleInitiateManualClaim(item);
+                                            }
+                                        }}
+                                        disabled={!isManagement || item.hasClaimed}
+                                        activeOpacity={isManagement && !item.hasClaimed ? 0.7 : 1}
+                                    >
+                                        <View style={styles.employeeListItemLeft}>
+                                            {item.hasClaimed ? (
+                                                <Icon name="check-circle" size={22} color={COLORS.success} />
+                                            ) : (
+                                                <View style={styles.uncheckedCircle} />
+                                            )}
+                                            <View style={styles.employeeListItemInfo}>
+                                                <View style={styles.employeeNameRow}>
+                                                    <Text style={styles.employeeListItemName} numberOfLines={1}>{item.name}</Text>
+                                                    <View style={styles.employeeIdBadge}>
+                                                        <Text style={styles.employeeIdText}>{item.employeeId || '-'}</Text>
+                                                    </View>
+                                                </View>
+                                                <Text style={styles.employeeListItemEmail} numberOfLines={1}>{item.email}</Text>
                                             </View>
                                         </View>
-                                        <Text style={styles.claimDate}>{formatDate(item.receivedAt)}</Text>
-                                    </View>
+                                        <View style={styles.employeeListItemRight}>
+                                            <View style={[styles.roleBadge, item.role === 'internal' ? styles.roleBadgeInternal : styles.roleBadgeExternal]}>
+                                                <Text style={[styles.roleBadgeText, item.role === 'internal' ? styles.roleBadgeTextInternal : styles.roleBadgeTextExternal]}>
+                                                    {item.role}
+                                                </Text>
+                                            </View>
+                                            {isManagement && item.hasClaimed && item.claimData && (
+                                                <TouchableOpacity
+                                                    style={styles.deleteClaimButton}
+                                                    onPress={() => handleInitiateDeleteClaim(item.claimData, item)}
+                                                >
+                                                    <Icon name="trash-can-outline" size={18} color={COLORS.danger} />
+                                                </TouchableOpacity>
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
                                 )}
-                                contentContainerStyle={styles.claimsList}
+                                contentContainerStyle={styles.employeesListContent}
+                                ListEmptyComponent={
+                                    <View style={styles.modalEmpty}>
+                                        <Text style={styles.modalEmptyText}>No matching employees.</Text>
+                                    </View>
+                                }
                             />
                         )}
+
+                        {/* Summary Footer */}
+                        {!loadingClaims && eligibleEmployees.length > 0 && (
+                            <View style={styles.summaryFooter}>
+                                <View style={styles.summaryItem}>
+                                    <View style={[styles.summaryDot, { backgroundColor: COLORS.success }]} />
+                                    <Text style={styles.summaryText}>Claimed: {claims.length}</Text>
+                                </View>
+                                <View style={styles.summaryItem}>
+                                    <View style={[styles.summaryDot, { backgroundColor: COLORS.textLight }]} />
+                                    <Text style={styles.summaryText}>Pending: {eligibleEmployees.length - claims.length}</Text>
+                                </View>
+                            </View>
+                        )}
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Manual Claim Confirmation Modal */}
+            <Modal
+                visible={showManualClaimConfirm}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setShowManualClaimConfirm(false)}
+            >
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmContent}>
+                        <Text style={styles.confirmTitle}>Mark as Claimed</Text>
+                        <Text style={styles.confirmText}>
+                            Mark <Text style={styles.bold}>{manualClaimEmployee?.name}</Text> as having claimed their goodies?
+                        </Text>
+                        <View style={styles.confirmButtons}>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                title="Cancel"
+                                onPress={() => setShowManualClaimConfirm(false)}
+                                style={{ flex: 1, marginRight: 8 }}
+                            />
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                title={markingClaim ? 'Marking...' : 'Mark Claimed'}
+                                onPress={handleConfirmManualClaim}
+                                disabled={markingClaim}
+                                style={{ flex: 1 }}
+                            />
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Delete Claim Confirmation Modal */}
+            <Modal
+                visible={showDeleteClaimConfirm}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setShowDeleteClaimConfirm(false)}
+            >
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmContent}>
+                        <Text style={styles.confirmTitle}>Delete Claim</Text>
+                        <Text style={styles.confirmText}>
+                            Remove claim for <Text style={styles.bold}>{deleteClaimData?.employeeName}</Text>? This will free up inventory.
+                        </Text>
+                        <View style={styles.confirmButtons}>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                title="Cancel"
+                                onPress={() => setShowDeleteClaimConfirm(false)}
+                                style={{ flex: 1, marginRight: 8 }}
+                            />
+                            <Button
+                                variant="danger"
+                                size="sm"
+                                title={deletingClaim ? 'Deleting...' : 'Delete'}
+                                onPress={handleConfirmDeleteClaim}
+                                disabled={deletingClaim}
+                                style={{ flex: 1 }}
+                            />
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -1493,6 +1718,167 @@ const styles = StyleSheet.create({
         fontSize: TYPOGRAPHY.fontSize.base,
         fontWeight: TYPOGRAPHY.fontWeight.semibold,
         color: COLORS.textWhite,
+    },
+    // New styles for eligible employees modal
+    modalSubtitleSmall: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        color: COLORS.textSecondary,
+        marginTop: 2,
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.background,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: SPACING.sm,
+        paddingHorizontal: SPACING.md,
+        paddingVertical: SPACING.sm,
+        marginTop: SPACING.sm,
+        marginBottom: SPACING.md,
+        marginHorizontal: SPACING.sm,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        color: COLORS.textPrimary,
+        padding: 0,
+    },
+    employeeListItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: SPACING.sm,
+        paddingHorizontal: SPACING.md,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.borderLight,
+    },
+    employeeListItemClaimed: {
+        backgroundColor: COLORS.successLight + '30',
+    },
+    employeeListItemClickable: {
+        backgroundColor: COLORS.background,
+    },
+    employeeListItemLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        marginRight: SPACING.sm,
+    },
+    uncheckedCircle: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        borderWidth: 2,
+        borderColor: COLORS.textLight,
+    },
+    employeeListItemInfo: {
+        marginLeft: SPACING.sm,
+        flex: 1,
+    },
+    employeeListItemName: {
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        fontWeight: TYPOGRAPHY.fontWeight.medium,
+        color: COLORS.textPrimary,
+        flexShrink: 1,
+    },
+    employeeNameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.xs,
+    },
+    employeeIdBadge: {
+        backgroundColor: COLORS.backgroundLight,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        paddingHorizontal: SPACING.xs,
+        paddingVertical: 1,
+        borderRadius: 4,
+    },
+    employeeIdText: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        fontWeight: TYPOGRAPHY.fontWeight.medium,
+        color: COLORS.textSecondary,
+    },
+    employeeListItemEmail: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        color: COLORS.textSecondary,
+    },
+    employeeListItemRight: {
+        alignItems: 'flex-end',
+        flexShrink: 0,
+        marginLeft: SPACING.sm,
+        flexDirection: 'row',
+        gap: SPACING.sm,
+    },
+    deleteClaimButton: {
+        padding: SPACING.xs,
+        borderRadius: 4,
+    },
+    roleBadge: {
+        paddingHorizontal: SPACING.sm,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    roleBadgeInternal: {
+        backgroundColor: COLORS.primaryLight,
+    },
+    roleBadgeExternal: {
+        backgroundColor: COLORS.warningLight,
+    },
+    roleBadgeText: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        fontWeight: TYPOGRAPHY.fontWeight.medium,
+        textTransform: 'capitalize',
+    },
+    roleBadgeTextInternal: {
+        color: COLORS.textWhite,
+    },
+    roleBadgeTextExternal: {
+        color: COLORS.warning,
+    },
+    employeesListContent: {
+        paddingBottom: SPACING.sm,
+    },
+    summaryFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        paddingVertical: SPACING.md,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
+        marginTop: SPACING.sm,
+    },
+    summaryItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: SPACING.xs,
+    },
+    summaryDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+    },
+    summaryText: {
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        color: COLORS.textSecondary,
+    },
+    confirmContent: {
+        backgroundColor: COLORS.backgroundLight,
+        borderRadius: SPACING.md,
+        padding: SPACING.xl,
+        width: '100%',
+        maxWidth: 340,
+    },
+    confirmText: {
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        color: COLORS.textSecondary,
+        textAlign: 'center',
+        marginBottom: SPACING.lg,
+        lineHeight: TYPOGRAPHY.fontSize.sm * 1.5,
+    },
+    confirmButtons: {
+        flexDirection: 'row',
+        gap: SPACING.sm,
     },
 });
 

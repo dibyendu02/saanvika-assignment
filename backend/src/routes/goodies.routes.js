@@ -15,6 +15,7 @@ import {
   bulkUploadDistributions,
   deleteDistribution,
   deleteReceivedRecord,
+  markClaimForEmployee,
 } from '../controllers/goodies.controller.js';
 import { uploadSingleFile, handleUploadError } from '../middlewares/upload.middleware.js';
 import {
@@ -23,6 +24,7 @@ import {
   getDistributionsQuerySchema,
   getReceivedQuerySchema,
   idParamSchema,
+  markClaimSchema,
   validate,
 } from '../validators/goodies.validator.js';
 
@@ -63,6 +65,14 @@ router.get(
   '/distributions/:id/eligible-employees',
   validate(idParamSchema, 'params'),
   getEligibleEmployees
+);
+
+router.post(
+  '/distributions/:id/mark-claim',
+  authorize('admin', 'super_admin'),
+  validate(idParamSchema, 'params'),
+  validate(markClaimSchema),
+  markClaimForEmployee
 );
 
 router.delete(

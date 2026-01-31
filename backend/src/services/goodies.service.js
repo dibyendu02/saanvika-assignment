@@ -397,7 +397,7 @@ export const getReceivedById = async (requestingUser, recordId) => {
 export const getEligibleEmployees = async (requestingUser, distributionId) => {
   const distribution = await GoodiesDistribution.findById(distributionId)
     .populate('officeId', 'name')
-    .populate('targetEmployees', 'name email role');
+    .populate('targetEmployees', 'name email role employeeId');
 
   if (!distribution) {
     throw new AppError('Distribution not found', 404);
@@ -414,7 +414,7 @@ export const getEligibleEmployees = async (requestingUser, distributionId) => {
       primaryOfficeId: distribution.officeId._id,
       status: 'active',
       role: { $in: ['internal', 'external'] },
-    }).select('name email role');
+    }).select('name email role employeeId');
 
     return allEmployees;
   }
@@ -549,6 +549,82 @@ export const deleteReceivedRecord = async (requestingUser, recordId) => {
   await GoodiesReceived.findByIdAndDelete(recordId);
 };
 
+/**
+ * Manually mark a claim for an employee (admin/super_admin only)
+ * @param {Object} requestingUser - The admin/super_admin performing the action
+ * @param {string} distributionId - Distribution ID
+ * @param {string} targetUserId - The user ID to mark as claimed
+ * @returns {Promise<Object>} - Created receipt record
+ */
+export const markClaimForEmployee = async (requestingUser, distributionId, targetUserId) => {
+  // Validate distribution exists
+  const distribution = await GoodiesDistribution.findById(distributionId);
+  if (!distribution) {
+    throw new AppError('Distribution not found', 404);
+  }
+
+  // Access control - only admin and super_admin can manually mark claims
+  if (!['super_admin', 'admin'].includes(requestingUser.role)) {
+    throw new AppError('You are not authorized to manually mark claims', 403);
+  }
+
+  // Admin can only mark claims for their office
+  if (requestingUser.role === 'admin') {
+    if (distribution.officeId.toString() !== requestingUser.primaryOfficeId?.toString()) {
+      throw new AppError('You are not authorized to mark claims for this distribution', 403);
+    }
+  }
+
+  // Validate target user exists and is eligible
+  const targetUser = await User.findById(targetUserId);
+  if (!targetUser) {
+    throw new AppError('Target user not found', 404);
+  }
+
+  // Check if target user's office matches distribution office
+  if (distribution.officeId.toString() !== targetUser.primaryOfficeId?.toString()) {
+    throw new AppError('Target user does not belong to the distribution office', 400);
+  }
+
+  // Check if distribution is targeted and user is eligible
+  if (!distribution.isForAllEmployees) {
+    const isEligible = distribution.targetEmployees.some(
+      empId => empId.toString() === targetUserId
+    );
+
+    if (!isEligible) {
+      throw new AppError('Target user is not eligible for this distribution', 400);
+    }
+  }
+
+  // Check if there are remaining goodies available
+  const claimedCount = await GoodiesReceived.countDocuments({
+    goodiesDistributionId: distributionId,
+  });
+
+  if (claimedCount >= distribution.totalQuantity) {
+    throw new AppError('No goodies remaining in this distribution', 400);
+  }
+
+  try {
+    const receipt = await GoodiesReceived.create({
+      goodiesDistributionId: distributionId,
+      userId: targetUserId,
+      receivedAt: new Date(),
+      receivedAtOfficeId: distribution.officeId,
+      handedOverBy: requestingUser._id, // Admin who marked the claim
+    });
+
+    return receipt;
+  } catch (error) {
+    // Handle duplicate key error (already received)
+    if (error.code === 11000) {
+      throw new AppError('This employee has already claimed these goodies', 400);
+    }
+    throw error;
+  }
+};
+
 export default {
   createDistribution,
   getDistributions,
@@ -560,4 +636,5 @@ export default {
   bulkCreateDistribution,
   deleteDistribution,
   deleteReceivedRecord,
+  markClaimForEmployee,
 };
