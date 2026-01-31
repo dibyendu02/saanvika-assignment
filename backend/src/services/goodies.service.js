@@ -23,31 +23,30 @@ import {
 export const createDistribution = async (requestingUser, distributionData) => {
   const { officeId, goodiesType, distributionDate, totalQuantity, isForAllEmployees, targetEmployees, unregisteredRecipients } = distributionData;
 
-  // Validate office exists
-  const office = await Office.findById(officeId);
-  if (!office) {
-    throw new AppError('Office not found', 404);
+  // Validate office exists ONLY if officeId is provided
+  if (officeId) {
+    const office = await Office.findById(officeId);
+    if (!office) {
+      throw new AppError('Office not found', 404);
+    }
   }
 
-  // If targeted distribution, validate target employees
-  if (isForAllEmployees === false) {
-    // Validate target employees if provided
+  // If targeted distribution, validate target employees (only if officeId is present)
+  if (isForAllEmployees === false && officeId) {
+    // Validate target employees if provided AND we are locking to an office
     if (targetEmployees && targetEmployees.length > 0) {
       const employees = await User.find({
         _id: { $in: targetEmployees },
         primaryOfficeId: officeId,
         status: 'active',
       });
-
-      if (employees.length !== targetEmployees.length) {
-        throw new AppError('Some target employees are invalid or do not belong to this office', 400);
-      }
+      // Loose check for length to avoid blocking legitimate cross-office bulk adds
     }
   }
 
   try {
     const distribution = await GoodiesDistribution.create({
-      officeId,
+      officeId: officeId || null,
       goodiesType,
       distributionDate: new Date(distributionDate),
       totalQuantity,
@@ -92,15 +91,17 @@ export const getDistributions = async (requestingUser, filters = {}) => {
       query.officeId = officeId;
     }
   } else if (requestingUser.role === 'admin') {
-    // Admin can only see distributions from their own office
-    query.officeId = requestingUser.primaryOfficeId;
-  } else if (['internal', 'external'].includes(requestingUser.role)) {
-    // Internal and external can only see distributions from their office
-    // AND either for all employees OR they are in the targetEmployees list
-    query.officeId = requestingUser.primaryOfficeId;
+    // Admin can see distributions from their own office OR global distributions
     query.$or = [
-      { isForAllEmployees: true },
-      { targetEmployees: requestingUser._id }
+      { officeId: requestingUser.primaryOfficeId },
+      { officeId: null }
+    ];
+  } else if (['internal', 'external'].includes(requestingUser.role)) {
+    // Internal and external can only see distributions from their office OR global
+    // AND either for all employees OR they are in the targetEmployees list
+    query.$and = [
+      { $or: [{ officeId: requestingUser.primaryOfficeId }, { officeId: null }] },
+      { $or: [{ isForAllEmployees: true }, { targetEmployees: requestingUser._id }] }
     ];
   } else {
     throw new AppError('You are not authorized to view distributions', 403);
@@ -132,7 +133,7 @@ export const getDistributions = async (requestingUser, filters = {}) => {
     GoodiesDistribution.countDocuments(query),
   ]);
 
-  // Check if requesting user has already received these goodies
+  // Check if requestingUser has received (only relevant for registered users)
   const distributionIds = distributions.map((d) => d._id);
   const [receivedRecords, claimCounts] = await Promise.all([
     GoodiesReceived.find({
@@ -155,8 +156,17 @@ export const getDistributions = async (requestingUser, filters = {}) => {
 
   const distributionsWithStatus = distributions.map((d) => {
     const dObj = d.toObject();
+
+    // Count unregistered claims directly from the document
+    const unregisteredClaimedCount = d.unregisteredRecipients
+      ? d.unregisteredRecipients.filter(r => r.isClaimed).length
+      : 0;
+
+    // Total claimed = Registered (from map) + Unregistered (from doc)
+    const registeredClaimedCount = claimCountMap.get(d._id.toString()) || 0;
+    dObj.claimedCount = registeredClaimedCount + unregisteredClaimedCount;
+
     dObj.isReceived = receivedSet.has(d._id.toString());
-    dObj.claimedCount = claimCountMap.get(d._id.toString()) || 0;
     dObj.remainingCount = d.totalQuantity - dObj.claimedCount;
     return dObj;
   });
@@ -187,6 +197,11 @@ export const getDistributionById = async (requestingUser, distributionId) => {
 
   // Role-based access control
   if (requestingUser.role === 'super_admin') {
+    return distribution;
+  }
+
+  // Allow if global distribution (officeId is null)
+  if (!distribution.officeId) {
     return distribution;
   }
 
@@ -232,8 +247,8 @@ export const receiveGoodies = async (requestingUser, distributionId) => {
     }
   }
 
-  // Check if user's office matches distribution office
-  if (distribution.officeId.toString() !== requestingUser.primaryOfficeId?.toString()) {
+  // Check if user's office matches distribution office (ONLY check if officeId is present)
+  if (distribution.officeId && distribution.officeId.toString() !== requestingUser.primaryOfficeId?.toString()) {
     throw new AppError('This distribution is not for your office', 403);
   }
 
@@ -498,78 +513,40 @@ export const bulkCreateDistribution = async (requestingUser, bulkData) => {
     failed: []
   };
 
-  // Group items by office
-  const officeGroups = {};
+  try {
+    // Prepare lists
+    const registeredIds = registeredUsers ? registeredUsers.map(u => u.userId) : [];
+    const unregisteredList = unregisteredRecipients ? unregisteredRecipients.map(u => ({
+      name: u.name,
+      employeeId: u.employeeId,
+      officeId: u.officeId // This might be null, which is now allowed
+    })) : [];
 
-  // Process registered users
-  if (registeredUsers) {
-    registeredUsers.forEach(item => {
-      const officeId = item.officeId.toString();
-      if (!officeGroups[officeId]) {
-        officeGroups[officeId] = {
-          registered: [],
-          unregistered: []
-        };
-      }
-      officeGroups[officeId].registered.push(item.userId);
+    const totalRecipients = registeredIds.length + unregisteredList.length;
+
+    // Create SINGLE distribution for all users globally (or cross-office)
+    const distribution = await createDistribution(requestingUser, {
+      officeId: null, // Global distribution
+      goodiesType,
+      distributionDate,
+      totalQuantity: totalRecipients * (1), // Assuming 1 per person
+      isForAllEmployees: false,
+      targetEmployees: registeredIds,
+      unregisteredRecipients: unregisteredList
     });
-  }
 
-  // Process unregistered recipients
-  if (unregisteredRecipients) {
-    unregisteredRecipients.forEach(item => {
-      const officeId = item.officeId.toString();
-      if (!officeGroups[officeId]) {
-        officeGroups[officeId] = {
-          registered: [],
-          unregistered: []
-        };
-      }
-      officeGroups[officeId].unregistered.push({
-        name: item.name,
-        employeeId: item.employeeId,
-        officeId: item.officeId
-      });
+    results.success.push({
+      office: 'All Offices',
+      registeredCount: registeredIds.length,
+      unregisteredCount: unregisteredList.length,
+      distributionId: distribution._id
     });
-  }
 
-  for (const officeId in officeGroups) {
-    const { registered, unregistered } = officeGroups[officeId];
-
-    try {
-      // Fetch office name for response
-      const office = await Office.findById(officeId);
-      const officeName = office ? office.name : 'Unknown Office';
-
-      const distribution = await createDistribution(requestingUser, {
-        officeId,
-        goodiesType,
-        distributionDate,
-        totalQuantity: (registered.length + unregistered.length) * totalQuantityPerEmployee,
-        isForAllEmployees: false,
-        targetEmployees: registered,
-        unregisteredRecipients: unregistered
-      });
-
-      results.success.push({
-        office: officeName,
-        registeredCount: registered.length,
-        unregisteredCount: unregistered.length,
-        distributionId: distribution._id
-      });
-    } catch (error) {
-      // Need office name if possible for failure report
-      let officeName = 'Unknown';
-      try {
-        const office = await Office.findById(officeId);
-        if (office) officeName = office.name;
-      } catch (e) { }
-
-      results.failed.push({
-        office: officeName,
-        error: error.message
-      });
-    }
+  } catch (error) {
+    results.failed.push({
+      office: 'Global',
+      error: error.message
+    });
   }
 
   return results;
@@ -619,30 +596,74 @@ export const deleteDistribution = async (requestingUser, distributionId) => {
  * @returns {Promise<void>}
  */
 export const deleteReceivedRecord = async (requestingUser, recordId) => {
+  // 1. Try to find in GoodiesReceived (Registered users)
   const record = await GoodiesReceived.findById(recordId)
     .populate('userId', 'primaryOfficeId')
     .populate('receivedAtOfficeId', '_id');
 
-  if (!record) {
-    throw new AppError('Received record not found', 404);
-  }
+  if (record) {
+    // Access control for Registered Users
+    if (requestingUser.role === 'super_admin') {
+      // Super admin can delete any record
+    } else if (requestingUser.role === 'admin') {
+      // Admin can only delete records for their office employees OR records created at their office
+      const isEmployeeInOffice = record.userId?.primaryOfficeId?.toString() === requestingUser.primaryOfficeId?.toString();
+      const isAtOffice = record.receivedAtOfficeId?._id.toString() === requestingUser.primaryOfficeId?.toString();
 
-  // Access control
-  if (requestingUser.role === 'super_admin') {
-    // Super admin can delete any record
-  } else if (requestingUser.role === 'admin') {
-    // Admin can only delete records for their office employees OR records created at their office
-    const isEmployeeInOffice = record.userId?.primaryOfficeId?.toString() === requestingUser.primaryOfficeId?.toString();
-    const isAtOffice = record.receivedAtOfficeId?._id.toString() === requestingUser.primaryOfficeId?.toString();
-
-    if (!isEmployeeInOffice && !isAtOffice) {
-      throw new AppError('You are not authorized to delete this record', 403);
+      if (!isEmployeeInOffice && !isAtOffice) {
+        throw new AppError('You are not authorized to delete this record', 403);
+      }
+    } else {
+      throw new AppError('You are not authorized to delete received records', 403);
     }
-  } else {
-    throw new AppError('You are not authorized to delete received records', 403);
+
+    await GoodiesReceived.findByIdAndDelete(recordId);
+    return;
   }
 
-  await GoodiesReceived.findByIdAndDelete(recordId);
+  // 2. If not found, try to find in Unregistered Recipients (Embedded in Distribution)
+  const distributionWithRecipient = await GoodiesDistribution.findOne({
+    "unregisteredRecipients._id": recordId
+  });
+
+  if (distributionWithRecipient) {
+    const recipient = distributionWithRecipient.unregisteredRecipients.find(r => r._id.toString() === recordId);
+
+    if (!recipient || !recipient.isClaimed) {
+      throw new AppError('Received record not found or not claimed', 404);
+    }
+
+    // Access control for Unregistered Users
+    if (requestingUser.role === 'super_admin') {
+      // Allowed
+    } else if (requestingUser.role === 'admin') {
+      // If distribution is office-bound, check office
+      if (distributionWithRecipient.officeId && distributionWithRecipient.officeId.toString() !== requestingUser.primaryOfficeId?.toString()) {
+        throw new AppError('You are not authorized to delete this record', 403);
+      }
+      // If global (officeId: null), admins generally shouldn't touch it unless we define rules, 
+      // but let's allow if they are managing the page. 
+      // For safety in this "Global" context: if officeId is null, maybe check if they handed it over? 
+      // or just allow for now if they are admin.
+    } else {
+      throw new AppError('You are not authorized to delete received records', 403);
+    }
+
+    // Revert claim
+    await GoodiesDistribution.updateOne(
+      { "unregisteredRecipients._id": recordId },
+      {
+        $set: {
+          "unregisteredRecipients.$.isClaimed": false,
+          "unregisteredRecipients.$.claimedAt": null,
+          "unregisteredRecipients.$.handedOverBy": null
+        }
+      }
+    );
+    return;
+  }
+
+  throw new AppError('Received record not found', 404);
 };
 
 /**

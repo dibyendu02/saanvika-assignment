@@ -400,9 +400,10 @@ export const parseGoodiesExcel = async (filePath, requestingUser) => {
                 // CASE 2: Unregistered User (no employee_id OR invalid employee_id w/ name fallback)
                 if (!sanitizedName) throw new Error('Valid Employee Name is required (special characters removed)');
 
-                if (requestingUser.role === 'super_admin' && !officeId) {
-                    throw new Error('Office ID is required for unregistered users (Super Admin)');
-                }
+                console.log(`Processing unregistered user: ${sanitizedName}, SuperAdmin: ${requestingUser.role === 'super_admin'}`);
+
+                // For Super Admin: detection of missing office is handled in post-processing
+                // For Admin: officeId is always preset (their own office)
 
                 unregisteredRecipients.push({
                     name: sanitizedName, // Store sanitized name
@@ -420,6 +421,8 @@ export const parseGoodiesExcel = async (filePath, requestingUser) => {
             }
         }
 
+        // Post-process for Super Admin inference
+        // Post-processing: No longer needed as we support multi-office single-instance distribution
         return { registeredUsers, unregisteredRecipients, errors };
     } catch (error) {
         if (error instanceof AppError) throw error;

@@ -807,7 +807,7 @@ const Goodies = () => {
                                             <CardTitle className="text-xl font-semibold text-gray-900 line-clamp-1">{item.goodiesType}</CardTitle>
                                             <div className="flex items-center text-sm text-gray-500 font-medium">
                                                 <Building className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                                                <span className="truncate">{item.officeId?.name || 'Assigned Office'}</span>
+                                                <span className="truncate">{item.officeId?.name || 'Global'}</span>
                                             </div>
                                         </div>
                                     </div>

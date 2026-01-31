@@ -19,7 +19,10 @@ import {
     KeyboardAvoidingView,
     Platform,
     Alert,
+    Linking,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../../constants/api';
 import { useAuth } from '../../context/AuthContext';
 import { goodiesApi, GoodiesDistribution, ClaimRecord } from '../../api/goodies';
 import officesApi from '../../api/offices';
@@ -309,6 +312,27 @@ export const GoodiesScreen: React.FC = () => {
         }
     };
 
+    const handleDownloadTemplate = async () => {
+        try {
+            const token = await AsyncStorage.getItem('token');
+            if (!token) {
+                showToast.error('Error', 'Authentication token not found');
+                return;
+            }
+            const url = `${API_BASE_URL}/goodies/template?token=${token}`;
+
+            const supported = await Linking.canOpenURL(url);
+            if (supported) {
+                await Linking.openURL(url);
+            } else {
+                showToast.error('Error', 'Cannot open download link');
+            }
+        } catch (error) {
+            console.error('Download error:', error);
+            showToast.error('Error', 'Failed to initiate download');
+        }
+    };
+
     const handleBulkUpload = async () => {
         if (!selectedFile || !formData.goodiesType || !formData.distributionDate) {
             showToast.error('Error', 'Please fill all fields and select a file');
@@ -361,10 +385,7 @@ export const GoodiesScreen: React.FC = () => {
             return;
         }
 
-        if (isSuperAdmin && !formData.officeId) {
-            showToast.error('Error', 'Please select an office');
-            return;
-        }
+
 
         setCreateLoading(true);
         try {
@@ -441,7 +462,7 @@ export const GoodiesScreen: React.FC = () => {
                             <Text style={styles.goodiesType}>{item.goodiesType}</Text>
                             <Text style={styles.officeName}>
                                 <Icon name="office-building" size={12} color={COLORS.textSecondary} />
-                                {' '}{item.officeId?.name || 'Unknown Office'}
+                                {' '}{item.officeId?.name || 'Global'}
                             </Text>
                         </View>
                     </View>
@@ -922,7 +943,7 @@ export const GoodiesScreen: React.FC = () => {
                                         <Dropdown
                                             label="Select Office"
                                             placeholder="Choose an office..."
-                                            options={offices.map(office => ({ label: office.name, value: office._id }))}
+                                            options={[{ label: 'Global (All Offices)', value: '' }, ...offices.map(office => ({ label: office.name, value: office._id }))]}
                                             value={formData.officeId}
                                             onSelect={(value) => setFormData({ ...formData, officeId: value })}
                                         />
@@ -1006,7 +1027,14 @@ export const GoodiesScreen: React.FC = () => {
                             ) : (
                                 <>
                                     <View style={styles.formGroup}>
-                                        <Text style={styles.label}>Excel File</Text>
+                                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                            <Text style={styles.label}>Excel File</Text>
+                                            <TouchableOpacity onPress={handleDownloadTemplate}>
+                                                <Text style={{ color: COLORS.primary, fontWeight: '600', fontSize: 13 }}>
+                                                    Download Template
+                                                </Text>
+                                            </TouchableOpacity>
+                                        </View>
                                         <TouchableOpacity
                                             style={styles.fileInput}
                                             onPress={handleFilePick}
@@ -1017,7 +1045,7 @@ export const GoodiesScreen: React.FC = () => {
                                             </Text>
                                         </TouchableOpacity>
                                         <Text style={styles.helperText}>
-                                            File must include employee_id column. {isSuperAdmin && 'Super admins must include office_id column.'}
+                                            File must include employee_id column. {isSuperAdmin && 'Office ID is optional for global distribution.'}
                                         </Text>
                                     </View>
 

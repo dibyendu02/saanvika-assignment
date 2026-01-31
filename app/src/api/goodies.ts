@@ -15,7 +15,7 @@ export interface GoodiesDistribution {
     officeId: {
         _id: string;
         name: string;
-    };
+    } | null;
     distributionDate: string;
     distributedBy: {
         _id: string;
@@ -41,7 +41,7 @@ export interface ClaimRecord {
 export interface CreateDistributionPayload {
     goodiesType: string;
     totalQuantity: number;
-    officeId: string;
+    officeId: string | null;
     distributionDate: string;
     isForAllEmployees: boolean;
     targetEmployees?: string[];

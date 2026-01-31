@@ -9,7 +9,7 @@ const goodiesDistributionSchema = new mongoose.Schema(
     officeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Office',
-      required: [true, 'Office ID is required'],
+      required: false, // Changed from true to false: Supports global/multi-office distributions
     },
     distributionDate: {
       type: Date,
@@ -58,7 +58,7 @@ const goodiesDistributionSchema = new mongoose.Schema(
     unregisteredRecipients: [
       {
         name: { type: String, required: true },
-        officeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Office' },
+        officeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Office' }, // Optional
         employeeId: { type: String }, // Optional ID if provided in sheet but not in system
         isClaimed: { type: Boolean, default: false },
         claimedAt: { type: Date },
@@ -71,13 +71,15 @@ const goodiesDistributionSchema = new mongoose.Schema(
   }
 );
 
-// Compound unique index: One distribution per office per date per goodies type
-goodiesDistributionSchema.index(
-  { officeId: 1, distributionDate: 1, goodiesType: 1 },
-  { unique: true }
-);
+// Compound unique index: Removed strict office-based uniqueness to allow single global entries
+// goodiesDistributionSchema.index(
+//   { officeId: 1, distributionDate: 1, goodiesType: 1 },
+//   { unique: true }
+// );
+// Replaced with a looser index or none, but keeping query optimizations:
+goodiesDistributionSchema.index({ distributionDate: -1, goodiesType: 1 });
 
-// Index for office-based queries
+// Index for office-based queries (still useful if officeId exists)
 goodiesDistributionSchema.index({ officeId: 1, distributionDate: -1 });
 
 // Index for user-based queries
