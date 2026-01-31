@@ -34,8 +34,10 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
     const [refreshing, setRefreshing] = useState(false);
     const [respondingId, setRespondingId] = useState<string | null>(null);
     const isExternal = user?.role === 'external';
+    const isInternal = user?.role === 'internal';
     const isSuperAdmin = user?.role === 'super_admin';
     const isManagement = ['super_admin', 'admin'].includes(user?.role || '');
+    const [viewMode, setViewMode] = useState<'all' | 'byMe' | 'toMe'>('all');
 
     const [respondingAction, setRespondingAction] = useState<'share' | 'deny' | 'delete' | null>(null);
     const [offices, setOffices] = useState<any[]>([]);
@@ -217,6 +219,15 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
         const statusIcon = getStatusIcon(item.status);
         const isPending = item.status === 'pending';
 
+        // Determine if this request is TO or BY the current user (for internal users)
+        const isRequestToMe = item.targetUser?._id === user?._id;
+        const isRequestByMe = item.requester?._id === user?._id;
+
+        // Determine which user to display based on role and request direction
+        const displayUser = isExternal || isRequestToMe
+            ? item.requester
+            : item.targetUser;
+
         return (
             <Card style={styles.requestCard}>
                 {/* User Info */}
@@ -225,11 +236,16 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
                         <Icon name="account" size={ICON_SIZES.md} color={COLORS.primary} />
                     </View>
                     <View style={styles.userDetails}>
+                        {isInternal && (
+                            <Text style={styles.directionLabel}>
+                                {isRequestToMe ? 'From' : 'To'}
+                            </Text>
+                        )}
                         <Text style={styles.userName}>
-                            {isExternal ? item.requester.name : item.targetUser.name}
+                            {displayUser?.name}
                         </Text>
                         <Text style={styles.userEmail}>
-                            {isExternal ? item.requester.email : item.targetUser.email}
+                            {displayUser?.email}
                         </Text>
                     </View>
                 </View>
@@ -264,8 +280,8 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
 
                 {/* Actions */}
                 <View style={styles.actions}>
-                    {/* External: Share/Deny for Pending */}
-                    {isExternal && isPending && (
+                    {/* External or Internal (request to me): Share/Deny for Pending */}
+                    {(isExternal || (isInternal && isRequestToMe)) && isPending && (
                         <>
                             <Button
                                 variant="primary"
@@ -340,8 +356,8 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
                         </Button>
                     )}
 
-                    {/* Delete/Cancel Button */}
-                    {(isManagement || item.requester._id === user?._id) && (
+                    {/* Delete/Cancel Button - only for requests made BY user, not those TO user */}
+                    {!isExternal && !isRequestToMe && (item.status === 'pending' || isManagement) && (
                         <Button
                             variant="outline"
                             size="sm"
@@ -355,7 +371,7 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
                                 <>
                                     <Icon name="trash-can-outline" size={16} color={COLORS.danger} />
                                     <Text style={[styles.buttonText, { color: COLORS.danger }]}>
-                                        {item.status === 'pending' && item.requester._id === user?._id ? 'Cancel Request' : 'Delete'}
+                                        {item.status === 'pending' ? 'Cancel' : 'Delete'}
                                     </Text>
                                 </>
                             )}
@@ -363,7 +379,7 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
                     )}
                 </View>
 
-                {!isExternal && isPending && !((isManagement || item.requester._id === user?._id)) && (
+                {!isExternal && isPending && isRequestByMe && !isManagement && (
                     <View style={styles.waitingBadge}>
                         <Icon name="clock-outline" size={14} color={COLORS.warning} />
                         <Text style={styles.waitingText}>Waiting for response</Text>
@@ -382,7 +398,9 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
                     <Text style={styles.subtitle}>
                         {isExternal
                             ? 'Manage location requests from your team'
-                            : 'Track your location requests'}
+                            : isInternal
+                                ? 'View requests you sent or requests sent to you'
+                                : 'Track your location requests'}
                     </Text>
                 </View>
                 {isSuperAdmin && offices.length > 0 && (
@@ -395,43 +413,73 @@ export const LocationRequestsScreen: React.FC<{ navigation: any }> = ({ navigati
                 )}
             </View>
 
-            {/* Office Filter */}
-            {showOfficeFilter && isSuperAdmin && (
-                <View style={styles.filterContainer}>
-                    <Dropdown
-                        placeholder="Filter by Office"
-                        options={[
-                            { label: 'All Offices', value: 'all' },
-                            ...offices.map(office => ({ label: office.name, value: office._id }))
-                        ]}
-                        value={filterOfficeId}
-                        onSelect={setFilterOfficeId}
-                    />
+            {/* Filters Section */}
+            {(isInternal || (isSuperAdmin && showOfficeFilter && offices.length > 0)) && (
+                <View style={{ paddingHorizontal: SPACING.base, marginBottom: SPACING.base, gap: SPACING.sm }}>
+                    {/* View Mode Filter for Internal Users */}
+                    {isInternal && (
+                        <Dropdown
+                            placeholder="Filter Requests"
+                            options={[
+                                { label: 'All Requests', value: 'all' },
+                                { label: 'Requested By Me', value: 'byMe' },
+                                { label: 'Requested To Me', value: 'toMe' },
+                            ]}
+                            value={viewMode}
+                            onSelect={(value) => setViewMode(value as 'all' | 'byMe' | 'toMe')}
+                        />
+                    )}
+
+                    {/* Office Filter */}
+                    {showOfficeFilter && isSuperAdmin && offices.length > 0 && (
+                        <Dropdown
+                            placeholder="Filter by Office"
+                            options={[
+                                { label: 'All Offices', value: 'all' },
+                                ...offices.map(office => ({ label: office.name, value: office._id }))
+                            ]}
+                            value={filterOfficeId}
+                            onSelect={setFilterOfficeId}
+                        />
+                    )}
                 </View>
             )}
 
             {/* Content */}
-            {requests.length === 0 && !refreshing ? (
-                <View style={styles.emptyContainer}>
-                    <Icon name="navigation-outline" size={64} color={COLORS.textLight} />
-                    <Text style={styles.emptyTitle}>No Requests Found</Text>
-                    <Text style={styles.emptyText}>
-                        {isExternal
-                            ? 'No location requests received'
-                            : 'No location requests sent'}
-                    </Text>
-                </View>
-            ) : (
-                <FlatList
-                    data={requests}
-                    renderItem={renderRequestCard}
-                    keyExtractor={(item) => item._id}
-                    contentContainerStyle={styles.listContent}
-                    refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                    }
-                />
-            )}
+            {(() => {
+                let filteredRequests = requests;
+                if (isInternal && viewMode !== 'all') {
+                    filteredRequests = viewMode === 'byMe'
+                        ? requests.filter(r => r.requester?._id === user?._id)
+                        : requests.filter(r => r.targetUser?._id === user?._id);
+                }
+                if (filteredRequests.length === 0 && !refreshing) {
+                    return (
+                        <View style={styles.emptyContainer}>
+                            <Icon name="navigation-outline" size={64} color={COLORS.textLight} />
+                            <Text style={styles.emptyTitle}>No Requests Found</Text>
+                            <Text style={styles.emptyText}>
+                                {isExternal
+                                    ? 'No location requests received'
+                                    : isInternal && viewMode === 'toMe'
+                                        ? 'No location requests to you'
+                                        : 'No location requests sent'}
+                            </Text>
+                        </View>
+                    );
+                }
+                return (
+                    <FlatList
+                        data={filteredRequests}
+                        renderItem={renderRequestCard}
+                        keyExtractor={(item) => item._id}
+                        contentContainerStyle={styles.listContent}
+                        refreshControl={
+                            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                        }
+                    />
+                );
+            })()}
         </View>
     );
 };
@@ -515,6 +563,11 @@ const styles = StyleSheet.create({
     },
     userDetails: {
         flex: 1,
+    },
+    directionLabel: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        color: COLORS.textLight,
+        marginBottom: 2,
     },
     userName: {
         fontSize: TYPOGRAPHY.fontSize.base,

@@ -171,22 +171,39 @@ export const getLocationById = async (requestingUser, locationId) => {
 };
 
 /**
- * Request an external employee's location
+ * Request an internal or external employee's location
  * @param {Object} requestingUser - The user making the request
  * @param {string} targetUserId - The ID of the employee whose location is requested
  */
 export const requestLocation = async (requestingUser, targetUserId) => {
-  // Check if target user is external
+  // Allow admin/super_admin to request location from internal or external employees
   const targetUser = await User.findById(targetUserId);
   if (!targetUser) {
     throw new AppError('Target user not found', 404);
   }
 
-  if (targetUser.role !== 'external') {
-    throw new AppError('Location requests can only be sent to external employees', 400);
+
+  // Only allow requests to internal or external employees
+  if (!['internal', 'external'].includes(targetUser.role)) {
+    throw new AppError('Location requests can only be sent to internal or external employees', 400);
   }
 
-  // Check if requesting user is allowed to request (anyone but external)
+  // Only admin or super_admin can request location from internal employees
+  if (targetUser.role === 'internal' && !['super_admin', 'admin'].includes(requestingUser.role)) {
+    throw new AppError('Only admin or super admin can request location from internal employees', 403);
+  }
+
+  // Only internal, admin, or super_admin can request location from external employees
+  if (targetUser.role === 'external' && !['internal', 'admin', 'super_admin'].includes(requestingUser.role)) {
+    throw new AppError('Only internal, admin, or super admin can request location from external employees', 403);
+  }
+
+  // Prevent users from requesting their own location
+  if (requestingUser._id.toString() === targetUserId.toString()) {
+    throw new AppError('You cannot request your own location', 400);
+  }
+
+  // External employees cannot request locations
   if (requestingUser.role === 'external') {
     throw new AppError('External employees cannot request locations', 403);
   }
@@ -197,7 +214,7 @@ export const requestLocation = async (requestingUser, targetUserId) => {
     status: 'pending',
   });
 
-  // Create notification for external employee
+  // Create notification for the target user
   await notificationService.createNotification({
     recipient: targetUserId,
     sender: requestingUser._id,
@@ -213,7 +230,8 @@ export const requestLocation = async (requestingUser, targetUserId) => {
 /**
  * Get location requests for a user
  * - External employees see requests they received
- * - Others see requests they sent
+ * - Internal employees see both requests they sent AND received
+ * - Admin/Super admin see requests they sent
  * - Super admin can filter by office
  */
 export const getLocationRequests = async (user, filters = {}) => {
@@ -222,8 +240,16 @@ export const getLocationRequests = async (user, filters = {}) => {
   if (user.role === 'external') {
     // External employees see requests sent to them
     query = { targetUser: user._id };
+  } else if (user.role === 'internal') {
+    // Internal employees see both requests they sent AND requests sent to them
+    query = {
+      $or: [
+        { requester: user._id },
+        { targetUser: user._id }
+      ]
+    };
   } else {
-    // Others see requests they sent
+    // Admin/Super admin see requests they sent
     query = { requester: user._id };
   }
 

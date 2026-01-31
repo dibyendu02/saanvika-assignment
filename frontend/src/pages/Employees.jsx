@@ -652,15 +652,19 @@ const Employees = () => {
                                                         {emp.status === 'active' && (
                                                             <>
                                                                 <DropdownMenuItem onClick={() => initiateSuspend(emp)}><UserX className="mr-2 h-4 w-4" /> Suspend</DropdownMenuItem>
-                                                                {emp.role === 'external' && currentUser.role !== 'external' && (
-                                                                    <DropdownMenuItem onClick={async () => {
-                                                                        try {
-                                                                            await api.post('/location/request', { targetUserId: emp._id });
-                                                                            toast({ title: 'Success', description: 'Location request sent' });
-                                                                        } catch (e) {
-                                                                            toast({ title: 'Error', description: 'Failed to send request', variant: 'destructive' });
-                                                                        }
-                                                                    }}><MapPin className="mr-2 h-4 w-4" /> Request Location</DropdownMenuItem>
+                                                                {/* Request Location logic: */}
+                                                                {emp._id !== currentUser._id && (
+                                                                    ((emp.role === 'external' && ['internal', 'admin', 'super_admin'].includes(currentUser.role)) ||
+                                                                     (emp.role === 'internal' && ['admin', 'super_admin'].includes(currentUser.role))) && (
+                                                                        <DropdownMenuItem onClick={async () => {
+                                                                            try {
+                                                                                await api.post('/location/request', { targetUserId: emp._id });
+                                                                                toast({ title: 'Success', description: 'Location request sent' });
+                                                                            } catch (e) {
+                                                                                toast({ title: 'Error', description: 'Failed to send request', variant: 'destructive' });
+                                                                            }
+                                                                        }}><MapPin className="mr-2 h-4 w-4" /> Request Location</DropdownMenuItem>
+                                                                    )
                                                                 )}
                                                             </>
                                                         )}

@@ -46,8 +46,14 @@ export const EmployeeDirectoryScreen: React.FC = () => {
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
-    const isManagement = ['super_admin', 'admin', 'internal'].includes(user?.role || '');
+    // Role helpers for location request logic
     const isAdmin = ['super_admin', 'admin'].includes(user?.role || '');
+    const canRequestLocation = (target: User) => {
+        if (!user || user._id === target._id) return false;
+        if (target.role === 'external' && ['internal', 'admin', 'super_admin'].includes(user.role)) return true;
+        if (target.role === 'internal' && ['admin', 'super_admin'].includes(user.role)) return true;
+        return false;
+    };
 
     const fetchData = useCallback(async () => {
         try {
@@ -242,51 +248,50 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                                     label={employee.status}
                                     variant={employee.status === 'active' ? 'success' : 'default'}
                                 />
-                                {isManagement && employee._id !== user?._id && (
-                                    <View style={styles.employeeHeaderActions}>
+                                {/* Request Location logic: */}
+                                {canRequestLocation(employee) && (
+                                    <TouchableOpacity
+                                        style={styles.actionButton}
+                                        onPress={() => handleRequestLocation(employee._id)}
+                                        disabled={!!actionLoadingId}
+                                    >
+                                        <Icon name="map-marker-radius" size={ICON_SIZES.sm} color={COLORS.primary} />
+                                    </TouchableOpacity>
+                                )}
+
+                                <TouchableOpacity
+                                    style={styles.actionButton}
+                                    onPress={() => handleSuspendEmployee(employee)}
+                                    disabled={!!actionLoadingId}
+                                >
+                                    <Icon
+                                        name={(employee.status === 'suspended' || employee.status === 'inactive') ? "account-check" : "account-off"}
+                                        size={ICON_SIZES.sm}
+                                        color={(employee.status === 'suspended' || employee.status === 'inactive') ? COLORS.success : COLORS.warning}
+                                    />
+                                </TouchableOpacity>
+
+                                {isAdmin && (
+                                    <>
                                         <TouchableOpacity
                                             style={styles.actionButton}
-                                            onPress={() => handleRequestLocation(employee._id)}
+                                            onPress={() => handleEditEmployee(employee)}
                                             disabled={!!actionLoadingId}
                                         >
-                                            <Icon name="map-marker-radius" size={ICON_SIZES.sm} color={COLORS.primary} />
+                                            <Icon name="pencil" size={ICON_SIZES.sm} color={COLORS.primary} />
                                         </TouchableOpacity>
-
                                         <TouchableOpacity
-                                            style={styles.actionButton}
-                                            onPress={() => handleSuspendEmployee(employee)}
-                                            disabled={!!actionLoadingId}
+                                            style={styles.deleteButton}
+                                            onPress={() => handleDeleteEmployee(employee)}
+                                            disabled={deletingId === employee._id}
                                         >
-                                            <Icon
-                                                name={(employee.status === 'suspended' || employee.status === 'inactive') ? "account-check" : "account-off"}
-                                                size={ICON_SIZES.sm}
-                                                color={(employee.status === 'suspended' || employee.status === 'inactive') ? COLORS.success : COLORS.warning}
-                                            />
+                                            {deletingId === employee._id ? (
+                                                <ActivityIndicator size="small" color={COLORS.danger} />
+                                            ) : (
+                                                <Icon name="trash-can-outline" size={ICON_SIZES.sm} color={COLORS.danger} />
+                                            )}
                                         </TouchableOpacity>
-
-                                        {isAdmin && (
-                                            <>
-                                                <TouchableOpacity
-                                                    style={styles.actionButton}
-                                                    onPress={() => handleEditEmployee(employee)}
-                                                    disabled={!!actionLoadingId}
-                                                >
-                                                    <Icon name="pencil" size={ICON_SIZES.sm} color={COLORS.primary} />
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={styles.deleteButton}
-                                                    onPress={() => handleDeleteEmployee(employee)}
-                                                    disabled={deletingId === employee._id}
-                                                >
-                                                    {deletingId === employee._id ? (
-                                                        <ActivityIndicator size="small" color={COLORS.danger} />
-                                                    ) : (
-                                                        <Icon name="trash-can-outline" size={ICON_SIZES.sm} color={COLORS.danger} />
-                                                    )}
-                                                </TouchableOpacity>
-                                            </>
-                                        )}
-                                    </View>
+                                    </>
                                 )}
                             </View>
                         </View>

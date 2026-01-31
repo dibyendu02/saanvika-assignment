@@ -35,7 +35,9 @@ const LocationRequests = () => {
     const [deleting, setDeleting] = useState(false);
 
     const isExternal = user?.role === 'external';
+    const isInternal = user?.role === 'internal';
     const isSuperAdmin = user?.role === 'super_admin';
+    const [viewMode, setViewMode] = useState('all'); // 'all', 'byMe' or 'toMe'
 
     useEffect(() => {
         fetchRequests();
@@ -173,11 +175,27 @@ const LocationRequests = () => {
                     <p className="text-sm text-gray-500 mt-1">
                         {isExternal
                             ? 'Manage location requests from your team'
-                            : 'Track your location requests'}
+                            : isInternal
+                                ? 'View requests you sent or requests sent to you'
+                                : 'Track your location requests'}
                     </p>
                 </div>
-                {isSuperAdmin && offices.length > 0 && (
-                    <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                    {isInternal && (
+                        <div className="relative w-full md:w-auto">
+                            <Filter className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <select
+                                className="h-10 w-full md:w-[200px] rounded-lg border border-gray-300 bg-white pl-9 pr-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none appearance-none cursor-pointer"
+                                value={viewMode}
+                                onChange={e => setViewMode(e.target.value)}
+                            >
+                                <option value="all">All Requests</option>
+                                <option value="byMe">Requested By Me</option>
+                                <option value="toMe">Requested To Me</option>
+                            </select>
+                        </div>
+                    )}
+                    {isSuperAdmin && offices.length > 0 && (
                         <div className="relative w-full md:w-auto">
                             <Filter className="h-4 w-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                             <select
@@ -193,11 +211,19 @@ const LocationRequests = () => {
                                 ))}
                             </select>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
 
-            {requests.length === 0 ? (
+            {(() => {
+                let filteredRequests = requests;
+                if (isInternal && viewMode !== 'all') {
+                    filteredRequests = viewMode === 'byMe'
+                        ? requests.filter(r => r.requester?._id === user._id)
+                        : requests.filter(r => r.targetUser?._id === user._id);
+                }
+                if (filteredRequests.length === 0) {
+                    return (
                 <Card>
                     <CardContent className="p-10 text-center">
                         <Navigation className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -208,9 +234,16 @@ const LocationRequests = () => {
                         </p>
                     </CardContent>
                 </Card>
-            ) : (
-                <div className="grid gap-4">
-                    {requests.map((request) => (
+                );
+                }
+                return (
+                    <div className="grid gap-4">
+                        {filteredRequests.map((request) => {
+                            // Determine if this request is TO or BY the current user
+                            const isRequestToMe = request.targetUser?._id === user._id;
+                            const isRequestByMe = request.requester?._id === user._id;
+
+                            return (
                         <Card key={request._id} className="hover:shadow-md transition-shadow">
                             <CardContent className="p-4 md:p-6">
                                 <div className="flex flex-col sm:flex-row items-start justify-between gap-0 sm:gap-6 relative">
@@ -221,13 +254,18 @@ const LocationRequests = () => {
                                                 <User className="h-5 w-5 text-primary-600" />
                                             </div>
                                             <div className="min-w-0">
+                                                {isInternal && (
+                                                    <p className="text-xs text-gray-400 mb-0.5">
+                                                        {isRequestToMe ? 'From' : 'To'}
+                                                    </p>
+                                                )}
                                                 <p className="font-semibold text-gray-900 leading-none truncate">
-                                                    {isExternal
+                                                    {isExternal || isRequestToMe
                                                         ? request.requester?.name
                                                         : request.targetUser?.name}
                                                 </p>
                                                 <p className="text-sm text-gray-500 mt-1 truncate">
-                                                    {isExternal
+                                                    {isExternal || isRequestToMe
                                                         ? request.requester?.email
                                                         : request.targetUser?.email}
                                                 </p>
@@ -260,6 +298,29 @@ const LocationRequests = () => {
 
                                     {/* Mobile Toolbar (Top Right Icons) */}
                                     <div className="sm:hidden absolute top-0 right-0 flex items-center gap-1">
+                                        {/* Show Share/Deny for internal if request is to them and pending */}
+                                        {isInternal && isRequestToMe && request.status === 'pending' && (
+                                            <>
+                                                <ShareLocationDialog
+                                                    requestId={request._id}
+                                                    onSuccess={fetchRequests}
+                                                    triggerButton={
+                                                        <Button size="icon" variant="ghost" className="text-primary-600 hover:text-primary-700 hover:bg-primary-50 h-8 w-8">
+                                                            <MapPin className="h-4 w-4" />
+                                                        </Button>
+                                                    }
+                                                />
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                                                    onClick={() => handleDenyRequest(request._id)}
+                                                >
+                                                    <XCircle className="h-4 w-4" />
+                                                </Button>
+                                            </>
+                                        )}
+                                        {/* View location for shared requests */}
                                         {!isExternal && request.status === 'shared' && request.locationId && (
                                             <Button
                                                 size="icon"
@@ -270,7 +331,8 @@ const LocationRequests = () => {
                                                 <MapPin className="h-4 w-4" />
                                             </Button>
                                         )}
-                                        {!isExternal && (request.status === 'pending' || isSuperAdmin || user?.role === 'admin') && (
+                                        {/* Delete for requests BY me (pending) or admin/super_admin */}
+                                        {!isExternal && !isRequestToMe && (request.status === 'pending' || isSuperAdmin || user?.role === 'admin') && (
                                             <Button
                                                 size="icon"
                                                 variant="ghost"
@@ -282,9 +344,10 @@ const LocationRequests = () => {
                                         )}
                                     </div>
 
-                                    {/* Actions Container - Only visible on mobile if primary actions exist */}
-                                    <div className={`flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0 ${isExternal && request.status === 'pending' ? 'flex' : 'hidden sm:flex'
+                                    {/* Actions Container */}
+                                    <div className={`flex-col gap-2 w-full sm:w-auto mt-4 sm:mt-0 ${(isExternal || (isInternal && isRequestToMe)) && request.status === 'pending' ? 'flex' : 'hidden sm:flex'
                                         }`}>
+                                        {/* Share/Deny for external users */}
                                         {isExternal && request.status === 'pending' && (
                                             <>
                                                 <ShareLocationDialog
@@ -318,6 +381,41 @@ const LocationRequests = () => {
                                             </>
                                         )}
 
+                                        {/* Share/Deny for internal users when request is TO them */}
+                                        {isInternal && isRequestToMe && request.status === 'pending' && (
+                                            <>
+                                                <ShareLocationDialog
+                                                    requestId={request._id}
+                                                    onSuccess={() => {
+                                                        toast({
+                                                            title: 'Success',
+                                                            description: 'Location shared successfully',
+                                                        });
+                                                        fetchRequests();
+                                                    }}
+                                                    triggerButton={
+                                                        <Button size="sm" className="w-full">
+                                                            <MapPin className="h-4 w-4 mr-2" />
+                                                            Share Location
+                                                        </Button>
+                                                    }
+                                                />
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    className="w-full"
+                                                    onClick={() => handleDenyRequest(request._id)}
+                                                    disabled={responding === request._id}
+                                                >
+                                                    {responding === request._id && (
+                                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    )}
+                                                    Deny
+                                                </Button>
+                                            </>
+                                        )}
+
+                                        {/* View location for shared requests */}
                                         {!isExternal && request.status === 'shared' && request.locationId && (
                                             <Button
                                                 size="sm"
@@ -329,8 +427,8 @@ const LocationRequests = () => {
                                             </Button>
                                         )}
 
-                                        {/* Desktop Delete Button */}
-                                        {!isExternal && (request.status === 'pending' || isSuperAdmin || user?.role === 'admin') && (
+                                        {/* Cancel/Delete Button for requests BY user */}
+                                        {!isExternal && !isRequestToMe && (request.status === 'pending' || isSuperAdmin || user?.role === 'admin') && (
                                             <Button
                                                 size="sm"
                                                 variant="ghost"
@@ -345,10 +443,12 @@ const LocationRequests = () => {
                                 </div>
                             </CardContent>
                         </Card>
-                    ))}
+                    );
+                    })}
                 </div>
-            )}
-            {/* Delete Confirmation Modal */}
+            );
+        })()}
+        {/* Delete Confirmation Modal */}
             <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>

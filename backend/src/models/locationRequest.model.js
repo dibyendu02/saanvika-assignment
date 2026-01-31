@@ -1,6 +1,6 @@
 /**
  * Location Request Model
- * Stores requests from admins/internal staff to see an external employee's location
+ * Stores requests from admins/super_admins to see an internal or external employee's location
  */
 import mongoose from 'mongoose';
 
