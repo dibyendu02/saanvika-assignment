@@ -686,7 +686,7 @@ export const markClaimForEmployee = async (requestingUser, distributionId, targe
   }
 
   // Admin can only mark claims for their office
-  if (requestingUser.role === 'admin') {
+  if (requestingUser.role === 'admin' && distribution.officeId) {
     if (distribution.officeId.toString() !== requestingUser.primaryOfficeId?.toString()) {
       throw new AppError('You are not authorized to mark claims for this distribution', 403);
     }
@@ -711,8 +711,8 @@ export const markClaimForEmployee = async (requestingUser, distributionId, targe
     }
   }
 
-  // Check if target user's office matches distribution office (only for registered)
-  if (!isUnregistered && distribution.officeId.toString() !== targetUser.primaryOfficeId?.toString()) {
+  // Check if target user's office matches distribution office (only for registered and office-specific distributions)
+  if (!isUnregistered && distribution.officeId && distribution.officeId.toString() !== targetUser.primaryOfficeId?.toString()) {
     throw new AppError('Target user does not belong to the distribution office', 400);
   }
 
