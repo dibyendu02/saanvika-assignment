@@ -773,11 +773,17 @@ export const markClaimForEmployee = async (requestingUser, distributionId, targe
       };
     } else {
       // Handle registered claim
+      // Use distribution office if set, otherwise use the target user's primary office
+      const officeId = distribution.officeId || targetUser.primaryOfficeId;
+      if (!officeId) {
+        throw new AppError('Cannot determine office for this claim', 400);
+      }
+
       const receipt = await GoodiesReceived.create({
         goodiesDistributionId: distributionId,
         userId: targetUserId,
         receivedAt: new Date(),
-        receivedAtOfficeId: distribution.officeId,
+        receivedAtOfficeId: officeId,
         handedOverBy: requestingUser._id, // Admin who marked the claim
       });
 
