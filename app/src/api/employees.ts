@@ -49,6 +49,25 @@ export const employeesApi = {
     },
 
     /**
+     * Bulk upload employees via Excel
+     */
+    uploadBulk: async (file: any): Promise<any> => {
+        const formData = new FormData();
+        formData.append('file', {
+            uri: file.uri,
+            type: file.type,
+            name: file.name,
+        } as any);
+
+        const response = await apiClient.post(API_ENDPOINTS.BULK_UPLOAD, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return response.data;
+    },
+
+    /**
      * Suspend employee
      */
     suspend: async (id: string): Promise<void> => {

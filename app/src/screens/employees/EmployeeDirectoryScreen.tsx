@@ -22,7 +22,9 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Avatar } from '../../components/ui/Avatar';
 import AddEmployeeForm from '../../components/forms/AddEmployeeForm';
+
 import EditEmployeeForm from '../../components/forms/EditEmployeeForm';
+import BulkEmployeeUploadModal from '../../components/employees/BulkEmployeeUploadModal';
 import { showToast } from '../../utils/toast';
 import { Dropdown } from '../../components/ui/Dropdown';
 import { locationApi } from '../../api/location';
@@ -42,6 +44,7 @@ export const EmployeeDirectoryScreen: React.FC = () => {
     const [showOfficeFilter, setShowOfficeFilter] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
     const [showEditForm, setShowEditForm] = useState(false);
+    const [showBulkUpload, setShowBulkUpload] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<User | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
     const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
@@ -189,14 +192,24 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                     <Text style={styles.title}>Employee Directory</Text>
                     <Text style={styles.subtitle}>Manage and view all accounts</Text>
                 </View>
-                {offices.length > 0 && (
-                    <TouchableOpacity
-                        style={styles.filterButton}
-                        onPress={() => setShowOfficeFilter(!showOfficeFilter)}
-                    >
-                        <Icon name="filter-variant" size={ICON_SIZES.sm} color={COLORS.primary} />
-                    </TouchableOpacity>
-                )}
+                <View style={{ flexDirection: 'row', gap: SPACING.sm }}>
+                    {isAdmin && (
+                        <TouchableOpacity
+                            style={styles.filterButton}
+                            onPress={() => setShowBulkUpload(true)}
+                        >
+                            <Icon name="file-upload" size={ICON_SIZES.sm} color={COLORS.primary} />
+                        </TouchableOpacity>
+                    )}
+                    {offices.length > 0 && (
+                        <TouchableOpacity
+                            style={styles.filterButton}
+                            onPress={() => setShowOfficeFilter(!showOfficeFilter)}
+                        >
+                            <Icon name="filter-variant" size={ICON_SIZES.sm} color={COLORS.primary} />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
 
             {/* Search Bar */}
@@ -212,19 +225,21 @@ export const EmployeeDirectoryScreen: React.FC = () => {
             </View>
 
             {/* Office Filters */}
-            {showOfficeFilter && (
-                <View style={{ paddingHorizontal: SPACING.base, marginBottom: SPACING.base }}>
-                    <Dropdown
-                        placeholder="Filter by Office"
-                        options={[
-                            { label: 'All Offices', value: 'all' },
-                            ...offices.map(office => ({ label: office.name, value: office._id }))
-                        ]}
-                        value={selectedOffice}
-                        onSelect={handleOfficeFilter}
-                    />
-                </View>
-            )}
+            {
+                showOfficeFilter && (
+                    <View style={{ paddingHorizontal: SPACING.base, marginBottom: SPACING.base }}>
+                        <Dropdown
+                            placeholder="Filter by Office"
+                            options={[
+                                { label: 'All Offices', value: 'all' },
+                                ...offices.map(office => ({ label: office.name, value: office._id }))
+                            ]}
+                            value={selectedOffice}
+                            onSelect={handleOfficeFilter}
+                        />
+                    </View>
+                )
+            }
 
             {/* Employee List */}
             <ScrollView
@@ -357,7 +372,18 @@ export const EmployeeDirectoryScreen: React.FC = () => {
                 onSuccess={fetchData}
                 employee={editingEmployee}
             />
-        </View>
+
+            {/* Bulk Upload Modal */}
+            <BulkEmployeeUploadModal
+                isVisible={showBulkUpload}
+                onClose={() => setShowBulkUpload(false)}
+                onSuccess={() => {
+                    fetchData();
+                    // Optional: Close modal automatically or keep open based on preference. 
+                    // Current implementation closes it in handleClose inside modal.
+                }}
+            />
+        </View >
     );
 };
 
