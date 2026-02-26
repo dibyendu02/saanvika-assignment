@@ -23,13 +23,13 @@ import {
     DialogFooter,
     DialogTrigger
 } from '@/components/ui/dialog';
-import { Loader2, Gift, CheckCircle2, AlertTriangle, Users, History, Mail, Calendar, Building, UserCheck, Filter, X, Eye, Package, User, Trash2, Upload, Plus } from 'lucide-react';
+import { Loader2, Gift, CheckCircle2, AlertTriangle, Users, History, Mail, Calendar, Building, UserCheck, Filter, X, Eye, Package, User, Trash2, Upload, Plus, Search, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import BulkGoodiesUpload from '../components/BulkGoodiesUpload';
 
 const Goodies = () => {
-    const { user } = useAuth();
+    const { user, isSuperAdmin } = useAuth();
     const { toast } = useToast();
     const [distributions, setDistributions] = useState([]);
     const [offices, setOffices] = useState([]);
@@ -66,10 +66,17 @@ const Goodies = () => {
     const [loadingEmployees, setLoadingEmployees] = useState(false);
     const [selectedEmployees, setSelectedEmployees] = useState([]);
 
+    // Pagination and search state for employee list
+    const [employeePage, setEmployeePage] = useState(1);
+    const [employeeSearch, setEmployeeSearch] = useState('');
+    const [hasMoreEmployees, setHasMoreEmployees] = useState(true);
+    const [loadingMoreEmployees, setLoadingMoreEmployees] = useState(false);
+    const [totalEmployees, setTotalEmployees] = useState(0);
+    const employeeListRef = React.useRef(null);
+
     // Form state
     const [newItem, setNewItem] = useState({
         goodiesType: '',
-        totalQuantity: 0,
         officeId: '',
         distributionDate: new Date().toISOString().split('T')[0],
         isForAllEmployees: true
@@ -113,24 +120,68 @@ const Goodies = () => {
         }
     };
 
-    const fetchEmployeesByOffice = async (officeId) => {
-        if (!officeId) {
-            setEmployees([]);
-            return;
+    const fetchEmployees = async (officeId, page = 1, search = '', append = false) => {
+        if (page === 1) {
+            setLoadingEmployees(true);
+        } else {
+            setLoadingMoreEmployees(true);
         }
-        setLoadingEmployees(true);
         try {
-            const response = await api.get(`/users/office/${officeId}`);
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: '20',
+                ...(search && { search })
+            });
+
+            // For global distributions (no officeId or 'global'), use /users endpoint
+            // For office-specific, use /users/office/:officeId
+            let endpoint;
+            if (!officeId || officeId === 'global') {
+                // Don't filter by role - use client-side filter to include both internal and external
+                endpoint = `/users?${params}`;
+            } else {
+                endpoint = `/users/office/${officeId}?${params}`;
+            }
+
+            const response = await api.get(endpoint);
             const data = response.data.data;
             const docs = data.users || data.employees || (Array.isArray(data) ? data : []);
             const filteredEmployees = docs.filter(emp => ['internal', 'external'].includes(emp.role));
-            setEmployees(filteredEmployees);
+
+            if (append) {
+                setEmployees(prev => [...prev, ...filteredEmployees]);
+            } else {
+                setEmployees(filteredEmployees);
+            }
+
+            setTotalEmployees(data.total || 0);
+            setHasMoreEmployees(page < (data.totalPages || 1));
+            setEmployeePage(page);
         } catch (error) {
             console.error('Error fetching employees:', error);
-            setEmployees([]);
+            if (!append) setEmployees([]);
         } finally {
             setLoadingEmployees(false);
+            setLoadingMoreEmployees(false);
         }
+    };
+
+    const handleEmployeeScroll = (e) => {
+        const { scrollTop, scrollHeight, clientHeight } = e.target;
+        if (scrollHeight - scrollTop <= clientHeight + 50 && hasMoreEmployees && !loadingMoreEmployees) {
+            fetchEmployees(newItem.officeId, employeePage + 1, employeeSearch, true);
+        }
+    };
+
+    const handleEmployeeSearchChange = (search) => {
+        setEmployeeSearch(search);
+        setEmployeePage(1);
+        setHasMoreEmployees(true);
+        // Debounce search
+        const timeoutId = setTimeout(() => {
+            fetchEmployees(newItem.officeId, 1, search, false);
+        }, 300);
+        return () => clearTimeout(timeoutId);
     };
 
     const fetchClaimsForDistribution = async (dist) => {
@@ -164,8 +215,11 @@ const Goodies = () => {
         setNewItem({ ...newItem, officeId });
         setSelectedEmployees([]);
         setUnregisteredRecipients([]);
-        if (!newItem.isForAllEmployees) {
-            fetchEmployeesByOffice(officeId);
+        setEmployeePage(1);
+        setEmployeeSearch('');
+        setHasMoreEmployees(true);
+        if (!newItem.isForAllEmployees && officeId) {
+            fetchEmployees(officeId, 1, '', false);
         }
     };
 
@@ -173,8 +227,11 @@ const Goodies = () => {
         setNewItem({ ...newItem, isForAllEmployees: isForAll });
         setSelectedEmployees([]);
         setUnregisteredRecipients([]);
+        setEmployeePage(1);
+        setEmployeeSearch('');
+        setHasMoreEmployees(true);
         if (!isForAll && newItem.officeId) {
-            fetchEmployeesByOffice(newItem.officeId);
+            fetchEmployees(newItem.officeId, 1, '', false);
         }
     };
 
@@ -267,7 +324,9 @@ const Goodies = () => {
     const handleCreate = async (e) => {
         e.preventDefault();
 
-        if (!newItem.officeId) {
+        // For global distributions, officeId can be 'global' or empty
+        // For non-global, require an office selection
+        if (!newItem.officeId && user?.role !== 'super_admin') {
             toast({ title: 'Error', description: 'Please select an office', variant: 'destructive' });
             return;
         }
@@ -279,11 +338,22 @@ const Goodies = () => {
 
         setCreating(true);
         try {
+            // Build payload, omitting officeId for global distributions
             const payload = {
-                ...newItem,
+                goodiesType: newItem.goodiesType,
+                distributionDate: newItem.distributionDate,
+                isForAllEmployees: newItem.isForAllEmployees,
+                // Auto-calculate totalQuantity based on selected employees
+                totalQuantity: newItem.isForAllEmployees ? 0 : (selectedEmployees.length + unregisteredRecipients.length),
                 targetEmployees: newItem.isForAllEmployees ? [] : selectedEmployees,
                 unregisteredRecipients: newItem.isForAllEmployees ? [] : unregisteredRecipients
             };
+
+            // Only include officeId if it's not 'global' and not empty
+            if (newItem.officeId && newItem.officeId !== 'global') {
+                payload.officeId = newItem.officeId;
+            }
+
             await api.post('/goodies/distributions', payload);
             toast({ title: 'Success', description: 'Goodie distribution created' });
             fetchDistributions();
@@ -384,13 +454,17 @@ const Goodies = () => {
         if (!isOpen) {
             setNewItem({
                 goodiesType: '',
-                totalQuantity: 0,
                 officeId: '',
                 distributionDate: new Date().toISOString().split('T')[0],
                 isForAllEmployees: true
             });
             setSelectedEmployees([]);
             setEmployees([]);
+            setEmployeePage(1);
+            setEmployeeSearch('');
+            setHasMoreEmployees(true);
+            setTotalEmployees(0);
+            setUnregisteredRecipients([]);
         }
     };
 
@@ -458,27 +532,15 @@ const Goodies = () => {
                                             placeholder="e.g. Diwali Sweet Box"
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="qty" className="text-sm font-medium text-gray-700">Total Quantity</Label>
-                                            <Input
-                                                id="qty"
-                                                type="number"
-                                                value={newItem.totalQuantity}
-                                                onChange={e => setNewItem({ ...newItem, totalQuantity: parseInt(e.target.value) || 0 })}
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="date" className="text-sm font-medium text-gray-700">Date</Label>
-                                            <Input
-                                                id="date"
-                                                type="date"
-                                                value={newItem.distributionDate}
-                                                onChange={e => setNewItem({ ...newItem, distributionDate: e.target.value })}
-                                                required
-                                            />
-                                        </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="date" className="text-sm font-medium text-gray-700">Distribution Date</Label>
+                                        <Input
+                                            id="date"
+                                            type="date"
+                                            value={newItem.distributionDate}
+                                            onChange={e => setNewItem({ ...newItem, distributionDate: e.target.value })}
+                                            required
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="office" className="text-sm font-medium text-gray-700">Assign to Office</Label>
@@ -487,9 +549,11 @@ const Goodies = () => {
                                             className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-transparent focus:outline-none"
                                             value={newItem.officeId}
                                             onChange={e => handleOfficeChange(e.target.value)}
-                                            required
                                         >
                                             <option value="">Select an office</option>
+                                            {isSuperAdmin() && (
+                                                <option value="global">Global (All Offices)</option>
+                                            )}
                                             {offices.map((office) => (
                                                 <option key={office._id} value={office._id}>{office.name}</option>
                                             ))}
@@ -582,31 +646,76 @@ const Goodies = () => {
 
                                             {!newItem.officeId ? (
                                                 <div className="text-sm text-gray-500 p-4 border rounded-lg bg-gray-50 text-center">Please select an office first</div>
-                                            ) : loadingEmployees ? (
-                                                <div className="flex items-center justify-center p-4 border rounded-lg">
-                                                    <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading employees...
-                                                </div>
-                                            ) : employees.length === 0 ? (
-                                                <div className="text-sm text-gray-500 p-4 border rounded-lg bg-gray-50 text-center">No employees found in this office</div>
                                             ) : (
-                                                <div className="border rounded-lg max-h-48 overflow-y-auto">
-                                                    {employees.map((emp) => (
-                                                        <div
-                                                            key={emp._id}
-                                                            className={`flex items-center gap-3 p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors ${selectedEmployees.includes(emp._id) ? 'bg-primary-50' : ''}`}
-                                                            onClick={() => toggleEmployeeSelection(emp._id)}
-                                                        >
-                                                            <div className="h-4 w-4 rounded border-gray-300 border bg-white flex items-center justify-center">
-                                                                {selectedEmployees.includes(emp._id) && <div className="h-2 w-2 bg-primary rounded-full" />}
-                                                            </div>
-                                                            <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-medium truncate">{emp.name}</p>
-                                                                <p className="text-xs text-gray-500 truncate">{emp.email}</p>
-                                                            </div>
-                                                            <Badge variant="secondary" className="text-xs capitalize">{emp.role}</Badge>
+                                                <>
+                                                    {/* Search Input */}
+                                                    <div className="relative mb-3">
+                                                        <Search className="h-4 w-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                                        <Input
+                                                            placeholder="Search employees..."
+                                                            value={employeeSearch}
+                                                            onChange={(e) => handleEmployeeSearchChange(e.target.value)}
+                                                            className="pl-9 h-9"
+                                                        />
+                                                        {employeeSearch && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-6 w-6 absolute right-2 top-1/2 -translate-y-1/2"
+                                                                onClick={() => handleEmployeeSearchChange('')}
+                                                            >
+                                                                <X className="h-3 w-3" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+
+                                                    {loadingEmployees ? (
+                                                        <div className="flex items-center justify-center p-4 border rounded-lg">
+                                                            <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading employees...
                                                         </div>
-                                                    ))}
-                                                </div>
+                                                    ) : employees.length === 0 ? (
+                                                        <div className="text-sm text-gray-500 p-4 border rounded-lg bg-gray-50 text-center">
+                                                            {employeeSearch ? 'No employees match your search' : 'No employees found'}
+                                                        </div>
+                                                    ) : (
+                                                        <div
+                                                            className="border rounded-lg max-h-48 overflow-y-auto"
+                                                            onScroll={handleEmployeeScroll}
+                                                            ref={employeeListRef}
+                                                        >
+                                                            {employees.map((emp) => (
+                                                                <div
+                                                                    key={emp._id}
+                                                                    className={`flex items-center gap-3 p-3 border-b last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors ${selectedEmployees.includes(emp._id) ? 'bg-primary-50' : ''}`}
+                                                                    onClick={() => toggleEmployeeSelection(emp._id)}
+                                                                >
+                                                                    <div className="h-4 w-4 rounded border-gray-300 border bg-white flex items-center justify-center">
+                                                                        {selectedEmployees.includes(emp._id) && <div className="h-2 w-2 bg-primary rounded-full" />}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="text-sm font-medium truncate">{emp.name}</p>
+                                                                        <p className="text-xs text-gray-500 truncate">{emp.email}</p>
+                                                                    </div>
+                                                                    {emp.primaryOfficeId?.name && newItem.officeId === 'global' && (
+                                                                        <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{emp.primaryOfficeId.name}</span>
+                                                                    )}
+                                                                    <Badge variant="secondary" className="text-xs capitalize">{emp.role}</Badge>
+                                                                </div>
+                                                            ))}
+                                                            {loadingMoreEmployees && (
+                                                                <div className="flex items-center justify-center p-3 border-t">
+                                                                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading more...
+                                                                </div>
+                                                            )}
+                                                            {!hasMoreEmployees && employees.length > 0 && (
+                                                                <div className="text-xs text-gray-400 text-center py-2 border-t bg-gray-50">
+                                                                    Showing all {totalEmployees} employees
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     )}

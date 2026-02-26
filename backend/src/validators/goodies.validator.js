@@ -14,10 +14,10 @@ const objectIdPattern = /^[0-9a-fA-F]{24}$/;
 export const createDistributionSchema = Joi.object({
   officeId: Joi.string()
     .pattern(objectIdPattern)
-    .required()
+    .optional()
+    .allow(null, '')
     .messages({
       'string.pattern.base': 'Invalid office ID format',
-      'any.required': 'Office ID is required',
     }),
 
   goodiesType: Joi.string()
@@ -42,12 +42,12 @@ export const createDistributionSchema = Joi.object({
 
   totalQuantity: Joi.number()
     .integer()
-    .min(1)
+    .min(0)
     .required()
     .messages({
       'number.base': 'Total quantity must be a number',
       'number.integer': 'Total quantity must be an integer',
-      'number.min': 'Total quantity must be at least 1',
+      'number.min': 'Total quantity cannot be negative',
       'any.required': 'Total quantity is required',
     }),
 
@@ -64,6 +64,17 @@ export const createDistributionSchema = Joi.object({
     .default([])
     .messages({
       'array.base': 'targetEmployees must be an array',
+    }),
+
+  unregisteredRecipients: Joi.array()
+    .items(Joi.object({
+      name: Joi.string().required(),
+      employeeId: Joi.string().optional().allow(''),
+      officeId: Joi.string().pattern(objectIdPattern).optional().allow(null, ''),
+    }))
+    .default([])
+    .messages({
+      'array.base': 'unregisteredRecipients must be an array',
     }),
 });
 

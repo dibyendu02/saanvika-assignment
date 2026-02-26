@@ -38,7 +38,6 @@ const Offices = () => {
         latitude: '',
         longitude: '',
         targetHeadcount: 0,
-        targetHeadcount: 0,
         officeId: ''
     });
 

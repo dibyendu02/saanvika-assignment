@@ -30,7 +30,7 @@ const goodiesDistributionSchema = new mongoose.Schema(
     totalQuantity: {
       type: Number,
       required: [true, 'Total quantity is required'],
-      min: [1, 'Total quantity must be at least 1'],
+      min: [0, 'Total quantity cannot be negative'],
     },
     isForAllEmployees: {
       type: Boolean,

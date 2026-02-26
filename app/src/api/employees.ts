@@ -25,12 +25,41 @@ export const employeesApi = {
     },
 
     /**
-     * Get employees by office
+     * Get employees by office with optional pagination and search
      */
-    getByOffice: async (officeId: string): Promise<User[]> => {
-        const response = await apiClient.get(API_ENDPOINTS.USERS_BY_OFFICE(officeId));
+    getByOffice: async (officeId: string, params?: { page?: number; limit?: number; search?: string }): Promise<{
+        users: User[];
+        total: number;
+        totalPages: number;
+        page: number;
+    }> => {
+        const response = await apiClient.get(API_ENDPOINTS.USERS_BY_OFFICE(officeId), { params });
         const data = response.data.data;
-        return data?.users || data?.employees || (Array.isArray(data) ? data : []);
+        return {
+            users: data?.users || data?.employees || (Array.isArray(data) ? data : []),
+            total: data?.total || 0,
+            totalPages: data?.totalPages || 1,
+            page: data?.page || 1,
+        };
+    },
+
+    /**
+     * Get all employees with pagination and search (for global distributions)
+     */
+    getAllPaginated: async (params?: { page?: number; limit?: number; search?: string; role?: string }): Promise<{
+        users: User[];
+        total: number;
+        totalPages: number;
+        page: number;
+    }> => {
+        const response = await apiClient.get(API_ENDPOINTS.USERS, { params });
+        const data = response.data.data;
+        return {
+            users: data?.users || (Array.isArray(data) ? data : []),
+            total: data?.total || 0,
+            totalPages: data?.totalPages || 1,
+            page: data?.page || 1,
+        };
     },
 
     create: async (userData: {

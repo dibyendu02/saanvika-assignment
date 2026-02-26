@@ -69,7 +69,6 @@ export const GoodiesScreen: React.FC = () => {
     const [uploadResult, setUploadResult] = useState<any>(null);
     const [formData, setFormData] = useState({
         goodiesType: '',
-        totalQuantity: '',
         distributionDate: new Date().toISOString().split('T')[0],
         officeId: '',
         isForAllEmployees: true,
@@ -79,6 +78,13 @@ export const GoodiesScreen: React.FC = () => {
     const [employees, setEmployees] = useState<any[]>([]);
     const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
     const [loadingEmployees, setLoadingEmployees] = useState(false);
+
+    // Pagination and Search State
+    const [employeePage, setEmployeePage] = useState(1);
+    const [employeeSearch, setEmployeeSearch] = useState('');
+    const [hasMoreEmployees, setHasMoreEmployees] = useState(true);
+    const [loadingMoreEmployees, setLoadingMoreEmployees] = useState(false);
+    const [totalEmployees, setTotalEmployees] = useState(0);
 
     const isManagement = ['super_admin', 'admin'].includes(user?.role || '');
     const canClaim = ['internal', 'external'].includes(user?.role || '');
@@ -97,30 +103,72 @@ export const GoodiesScreen: React.FC = () => {
 
         if (formData.isForAllEmployees) {
             setEmployees([]);
+            setEmployeeSearch('');
+            setEmployeePage(1);
+            setHasMoreEmployees(true);
             return;
         }
 
-        const fetchTargetEmployees = async () => {
-            const targetOfficeId = isSuperAdmin ? formData.officeId : (user?.primaryOfficeId && typeof user.primaryOfficeId === 'object' ? (user.primaryOfficeId as any)._id : user?.primaryOfficeId);
+        fetchTargetEmployees(1, '', false);
+    }, [formData.isForAllEmployees, formData.officeId, showCreateModal]);
 
-            if (!targetOfficeId) return;
+    const fetchTargetEmployees = async (page: number = 1, search: string = '', append: boolean = false) => {
+        const targetOfficeId = isSuperAdmin ? formData.officeId : (user?.primaryOfficeId && typeof user.primaryOfficeId === 'object' ? (user.primaryOfficeId as any)._id : user?.primaryOfficeId);
 
+        if (page === 1) {
             setLoadingEmployees(true);
-            try {
-                const data = await employeesApi.getByOffice(targetOfficeId);
-                // Filter to only show internal and external employees
-                const filteredEmployees = data.filter((emp: any) => ['internal', 'external'].includes(emp.role));
-                setEmployees(filteredEmployees);
-            } catch (error) {
-                console.error('Error fetching employees:', error);
-                showToast.error('Error', 'Failed to load employees');
-            } finally {
-                setLoadingEmployees(false);
-            }
-        };
+        } else {
+            setLoadingMoreEmployees(true);
+        }
 
-        fetchTargetEmployees();
-    }, [formData.isForAllEmployees, formData.officeId, showCreateModal, isSuperAdmin, user]);
+        try {
+            let result;
+            const params = { page, limit: 20, search: search || undefined };
+
+            // For global distributions (no officeId), use getAllPaginated
+            if (!targetOfficeId) {
+                // Don't filter by role - client-side filter includes both internal and external
+                result = await employeesApi.getAllPaginated(params);
+            } else {
+                result = await employeesApi.getByOffice(targetOfficeId, params);
+            }
+
+            // Filter to only show internal and external employees
+            const filteredEmployees = result.users.filter((emp: any) => ['internal', 'external'].includes(emp.role));
+
+            if (append) {
+                setEmployees(prev => [...prev, ...filteredEmployees]);
+            } else {
+                setEmployees(filteredEmployees);
+            }
+
+            setTotalEmployees(result.total);
+            setHasMoreEmployees(page < result.totalPages);
+            setEmployeePage(page);
+        } catch (error) {
+            console.error('Error fetching employees:', error);
+            if (!append) showToast.error('Error', 'Failed to load employees');
+        } finally {
+            setLoadingEmployees(false);
+            setLoadingMoreEmployees(false);
+        }
+    };
+
+    const handleEmployeeSearch = (text: string) => {
+        setEmployeeSearch(text);
+        // Debounce search
+        setTimeout(() => {
+            if (text === employeeSearch || text === '') {
+                fetchTargetEmployees(1, text, false);
+            }
+        }, 300);
+    };
+
+    const handleLoadMoreEmployees = () => {
+        if (hasMoreEmployees && !loadingMoreEmployees) {
+            fetchTargetEmployees(employeePage + 1, employeeSearch, true);
+        }
+    };
 
     const fetchDistributions = useCallback(async () => {
         try {
@@ -375,8 +423,9 @@ export const GoodiesScreen: React.FC = () => {
 
 
 
-        if (!formData.goodiesType || !formData.totalQuantity || !formData.distributionDate) {
-            showToast.error('Error', 'Please fill in all required fields');
+        // For super_admin, allow global distributions (no officeId required)
+        if (!isSuperAdmin && !formData.officeId) {
+            showToast.error('Error', 'Please select an office');
             return;
         }
 
@@ -396,9 +445,11 @@ export const GoodiesScreen: React.FC = () => {
 
             await goodiesApi.createDistribution({
                 goodiesType: formData.goodiesType,
-                totalQuantity: parseInt(formData.totalQuantity),
+                // Auto-calculate totalQuantity based on selected employees
+                totalQuantity: formData.isForAllEmployees ? 0 : selectedEmployeeIds.length,
                 distributionDate: formData.distributionDate,
-                officeId: isSuperAdmin ? formData.officeId : (userOfficeId || ''),
+                // For global distributions, send null
+                officeId: (formData.officeId === '' || !formData.officeId) ? null : formData.officeId,
                 isForAllEmployees: formData.isForAllEmployees,
                 targetEmployees: formData.isForAllEmployees ? [] : selectedEmployeeIds,
             });
@@ -418,7 +469,6 @@ export const GoodiesScreen: React.FC = () => {
     const resetCreateForm = () => {
         setFormData({
             goodiesType: '',
-            totalQuantity: '',
             distributionDate: new Date().toISOString().split('T')[0],
             officeId: '',
             isForAllEmployees: true,
@@ -428,6 +478,10 @@ export const GoodiesScreen: React.FC = () => {
         setCreateMode('single');
         setSelectedEmployeeIds([]);
         setEmployees([]);
+        setEmployeePage(1);
+        setEmployeeSearch('');
+        setHasMoreEmployees(true);
+        setTotalEmployees(0);
     };
 
     const handleCloseCreateModal = () => {
@@ -895,7 +949,11 @@ export const GoodiesScreen: React.FC = () => {
                             </TouchableOpacity>
                         </View>
 
-                        <ScrollView style={styles.formContainer}>
+                        <ScrollView
+                            style={styles.formContainer}
+                            contentContainerStyle={{ paddingBottom: 80 }}
+                            showsVerticalScrollIndicator={true}
+                        >
                             <View style={styles.formGroup}>
                                 <Text style={styles.label}>Goodies Type</Text>
                                 <TextInput
@@ -928,16 +986,7 @@ export const GoodiesScreen: React.FC = () => {
 
                             {createMode === 'single' ? (
                                 <>
-                                    <View style={styles.formGroup}>
-                                        <Text style={styles.label}>Total Quantity</Text>
-                                        <TextInput
-                                            style={styles.input}
-                                            placeholder="e.g. 100"
-                                            keyboardType="numeric"
-                                            value={formData.totalQuantity}
-                                            onChangeText={(text) => setFormData({ ...formData, totalQuantity: text })}
-                                        />
-                                    </View>
+
 
                                     {isSuperAdmin && (
                                         <Dropdown
@@ -963,15 +1012,34 @@ export const GoodiesScreen: React.FC = () => {
                                         <View style={styles.employeeListContainer}>
                                             <Text style={styles.sectionTitle}>Select Employees</Text>
 
+                                            {/* Search Input */}
+                                            <View style={styles.searchContainer}>
+                                                <Icon name="magnify" size={20} color={COLORS.textSecondary} style={{ marginRight: 8 }} />
+                                                <TextInput
+                                                    style={styles.searchInput}
+                                                    placeholder="Search employees..."
+                                                    placeholderTextColor={COLORS.textLight}
+                                                    value={employeeSearch}
+                                                    onChangeText={handleEmployeeSearch}
+                                                />
+                                                {employeeSearch !== '' && (
+                                                    <TouchableOpacity onPress={() => { setEmployeeSearch(''); fetchTargetEmployees(1, '', false); }}>
+                                                        <Icon name="close-circle" size={18} color={COLORS.textSecondary} />
+                                                    </TouchableOpacity>
+                                                )}
+                                            </View>
+
                                             {loadingEmployees ? (
                                                 <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 20 }} />
                                             ) : employees.length === 0 ? (
-                                                <Text style={styles.emptyText}>No employees found in this office</Text>
+                                                <Text style={styles.emptyText}>
+                                                    {employeeSearch ? 'No employees match your search' : 'No employees found'}
+                                                </Text>
                                             ) : (
                                                 <>
                                                     <View style={styles.selectionHeader}>
                                                         <Text style={styles.selectionCount}>
-                                                            {selectedEmployeeIds.length} selected
+                                                            {selectedEmployeeIds.length} selected {totalEmployees > 0 && `(of ${totalEmployees})`}
                                                         </Text>
                                                         <TouchableOpacity
                                                             onPress={() => {
@@ -988,7 +1056,11 @@ export const GoodiesScreen: React.FC = () => {
                                                         </TouchableOpacity>
                                                     </View>
 
-                                                    <View style={styles.employeeList}>
+                                                    <ScrollView
+                                                        style={styles.employeeList}
+                                                        nestedScrollEnabled={true}
+                                                        showsVerticalScrollIndicator={true}
+                                                    >
                                                         {employees.map((emp) => (
                                                             <TouchableOpacity
                                                                 key={emp._id}
@@ -1012,13 +1084,29 @@ export const GoodiesScreen: React.FC = () => {
                                                                         <Icon name="check" size={12} color={COLORS.textWhite} />
                                                                     )}
                                                                 </View>
-                                                                <View>
+                                                                <View style={{ flex: 1 }}>
                                                                     <Text style={styles.employeeName}>{emp.name}</Text>
                                                                     <Text style={styles.employeeEmail}>{emp.email}</Text>
                                                                 </View>
+                                                                {formData.officeId === '' && emp.primaryOfficeId?.name && (
+                                                                    <Text style={styles.officeBadge}>{emp.primaryOfficeId.name}</Text>
+                                                                )}
                                                             </TouchableOpacity>
                                                         ))}
-                                                    </View>
+                                                    </ScrollView>
+
+                                                    {/* Load More / Loading More */}
+                                                    {loadingMoreEmployees ? (
+                                                        <ActivityIndicator size="small" color={COLORS.primary} style={{ marginVertical: 12 }} />
+                                                    ) : hasMoreEmployees && (
+                                                        <TouchableOpacity style={styles.loadMoreButton} onPress={handleLoadMoreEmployees}>
+                                                            <Text style={styles.loadMoreText}>Show More</Text>
+                                                        </TouchableOpacity>
+                                                    )}
+
+                                                    {!hasMoreEmployees && employees.length > 0 && (
+                                                        <Text style={styles.allLoadedText}>All {totalEmployees} employees loaded</Text>
+                                                    )}
                                                 </>
                                             )}
                                         </View>
@@ -1070,6 +1158,10 @@ export const GoodiesScreen: React.FC = () => {
                                 </>
                             )}
 
+                        </ScrollView>
+
+                        {/* Fixed button at bottom */}
+                        <View style={styles.modalFooter}>
                             <Button
                                 variant="primary"
                                 onPress={handleCreateDistribution}
@@ -1077,8 +1169,7 @@ export const GoodiesScreen: React.FC = () => {
                                 style={styles.submitButton}
                                 title={createMode === 'single' ? "Create Distribution" : "Upload & Distribute"}
                             />
-                            <View style={{ height: 40 }} />
-                        </ScrollView>
+                        </View>
                     </View>
                 </KeyboardAvoidingView>
             </Modal>
@@ -1366,8 +1457,8 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
         borderTopLeftRadius: SPACING.lg,
         borderTopRightRadius: SPACING.lg,
-        height: '70%',
-        overflow: 'hidden',
+        maxHeight: '85%',
+        flex: 1,
     },
     modalHeader: {
         flexDirection: 'row',
@@ -1491,6 +1582,7 @@ const styles = StyleSheet.create({
     },
     // Form Styles
     formContainer: {
+        flex: 1,
         padding: SPACING.md,
     },
     formGroup: {
@@ -1644,6 +1736,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: COLORS.border,
         borderRadius: SPACING.sm,
+        maxHeight: 200,
     },
     employeeItem: {
         flexDirection: 'row',
@@ -1907,6 +2000,42 @@ const styles = StyleSheet.create({
     confirmButtons: {
         flexDirection: 'row',
         gap: SPACING.sm,
+    },
+    loadMoreButton: {
+        paddingVertical: SPACING.sm,
+        paddingHorizontal: SPACING.md,
+        backgroundColor: COLORS.primaryLight,
+        borderRadius: SPACING.sm,
+        alignItems: 'center',
+        marginTop: SPACING.sm,
+    },
+    loadMoreText: {
+        color: COLORS.primary,
+        fontSize: TYPOGRAPHY.fontSize.sm,
+        fontWeight: TYPOGRAPHY.fontWeight.semibold,
+    },
+    officeBadge: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        color: COLORS.textSecondary,
+        backgroundColor: COLORS.backgroundLight,
+        paddingHorizontal: SPACING.xs,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginLeft: SPACING.xs,
+    },
+    allLoadedText: {
+        fontSize: TYPOGRAPHY.fontSize.xs,
+        color: COLORS.textLight,
+        textAlign: 'center',
+        marginTop: SPACING.sm,
+    },
+    modalFooter: {
+        paddingHorizontal: SPACING.md,
+        paddingTop: SPACING.md,
+        paddingBottom: SPACING.xl,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
+        backgroundColor: COLORS.backgroundLight,
     },
 });
 

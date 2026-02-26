@@ -64,12 +64,12 @@ export const getUserById = asyncHandler(async (req, res) => {
  * @access  Private (super_admin, admin: any office; internal: own office; external: forbidden)
  */
 export const getEmployeesByOffice = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10 } = req.query;
+  const { page = 1, limit = 10, search } = req.query;
 
   const result = await userService.getEmployeesByOffice(
     req.user,
     req.params.officeId,
-    { page: parseInt(page), limit: parseInt(limit) }
+    { page: parseInt(page), limit: parseInt(limit), search }
   );
 
   res.status(200).json({
